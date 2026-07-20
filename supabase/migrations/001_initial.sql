@@ -111,6 +111,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to auto-create profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, name, role)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'name', 'Unknown'),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'player')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger on new auth user
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- Trigger to auto-generate invite codes
 CREATE TRIGGER set_invite_code
   BEFORE INSERT ON teams

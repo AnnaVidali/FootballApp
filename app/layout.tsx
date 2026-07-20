@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Football Team Manager",
+  title: "Las Bravas FC",
   description: "Manage your football team, schedule trainings, and build lineups.",
+  icons: {
+    icon: "/lasbravasfcimage.png",
+  },
 };
 
 export default function RootLayout({
