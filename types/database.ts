@@ -13,6 +13,7 @@ export interface Profile {
   name: string;
   position: string | null;
   role: "coach" | "player";
+  is_admin: boolean;
   created_at: string;
 }
 
