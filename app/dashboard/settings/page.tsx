@@ -91,7 +91,7 @@ export default function SettingsPage() {
         <div className="max-w-md mx-auto">
             <h1 className="text-2xl font-bold text-black mb-6">Team Settings</h1>
             {message && (
-                <p className={`mb-4 text-sm ${message.startsWith("Error") ? "text-red-600" : ""}`} style={!message.startsWith("Error") ? { color: "var(--primary)" } : undefined}>
+                <p className={`mb-4 text-sm ${message.startsWith("Error") ? "text-red-600" : ""}`} style={!message.startsWith("Error") ? { color: "var(--primary-text)" } : undefined}>
                     {message}
                 </p>
             )}

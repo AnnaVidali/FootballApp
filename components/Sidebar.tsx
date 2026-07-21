@@ -40,7 +40,7 @@ export default function Sidebar({
                             {teamName || "No Team"}
                         </h2>
                         {teamName && (
-                        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)" }}>
+                        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary-text)" }}>
                             {isAdmin ? "Admin" : "Player"}
                         </span>
                         )}
@@ -62,7 +62,7 @@ export default function Sidebar({
                             onClick={onCloseAction}
                             className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                                 isActive
-                                ? "text-[var(--primary)]"
+                                ? "text-[var(--primary-text)]"
                                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                             }`}
                             style={isActive ? { backgroundColor: "color-mix(in srgb, var(--primary) 10%, transparent)" } : undefined}

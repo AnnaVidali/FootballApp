@@ -90,11 +90,11 @@ export default function CreateTeamPage() {
             <h1 className="text-2xl font-bold text-black mb-6">Create a Team</h1>
             {inviteCode ? (
                 <div className="rounded-lg p-6 text-center" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-                    <h2 className="text-lg font-bold mb-2" style={{ color: "var(--primary)" }}>Team Created!</h2>
+                    <h2 className="text-lg font-bold mb-2" style={{ color: "var(--primary-text)" }}>Team Created!</h2>
                     <p className="text-sm mb-4" style={{ color: "color-mix(in srgb, var(--primary) 70%, black)" }}>
                         Share this invite code with your players:
                     </p>
-                    <p className="text-3xl font-mono font-bold mb-6" style={{ color: "var(--primary)" }}>
+                    <p className="text-3xl font-mono font-bold mb-6" style={{ color: "var(--primary-text)" }}>
                         {inviteCode}
                     </p>
                     <button

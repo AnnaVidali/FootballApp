@@ -85,7 +85,7 @@ export default async function DashboardPage() {
         </div>
         <div className="rounded-lg bg-white p-6 shadow-sm">
           <h3 className="text-sm font-medium text-gray-500">Invite Code</h3>
-          <p className="text-2xl font-bold mt-1 font-mono" style={{ color: "var(--primary)" }}>
+          <p className="text-2xl font-bold mt-1 font-mono" style={{ color: "var(--primary-text)" }}>
             {team?.invite_code}
           </p>
         </div>

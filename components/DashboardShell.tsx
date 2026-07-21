@@ -30,10 +30,17 @@ export default function DashboardShell({
         const r = parseInt(primaryColor.slice(1, 3), 16);
         const g = parseInt(primaryColor.slice(3, 5), 16);
         const b = parseInt(primaryColor.slice(5, 7), 16);
-        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // Use relative luminance (WCAG formula) for better contrast
+        const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        // For saturated bright colors (high max channel, low min channel),
+        // force black text even if luminance is low
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const saturation = max === 0 ? 0 : (max - min) / max;
+        const useBlackText = saturation > 0.5 && max > 150 ? true : luminance > 128;
         document.documentElement.style.setProperty(
             "--primary-text",
-            brightness > 128 ? "#000000" : "#ffffff"
+            useBlackText ? "#000000" : "#ffffff"
         );
     }, [primaryColor, secondaryColor]);
 
