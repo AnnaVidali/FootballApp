@@ -13,10 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Las Bravas FC",
+  title: "Squad HQ",
   description: "Manage your football team, schedule trainings, and build lineups.",
   icons: {
-    icon: "/lasbravasfcimage.png",
+    icon: "/simplesvgfootball.png",
   },
 };
 

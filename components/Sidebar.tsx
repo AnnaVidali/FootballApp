@@ -30,7 +30,7 @@ export default function Sidebar({
           {teamName || "No Team"}
         </h2>
         {teamName && (
-          <span className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+          <span className="mt-1 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
             {isAdmin ? "Admin" : "Player"}
           </span>
         )}
@@ -50,7 +50,7 @@ export default function Sidebar({
               onClick={onCloseAction}
               className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-red-50 text-red-700"
+                  ? "bg-green-50 text-green-700"
                   : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               }`}
             >

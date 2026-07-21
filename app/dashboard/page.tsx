@@ -27,7 +27,7 @@ export default async function DashboardPage() {
           <div className="space-y-3">
             <Link
               href="/dashboard/create-team"
-              className="block w-full rounded-md bg-red-600 px-4 py-3 text-white font-medium hover:bg-red-700 text-center"
+              className="block w-full rounded-md bg-green-600 px-4 py-3 text-white font-medium hover:bg-green-700 text-center"
             >
               Create a Team
             </Link>
@@ -77,7 +77,7 @@ export default async function DashboardPage() {
         </div>
         <div className="rounded-lg bg-white p-6 shadow-sm">
           <h3 className="text-sm font-medium text-gray-500">Invite Code</h3>
-          <p className="text-2xl font-bold text-red-600 mt-1 font-mono">
+          <p className="text-2xl font-bold text-green-600 mt-1 font-mono">
             {team?.invite_code}
           </p>
         </div>
@@ -89,7 +89,7 @@ export default async function DashboardPage() {
           <div className="flex flex-wrap gap-3">
             <Link
               href="/dashboard/events/new"
-              className="rounded-md bg-red-600 px-4 py-2 text-white text-sm font-medium hover:bg-red-700"
+              className="rounded-md bg-green-600 px-4 py-2 text-white text-sm font-medium hover:bg-green-700"
             >
               + New Event
             </Link>

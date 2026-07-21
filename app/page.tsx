@@ -12,14 +12,14 @@ export default async function Home() {
     <div className="flex flex-1 flex-col items-center justify-center bg-gray-50 px-4">
       <div className="text-center">
         <Image
-          src="/lasbravasfcimage.png"
-          alt="Las Bravas FC"
+          src="/simplesvgfootball.png"
+          alt="Squad HQ"
           width={120}
           height={120}
           className="mx-auto mb-6 rounded-full"
         />
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Las Bravas FC
+          Squad HQ
         </h1>
         <p className="text-lg text-gray-600 mb-8">
           Manage your team, schedule trainings, and build lineups.
@@ -32,7 +32,7 @@ export default async function Home() {
             </p>
             <Link
               href="/dashboard"
-              className="inline-block rounded-md bg-red-600 px-6 py-3 text-white font-medium hover:bg-red-700"
+              className="inline-block rounded-md bg-green-600 px-6 py-3 text-white font-medium hover:bg-green-700"
             >
               Go to Dashboard
             </Link>
@@ -41,7 +41,7 @@ export default async function Home() {
           <div className="space-x-4">
             <Link
               href="/login"
-              className="inline-block rounded-md bg-red-600 px-6 py-3 text-white font-medium hover:bg-red-700"
+              className="inline-block rounded-md bg-green-600 px-6 py-3 text-white font-medium hover:bg-green-700"
             >
               Sign In
             </Link>
