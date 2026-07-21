@@ -27,7 +27,8 @@ export default async function DashboardPage() {
           <div className="space-y-3">
             <Link
               href="/dashboard/create-team"
-              className="block w-full rounded-md bg-green-600 px-4 py-3 text-white font-medium hover:bg-green-700 text-center"
+              className="block w-full rounded-md px-4 py-3 font-medium text-center"
+              style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
             >
               Create a Team
             </Link>
@@ -39,7 +40,7 @@ export default async function DashboardPage() {
 
   const { data: team } = await supabase
     .from("teams")
-    .select("name, invite_code")
+    .select("name, invite_code, logo_url")
     .eq("id", profile.team_id)
     .single();
 
@@ -65,9 +66,16 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="rounded-lg bg-white p-6 shadow-sm">
           <h3 className="text-sm font-medium text-gray-500">Team</h3>
-          <p className="text-2xl font-bold text-black mt-1">
-            {team?.name}
-          </p>
+          <div className="flex items-center gap-3 mt-1">
+            {team?.logo_url ? (
+                <img src={team.logo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+            ) : (
+                <span className="text-2xl">⚽</span>
+            )}
+            <p className="text-2xl font-bold text-black">
+              {team?.name}
+            </p>
+          </div>
         </div>
         <div className="rounded-lg bg-white p-6 shadow-sm">
           <h3 className="text-sm font-medium text-gray-500">Players</h3>
@@ -77,7 +85,7 @@ export default async function DashboardPage() {
         </div>
         <div className="rounded-lg bg-white p-6 shadow-sm">
           <h3 className="text-sm font-medium text-gray-500">Invite Code</h3>
-          <p className="text-2xl font-bold text-green-600 mt-1 font-mono">
+          <p className="text-2xl font-bold mt-1 font-mono" style={{ color: "var(--primary)" }}>
             {team?.invite_code}
           </p>
         </div>
@@ -89,7 +97,8 @@ export default async function DashboardPage() {
           <div className="flex flex-wrap gap-3">
             <Link
               href="/dashboard/events/new"
-              className="rounded-md bg-green-600 px-4 py-2 text-white text-sm font-medium hover:bg-green-700"
+              className="rounded-md px-4 py-2 text-sm font-medium"
+              style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
             >
               + New Event
             </Link>

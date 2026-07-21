@@ -4,66 +4,79 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: "🏠" },
-  { href: "/dashboard/roster", label: "Roster", icon: "👥" },
-  { href: "/dashboard/events", label: "Events", icon: "📅" },
-  { href: "/dashboard/lineup", label: "Lineup", icon: "⚽" },
+    { href: "/dashboard", label: "Dashboard", icon: "🏠" },
+    { href: "/dashboard/roster", label: "Roster", icon: "👥" },
+    { href: "/dashboard/events", label: "Events", icon: "📅" },
+    { href: "/dashboard/lineup", label: "Lineup", icon: "⚽" },
+    { href: "/dashboard/settings", label: "Settings", icon: "⚙️" },
 ];
 
 export default function Sidebar({
-  teamName,
-  userName,
-  isAdmin,
-  onCloseAction,
+    teamLogo,
+    teamName,
+    userName,
+    isAdmin,
+    onCloseAction,
 }: {
-  teamName: string | null;
-  userName: string;
-  isAdmin: boolean;
-  onCloseAction: () => void;
+    teamLogo: string | null;
+    teamName: string | null;
+    userName: string;
+    isAdmin: boolean;
+    onCloseAction: () => void;
 }) {
-  const pathname = usePathname();
+    const pathname = usePathname();
 
-  return (
-    <aside className="flex w-64 flex-col border-r border-gray-200 bg-white">
-      <div className="border-b border-gray-200 p-4">
-        <h2 className="text-lg font-bold text-black truncate">
-          {teamName || "No Team"}
-        </h2>
-        {teamName && (
-          <span className="mt-1 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-            {isAdmin ? "Admin" : "Player"}
-          </span>
-        )}
-      </div>
+    return (
+        <aside className="flex w-64 flex-col border-r border-gray-200 bg-white">
+            <div className="border-b border-gray-200 p-4">
+                <div className="flex items-center gap-3">
+                    {teamLogo ? (
+                        <img src={teamLogo} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    ) : (
+                        <span className="text-2xl">⚽</span>
+                    )}
+                    <div>
+                        <h2 className="text-lg font-bold text-black truncate">
+                            {teamName || "No Team"}
+                        </h2>
+                        {teamName && (
+                        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)" }}>
+                            {isAdmin ? "Admin" : "Player"}
+                        </span>
+                        )}
+                    </div>
+                </div>
+            </div>
 
-      <nav className="flex-1 p-4 space-y-1">
-        {navLinks.map((link) => {
-          const isActive =
-            link.href === "/dashboard"
-              ? pathname === "/dashboard"
-              : pathname.startsWith(link.href);
+            <nav className="flex-1 p-4 space-y-1">
+                {navLinks.map((link) => {
+                    const isActive =
+                        link.href === "/dashboard"
+                          ? pathname === "/dashboard"
+                          : pathname.startsWith(link.href);
 
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={onCloseAction}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-green-50 text-green-700"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
-            >
-              <span>{link.icon}</span>
-              {link.label}
-            </Link>
-          );
-        })}
-      </nav>
+                    return (
+                        <Link
+                            key={link.href}
+                            href={link.href}
+                            onClick={onCloseAction}
+                            className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                                isActive
+                                ? "text-[var(--primary)]"
+                                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                            }`}
+                            style={isActive ? { backgroundColor: "color-mix(in srgb, var(--primary) 10%, transparent)" } : undefined}
+                        >
+                        <span>{link.icon}</span>
+                        {link.label}
+                        </Link>
+                   );
+                })}
+            </nav>
 
-      <div className="border-t border-gray-200 p-4">
-        <p className="mb-2 text-sm text-gray-500 truncate">{userName}</p>
-      </div>
-    </aside>
-  );
+            <div className="border-t border-gray-200 p-4">
+                <p className="mb-2 text-sm text-gray-500 truncate">{userName}</p>
+            </div>
+        </aside>
+    );
 }

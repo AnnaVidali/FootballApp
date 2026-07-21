@@ -89,17 +89,18 @@ export default function CreateTeamPage() {
         <div className="max-w-md mx-auto">
             <h1 className="text-2xl font-bold text-black mb-6">Create a Team</h1>
             {inviteCode ? (
-                <div className="rounded-lg bg-green-50 p-6 text-center">
-                    <h2 className="text-lg font-bold text-green-800 mb-2">Team Created!</h2>
-                    <p className="text-sm text-green-700 mb-4">
+                <div className="rounded-lg p-6 text-center" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                    <h2 className="text-lg font-bold mb-2" style={{ color: "var(--primary)" }}>Team Created!</h2>
+                    <p className="text-sm mb-4" style={{ color: "color-mix(in srgb, var(--primary) 70%, black)" }}>
                         Share this invite code with your players:
                     </p>
-                    <p className="text-3xl font-mono font-bold text-green-900 mb-6">
+                    <p className="text-3xl font-mono font-bold mb-6" style={{ color: "var(--primary)" }}>
                         {inviteCode}
                     </p>
                     <button
                         onClick={() => router.push("/dashboard")}
-                        className="w-full rounded-md bg-green-600 px-4 py-2 text-white font-medium hover:bg-green-700"
+                        className="w-full rounded-md px-4 py-2 font-medium"
+                        style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                     >
                         Go to Dashboard
                     </button>
@@ -155,7 +156,7 @@ export default function CreateTeamPage() {
                             type="file"
                             accept="image/*"
                             onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
-                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium"
                         />
                     </div>
                     {error && (
@@ -164,7 +165,8 @@ export default function CreateTeamPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full rounded-md bg-green-600 px-4 py-2 text-white font-medium hover:bg-green-700 disabled:opacity-50"
+                        className="w-full rounded-md px-4 py-2 font-medium disabled:opacity-50"
+                        style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                     >
                         {loading ? "Creating..." : "Create Team"}
                     </button>

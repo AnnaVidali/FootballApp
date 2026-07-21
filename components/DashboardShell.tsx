@@ -6,16 +6,36 @@ import SignOutButton from "@/components/SignOutButton";
 
 export default function DashboardShell({
     children,
+    teamLogo,
     teamName,
+    primaryColor,
+    secondaryColor,
     userName,
     isAdmin,
 }: {
     children: React.ReactNode;
+    teamLogo: string | null;
     teamName: string | null;
+    primaryColor: string;
+    secondaryColor: string;
     userName: string;
     isAdmin: boolean
 }) {
     const [isOpen, setIsOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        document.documentElement.style.setProperty("--primary", primaryColor);
+        document.documentElement.style.setProperty("--secondary", secondaryColor);
+        // Auto-generate button text color based on primary brightness
+        const r = parseInt(primaryColor.slice(1, 3), 16);
+        const g = parseInt(primaryColor.slice(3, 5), 16);
+        const b = parseInt(primaryColor.slice(5, 7), 16);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        document.documentElement.style.setProperty(
+            "--primary-text",
+            brightness > 128 ? "#000000" : "#ffffff"
+        );
+    }, [primaryColor, secondaryColor]);
 
     return (
         <div className="flex h-screen overflow-hidden">
@@ -40,6 +60,7 @@ export default function DashboardShell({
                 } fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 md:relative md:translate-x-0`}
             >
                 <Sidebar
+                    teamLogo={teamLogo}
                     teamName={teamName}
                     userName={userName}
                     isAdmin={isAdmin}
