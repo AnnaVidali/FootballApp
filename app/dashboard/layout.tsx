@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import SignOutButton from "@/components/SignOutButton";
+import DashboardShell from "@/components/DashboardShell";
 
 export default async function DashboardLayout({
   children,
@@ -32,20 +31,12 @@ export default async function DashboardLayout({
     : { data: null };
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <div className="flex flex-col">
-        <Sidebar
-          teamName={team?.name ?? null}
-          userName={profile?.name ?? user.email ?? "User"}
-          isAdmin={profile?.is_admin ?? false}
-        />
-        <div className="border-t border-gray-200 p-4">
-          <SignOutButton />
-        </div>
-      </div>
-      <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
-        {children}
-      </main>
-    </div>
+    <DashboardShell
+        teamName={team?.name ?? null}
+        userName={profile?.name ?? user.email ?? "User"}
+        isAdmin={profile?.is_admin ?? false}
+    >
+      {children}
+    </DashboardShell>
   );
 }

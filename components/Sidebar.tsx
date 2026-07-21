@@ -14,10 +14,12 @@ export default function Sidebar({
   teamName,
   userName,
   isAdmin,
+  onCloseAction,
 }: {
   teamName: string | null;
   userName: string;
   isAdmin: boolean;
+  onCloseAction: () => void;
 }) {
   const pathname = usePathname();
 
@@ -45,6 +47,7 @@ export default function Sidebar({
             <Link
               key={link.href}
               href={link.href}
+              onClick={onCloseAction}
               className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-red-50 text-red-700"
