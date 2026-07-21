@@ -12,7 +12,7 @@ export default async function Home() {
     <div className="flex flex-1 flex-col items-center justify-center bg-gray-50 px-4">
       <div className="text-center">
         <Image
-          src="/simplesvgfootball.png"
+          src="/soccerballimage.png"
           alt="Squad HQ"
           width={120}
           height={120}
