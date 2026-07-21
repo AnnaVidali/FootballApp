@@ -11,6 +11,9 @@ export default function CreateTeamPage() {
     const [inviteCode, setInviteCode] = useState<string | null>(null);
     const router = useRouter();
     const supabase = createClient();
+    const [primaryColour, setPrimaryColour] = useState("#16a34a");
+    const [secondaryColour, setSecondaryColour] = useState("#ffffff");
+    const [logoFile, setLogoFile] = useState<File | null>(null);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -22,6 +25,7 @@ export default function CreateTeamPage() {
             setLoading(false);
             return;
         }
+
         // 1. Create the team
         const { data: team, error: teamError } = await supabase
             .from("teams")
@@ -33,6 +37,7 @@ export default function CreateTeamPage() {
             setLoading(false);
             return;
         }
+
         // 2. Update profile: set team_id + is_admin
         const { error: profileError } = await supabase
             .from("profiles")
@@ -43,7 +48,39 @@ export default function CreateTeamPage() {
             setLoading(false);
             return;
         }
-        // 3. Show invite code
+
+        // 3. Upload logo if provided
+        if (logoFile) {
+            const fileName = `${team.id}/${logoFile.name}`;
+            const { error: uploadError } = await supabase.storage
+                .from("team-logos")
+                .upload(fileName, logoFile);
+            if (!uploadError) {
+                const { data: urlData } = supabase.storage
+                    .from("team-logos")
+                    .getPublicUrl(fileName);
+                // 4. Update team with logo URL and colors
+                await supabase
+                    .from("teams")
+                    .update({
+                        logo_url: urlData.publicUrl,
+                        primary_color: primaryColour,
+                        secondary_color: secondaryColour,
+                    })
+                    .eq("id", team.id);
+            }
+        } else {
+            // Just save colors even without logo
+            await supabase
+                .from("teams")
+                .update({
+                    primary_color: primaryColour,
+                    secondary_color: secondaryColour,
+                })
+                .eq("id", team.id);
+        }
+
+        // 5. Show invite code
         setInviteCode(team.invite_code);
         setLoading(false);
     }
@@ -80,6 +117,45 @@ export default function CreateTeamPage() {
                             required
                             className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
                             placeholder="e.g. Las Bravas FC"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Primary Color
+                        </label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="color"
+                                value={primaryColour}
+                                onChange={(e) => setPrimaryColour(e.target.value)}
+                                className="h-10 w-10 rounded border border-gray-300 cursor-pointer"
+                            />
+                            <span className="text-sm text-gray-500">{primaryColour}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Secondary Color
+                        </label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="color"
+                                value={secondaryColour}
+                                onChange={(e) => setSecondaryColour(e.target.value)}
+                                className="h-10 w-10 rounded border border-gray-300 cursor-pointer"
+                            />
+                            <span className="text-sm text-gray-500">{secondaryColour}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Team Logo (optional)
+                        </label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
                         />
                     </div>
                     {error && (
