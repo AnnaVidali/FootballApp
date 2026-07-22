@@ -101,7 +101,7 @@ export default function CreateTeamPage() {
                         {inviteCode}
                     </p>
                     <button
-                        onClick={() => router.push("/dashboard")}
+                        onClick={() => { router.push("/dashboard"); router.refresh(); }}
                         className="w-full rounded-md px-4 py-2 font-medium"
                         style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                     >
