@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -46,7 +46,7 @@ export default function SettingsPage() {
             }
         }
         loadTeam();
-    }, []);
+    }, [router, supabase]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -83,6 +83,7 @@ export default function SettingsPage() {
             setMessage("Error: " + error.message);
         } else {
             setMessage("Settings saved!");
+            router.refresh();
         }
         setLoading(false);
     }
@@ -91,7 +92,7 @@ export default function SettingsPage() {
         <div className="max-w-md mx-auto">
             <h1 className="text-2xl font-bold text-black mb-6">Team Settings</h1>
             {message && (
-                <p className={`mb-4 text-sm ${message.startsWith("Error") ? "text-red-600" : ""}`} style={!message.startsWith("Error") ? { color: "var(--primary-text)" } : undefined}>
+                <p className={`mb-4 text-sm ${message.startsWith("Error") ? "text-red-600" : ""}`} style={!message.startsWith("Error") ? { color: "var(--primary-display)" } : undefined}>
                     {message}
                 </p>
             )}
@@ -105,7 +106,7 @@ export default function SettingsPage() {
                         value={teamName}
                         onChange={(e) => setTeamName(e.target.value)}
                         disabled={!isAdmin}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-black disabled:bg-gray-100 disabled:text-gray-500"
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-black disabled:bg-gray-100"
                     />
                 </div>
                 <div>
@@ -118,7 +119,7 @@ export default function SettingsPage() {
                             value={primaryColour}
                             onChange={(e) => setPrimaryColour(e.target.value)}
                             disabled={!isAdmin}
-                            className="h-10 w-10 rounded border border-gray-300 cursor-pointer disabled:cursor-not-allowed"
+                            className="h-10 w-10 rounded border border-gray-300 cursor-pointer"
                         />
                         <span className="text-sm text-gray-500">{primaryColour}</span>
                     </div>
@@ -133,7 +134,7 @@ export default function SettingsPage() {
                             value={secondaryColour}
                             onChange={(e) => setSecondaryColour(e.target.value)}
                             disabled={!isAdmin}
-                            className="h-10 w-10 rounded border border-gray-300 cursor-pointer disabled:cursor-not-allowed"
+                            className="h-10 w-10 rounded border border-gray-300 cursor-pointer"
                         />
                         <span className="text-sm text-gray-500">{secondaryColour}</span>
                     </div>
@@ -143,6 +144,7 @@ export default function SettingsPage() {
                         Team Logo
                     </label>
                     {logoPreview && (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                             src={logoPreview}
                             alt="Team logo"
@@ -160,7 +162,7 @@ export default function SettingsPage() {
                                     setLogoPreview(URL.createObjectURL(file));
                                 }
                             }}
-                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium"
+                            className="w-full text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium"
                         />
                     ) : (
                         <p className="text-sm text-gray-400">Only admins can change the logo</p>

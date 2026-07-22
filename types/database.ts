@@ -12,6 +12,7 @@ export interface Profile {
   team_id: string | null;
   name: string;
   position: string | null;
+  shirt_number: number | null;
   role: "coach" | "player";
   is_admin: boolean;
   created_at: string;

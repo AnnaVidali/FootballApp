@@ -68,6 +68,7 @@ export default async function DashboardPage() {
           <h3 className="text-sm font-medium text-gray-500">Team</h3>
           <div className="flex items-center gap-3 mt-1">
             {team?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={team.logo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
             ) : (
                 <span className="text-2xl">⚽</span>
@@ -85,7 +86,7 @@ export default async function DashboardPage() {
         </div>
         <div className="rounded-lg bg-white p-6 shadow-sm">
           <h3 className="text-sm font-medium text-gray-500">Invite Code</h3>
-          <p className="text-2xl font-bold mt-1 font-mono" style={{ color: "var(--primary-text)" }}>
+          <p className="text-2xl font-bold mt-1 font-mono" style={{ color: "var(--primary-display)" }}>
             {team?.invite_code}
           </p>
         </div>

@@ -26,12 +26,15 @@ export default function DashboardShell({
     React.useEffect(() => {
         document.documentElement.style.setProperty("--primary", primaryColor);
         document.documentElement.style.setProperty("--secondary", secondaryColor);
+
         // Auto-generate button text color based on primary brightness
         const r = parseInt(primaryColor.slice(1, 3), 16);
         const g = parseInt(primaryColor.slice(3, 5), 16);
         const b = parseInt(primaryColor.slice(5, 7), 16);
+
         // Use relative luminance (WCAG formula) for better contrast
         const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
         // For saturated bright colors (high max channel, low min channel),
         // force black text even if luminance is low
         const max = Math.max(r, g, b);
@@ -42,6 +45,20 @@ export default function DashboardShell({
             "--primary-text",
             useBlackText ? "#000000" : "#ffffff"
         );
+
+        // Display color: primary readable on white backgrounds
+        if (luminance > 180) {
+            // Light color - mix 60% primary + 40% black
+            const dr = Math.round(r * 0.6);
+            const dg = Math.round(g * 0.6);
+            const db = Math.round(b * 0.6);
+            document.documentElement.style.setProperty(
+                "--primary-display",
+                `#${dr.toString(16).padStart(2, "0")}${dg.toString(16).padStart(2, "0")}${db.toString(16).padStart(2, "0")}`
+            );
+        } else {
+            document.documentElement.style.setProperty("--primary-display", primaryColor);
+        }
     }, [primaryColor, secondaryColor]);
 
     return (
