@@ -33,7 +33,10 @@ export default function CreateTeamPage() {
             .select()
             .maybeSingle();
         if (teamError) {
-            setError(teamError.message);
+            const message = teamError.message.includes("duplicate")
+                ? "A team with this name already exists!"
+                : teamError.message;
+            setError(message);
             setLoading(false);
             return;
         }
