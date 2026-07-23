@@ -32,6 +32,12 @@ export default async function DashboardPage() {
             >
               Create a Team
             </Link>
+            <Link
+                href="/dashboard/join-team"
+                className="block w-full rounded-md bg-gray-200 px-4 py-3 text-center font-medium text-gray-700 hover:bg-gray-300"
+            >
+              Join a Team
+            </Link>
           </div>
         </div>
       </div>
@@ -84,12 +90,14 @@ export default async function DashboardPage() {
             {rosterCount?.length ?? 0}
           </p>
         </div>
-        <div className="rounded-lg bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Invite Code</h3>
-          <p className="text-2xl font-bold mt-1 font-mono" style={{ color: "var(--primary-display)" }}>
-            {team?.invite_code}
-          </p>
-        </div>
+        {profile.is_admin && (
+          <div className="rounded-lg bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-medium text-gray-500">Invite Code</h3>
+            <p className="text-2xl font-bold mt-1 font-mono" style={{ color: "var(--primary-display)" }}>
+              {team?.invite_code}
+            </p>
+          </div>
+        )}
       </div>
 
       {profile.is_admin && (

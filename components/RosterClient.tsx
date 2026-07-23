@@ -24,11 +24,13 @@ export default function RosterClient({
     members,
     unassigned,
     isAdmin,
+    currentUserId,
 }: {
     inviteCode: string;
     members: Member[];
     unassigned: Unassigned[];
     isAdmin: boolean;
+    currentUserId: string;
 }) {
     const router = useRouter();
     const supabase = createClient();
@@ -36,6 +38,7 @@ export default function RosterClient({
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editPosition, setEditPosition] = useState("");
     const [editShirt, setEditShirt] = useState("");
+    const [editName, setEditName] = useState("");
     const [editAdmin, setEditAdmin] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -50,6 +53,7 @@ export default function RosterClient({
     // Start editing a player
     function startEdit(member: Member) {
         setEditingId(member.id);
+        setEditName(member.name);
         setEditPosition(member.position ?? "");
         setEditShirt(member.shirt_number?.toString() ?? "");
         setEditAdmin(member.is_admin);
@@ -58,13 +62,17 @@ export default function RosterClient({
     // Save the edit
     async function saveEdit(memberId: string) {
         setLoading(true);
+        const update: { name: string; position: string | null; shirt_number: number | null; is_admin?: boolean } = {
+            name: editName,
+            position: editPosition || null,
+            shirt_number: editShirt ? parseInt(editShirt) : null,
+        };
+        if (isAdmin) {
+            update.is_admin = editAdmin;
+        }
         await supabase
             .from("profiles")
-            .update({
-                position: editPosition || null,
-                shirt_number: editShirt ? parseInt(editShirt) : null,
-                is_admin: editAdmin,
-            })
+            .update(update)
             .eq("id", memberId);
         setEditingId(null);
         setLoading(false);
@@ -92,20 +100,22 @@ export default function RosterClient({
         <div className="max-w-2xl mx-auto space-y-6">
             <h1 className="text-2xl font-bold text-black">Team Roster</h1>
             {/* Invite Code Section */}
-            <div className="rounded-lg bg-white p-4 shadow-sm">
-                <p className="text-sm text-gray-500 mb-1">📋 Invite Code</p>
-                <div className="flex items-center gap-3">
-                    <span className="text-xl font-mono font-bold text-black">{inviteCode}</span>
-                    <button
-                        onClick={copyInviteCode}
-                        className="rounded-md px-3 py-1 text-sm font-medium"
-                        style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
-                    >
-                        {copied ? "Copied!" : "Copy"}
-                    </button>
+            {isAdmin && (
+                <div className="rounded-lg bg-white p-4 shadow-sm">
+                    <p className="text-sm text-gray-500 mb-1">📋 Invite Code</p>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl font-mono font-bold text-black">{inviteCode}</span>
+                        <button
+                            onClick={copyInviteCode}
+                            className="rounded-md px-3 py-1 text-sm font-medium"
+                            style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
+                        >
+                            {copied ? "Copied!" : "Copy"}
+                        </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">Share this code with players to join</p>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Share this code with players to join</p>
-            </div>
+            )}
             {/* Team Members Section */}
             <div className="rounded-lg bg-white p-4 shadow-sm">
                 <h2 className="font-bold text-black mb-3">Team Members ({members.length})</h2>
@@ -114,6 +124,13 @@ export default function RosterClient({
                         <div key={member.id} className="py-3">
                             {editingId === member.id ? (
                                 <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        value={editName}
+                                        onChange={(e) => setEditName(e.target.value)}
+                                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                        placeholder="Full name"
+                                    />
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
@@ -130,14 +147,16 @@ export default function RosterClient({
                                             className="w-20 rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
                                         />
                                     </div>
-                                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                                        <input
-                                            type="checkbox"
-                                            checked={editAdmin}
-                                            onChange={(e) => setEditAdmin(e.target.checked)}
-                                        />
-                                        Make Admin
-                                    </label>
+                                    {isAdmin && (
+                                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                                            <input
+                                                type="checkbox"
+                                                checked={editAdmin}
+                                                onChange={(e) => setEditAdmin(e.target.checked)}
+                                            />
+                                            Make Admin
+                                        </label>
+                                    )}
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => saveEdit(member.id)}
@@ -173,7 +192,7 @@ export default function RosterClient({
                                             )}
                                         </p>
                                     </div>
-                                    {isAdmin && (
+                                    {(isAdmin || member.user_id === currentUserId) && (
                                         <button
                                             onClick={() => startEdit(member)}
                                             className="text-sm text-gray-500 hover:text-gray-700"

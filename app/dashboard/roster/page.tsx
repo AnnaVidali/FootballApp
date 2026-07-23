@@ -38,6 +38,7 @@ export default async function RosterPage() {
             members={members ?? []}
             unassigned={unassigned}
             isAdmin={profile.is_admin}
+            currentUserId={user.id}
         />
     );
 }
