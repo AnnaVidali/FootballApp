@@ -58,7 +58,7 @@ export default async function DashboardPage() {
     .order("date", { ascending: true })
     .limit(5);
 
-  const { data: rosterCount } = await supabase
+  const { count: rosterCount } = await supabase
     .from("profiles")
     .select("id", { count: "exact", head: true })
     .eq("team_id", profile.team_id);
@@ -87,7 +87,7 @@ export default async function DashboardPage() {
         <div className="rounded-lg bg-white p-6 shadow-sm">
           <h3 className="text-sm font-medium text-gray-500">Players</h3>
           <p className="text-2xl font-bold text-black mt-1">
-            {rosterCount?.length ?? 0}
+            {rosterCount ?? 0}
           </p>
         </div>
         {profile.is_admin && (
