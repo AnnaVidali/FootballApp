@@ -131,20 +131,20 @@ export default function RosterClient({
                                         className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
                                         placeholder="Full name"
                                     />
-                                    <div className="flex gap-2">
+                                    <div className="grid grid-cols-[3fr_1fr] gap-2">
                                         <input
                                             type="text"
                                             placeholder="Position"
                                             value={editPosition}
                                             onChange={(e) => setEditPosition(e.target.value)}
-                                            className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                            className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
                                         />
                                         <input
                                             type="number"
                                             placeholder="#"
                                             value={editShirt}
                                             onChange={(e) => setEditShirt(e.target.value)}
-                                            className="w-20 rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                            className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
                                         />
                                     </div>
                                     {isAdmin && (
@@ -187,8 +187,8 @@ export default function RosterClient({
                                             {member.position || "No position"}
                                             {member.is_admin && (
                                                 <span className="ml-2 inline-block rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
-                          Admin
-                        </span>
+                                                    Admin
+                                                </span>
                                             )}
                                         </p>
                                     </div>
