@@ -131,20 +131,20 @@ export default function RosterClient({
                                         className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
                                         placeholder="Full name"
                                     />
-                                    <div className="grid grid-cols-[3fr_1fr] gap-2">
+                                    <div className="grid grid-cols-[5fr_1fr] gap-2">
                                         <input
                                             type="text"
                                             placeholder="Position"
                                             value={editPosition}
                                             onChange={(e) => setEditPosition(e.target.value)}
-                                            className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                            className="min-w-0 rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
                                         />
                                         <input
                                             type="number"
                                             placeholder="#"
                                             value={editShirt}
                                             onChange={(e) => setEditShirt(e.target.value)}
-                                            className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                            className="min-w-0 rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
                                         />
                                     </div>
                                     {isAdmin && (
