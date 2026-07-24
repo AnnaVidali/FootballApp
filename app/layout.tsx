@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Squad HQ",
   description: "Manage your football team, schedule trainings, and build lineups.",
   icons: {
-    icon: "/soccerballimage.png",
+    icon: "/api/favicon",
   },
 };
 

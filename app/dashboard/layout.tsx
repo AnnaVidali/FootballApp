@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import DashboardShell from "@/components/DashboardShell";
-import DynamicFavicon from "@/components/DynamicFavicon";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    icons: {
+      icon: `/api/favicon?t=${Date.now()}`,
+    },
+  };
+}
 
 export default async function DashboardLayout({
   children,
@@ -32,18 +40,15 @@ export default async function DashboardLayout({
     : { data: null };
 
   return (
-    <>
-      <DynamicFavicon logoUrl={team?.logo_url ?? null} />
-      <DashboardShell
-          teamLogo={team?.logo_url ?? null}
-          teamName={team?.name ?? null}
-          primaryColor={team?.primary_color ?? "#16a34a"}
-          secondaryColor={team?.secondary_color ?? "#ffffff"}
-          userName={profile?.name ?? user.email ?? "User"}
-          isAdmin={profile?.is_admin ?? false}
-      >
-        {children}
-      </DashboardShell>
-    </>
+    <DashboardShell
+        teamLogo={team?.logo_url ?? null}
+        teamName={team?.name ?? null}
+        primaryColor={team?.primary_color ?? "#16a34a"}
+        secondaryColor={team?.secondary_color ?? "#ffffff"}
+        userName={profile?.name ?? user.email ?? "User"}
+        isAdmin={profile?.is_admin ?? false}
+    >
+      {children}
+    </DashboardShell>
   );
 }
