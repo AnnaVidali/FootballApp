@@ -15,6 +15,8 @@ export default async function DashboardPage() {
     .eq("user_id", user!.id)
     .single();
 
+  const isCoach = profile?.role === "coach";
+
   if (!profile?.team_id) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
@@ -69,23 +71,26 @@ export default async function DashboardPage() {
   const myStatusMap = new Map((myAvailability ?? []).map((a) => [a.event_id, a.status]));
 
   const now = new Date();
-  const visibleEvents = (upcomingEvents ?? []).filter((e) => {
-    const status = myStatusMap.get(e.id);
-    if (status === "unavailable") return false;
-    if (!status) return false;
-    if (status === "maybe") {
-      const deadline = e.type === "match"
-        ? new Date(new Date(e.date).setHours(0, 0, 0, 0))
-        : new Date(new Date(e.date).getTime() - 25 * 60 * 60 * 1000);
-      if (now > deadline) return false;
-    }
-    return true;
-  });
+  const visibleEvents = isCoach
+    ? (upcomingEvents ?? [])
+    : (upcomingEvents ?? []).filter((e) => {
+        const status = myStatusMap.get(e.id);
+        if (status === "unavailable") return false;
+        if (!status) return false;
+        if (status === "maybe") {
+          const deadline = e.type === "match"
+            ? new Date(new Date(e.date).setHours(0, 0, 0, 0))
+            : new Date(new Date(e.date).getTime() - 25 * 60 * 60 * 1000);
+          if (now > deadline) return false;
+        }
+        return true;
+      });
 
   const { count: rosterCount } = await supabase
     .from("profiles")
     .select("id", { count: "exact", head: true })
-    .eq("team_id", profile.team_id);
+    .eq("team_id", profile.team_id)
+    .neq("role", "coach");
 
   return (
     <div>
@@ -167,17 +172,17 @@ export default async function DashboardPage() {
                     })}
                     {event.location && ` · ${event.location}`}
                   </p>
-                  {myStatusMap.get(event.id) === "maybe" && (
+                   {!isCoach && myStatusMap.get(event.id) === "maybe" && (
                     <p className="text-xs text-yellow-600 mt-1">
                       You answered Maybe — pick Yes or No before it closes
                     </p>
                   )}
-                  {!myStatusMap.has(event.id) && (
+                  {!isCoach && !myStatusMap.has(event.id) && (
                     <p className="text-xs text-gray-400 mt-1">
                       Mark your availability
                     </p>
                   )}
-                   <AvailabilityStatus eventDate={event.date} eventType={event.type} />
+                   {!isCoach && <AvailabilityStatus eventDate={event.date} eventType={event.type} />}
                   <div className="mt-2">
                     <AddToCalendarButton
                       title={event.title}

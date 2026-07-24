@@ -11,6 +11,7 @@ type Member = {
     position: string | null;
     shirt_number: number | null;
     is_admin: boolean;
+    role: string;
 };
 
 const positionLabels: Record<string, string> = {
@@ -43,6 +44,7 @@ export default function RosterClient({
     const [editShirt, setEditShirt] = useState("");
     const [editName, setEditName] = useState("");
     const [editAdmin, setEditAdmin] = useState(false);
+    const [editCoach, setEditCoach] = useState(false);
     const [loading, setLoading] = useState(false);
 
 
@@ -60,18 +62,20 @@ export default function RosterClient({
         setEditPosition(member.position ?? "");
         setEditShirt(member.shirt_number?.toString() ?? "");
         setEditAdmin(member.is_admin);
+        setEditCoach(member.role === "coach");
     }
 
     // Save the edit
     async function saveEdit(memberId: string) {
         setLoading(true);
-        const update: { name: string; position: string | null; shirt_number: number | null; is_admin?: boolean } = {
+        const update: { name: string; position: string | null; shirt_number: number | null; is_admin?: boolean; role?: string } = {
             name: editName,
             position: editPosition || null,
             shirt_number: editShirt ? parseInt(editShirt) : null,
         };
         if (isAdmin) {
             update.is_admin = editAdmin;
+            update.role = editCoach ? "coach" : "player";
         }
         await supabase
             .from("profiles")
@@ -172,14 +176,24 @@ export default function RosterClient({
                                         />
                                     </div>
                                     {isAdmin && (
-                                        <label className="flex items-center gap-2 text-sm text-gray-700">
-                                            <input
-                                                type="checkbox"
-                                                checked={editAdmin}
-                                                onChange={(e) => setEditAdmin(e.target.checked)}
-                                            />
-                                            Make Admin
-                                        </label>
+                                        <>
+                                            <label className="flex items-center gap-2 text-sm text-gray-700">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editAdmin}
+                                                    onChange={(e) => setEditAdmin(e.target.checked)}
+                                                />
+                                                Make Admin
+                                            </label>
+                                            <label className="flex items-center gap-2 text-sm text-gray-700">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editCoach}
+                                                    onChange={(e) => setEditCoach(e.target.checked)}
+                                                />
+                                                Coach (doesn&apos;t play in lineups)
+                                            </label>
+                                        </>
                                     )}
                                     <div className="flex gap-2">
                                         <button
@@ -212,6 +226,11 @@ export default function RosterClient({
                                             {member.is_admin && (
                                                 <span className="ml-2 inline-block rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
                                                     Admin
+                                                </span>
+                                            )}
+                                            {member.role === "coach" && (
+                                                <span className="ml-2 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                                                    Coach
                                                 </span>
                                             )}
                                         </p>

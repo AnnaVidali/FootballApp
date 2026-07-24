@@ -47,6 +47,7 @@ export default async function DashboardLayout({
         secondaryColor={team?.secondary_color ?? "#ffffff"}
         userName={profile?.name ?? user.email ?? "User"}
         isAdmin={profile?.is_admin ?? false}
+        role={profile?.role ?? "player"}
     >
       {children}
     </DashboardShell>

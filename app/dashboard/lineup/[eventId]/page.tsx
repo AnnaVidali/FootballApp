@@ -30,7 +30,7 @@ export default async function LineupPage({
 
     const { data: members } = await supabase
         .from("profiles")
-        .select("id, user_id, name, position, shirt_number")
+        .select("id, user_id, name, position, shirt_number, role")
         .eq("team_id", profile.team_id)
         .order("name");
 
@@ -48,7 +48,7 @@ export default async function LineupPage({
 
     const lineupPlayerIds = new Set((lineup ?? []).map((l) => l.player_id));
     const filteredMembers = (members ?? []).filter(
-        (m) => availableUserIds.has(m.user_id) || lineupPlayerIds.has(m.id)
+        (m) => m.role !== "coach" && (availableUserIds.has(m.user_id) || lineupPlayerIds.has(m.id))
     );
 
     const { data: setPieces } = await supabase

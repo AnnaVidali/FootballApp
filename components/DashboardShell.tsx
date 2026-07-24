@@ -12,6 +12,7 @@ export default function DashboardShell({
     secondaryColor,
     userName,
     isAdmin,
+    role,
 }: {
     children: React.ReactNode;
     teamLogo: string | null;
@@ -19,7 +20,8 @@ export default function DashboardShell({
     primaryColor: string;
     secondaryColor: string;
     userName: string;
-    isAdmin: boolean
+    isAdmin: boolean;
+    role: string;
 }) {
     const [isOpen, setIsOpen] = React.useState(false);
 
@@ -88,6 +90,7 @@ export default function DashboardShell({
                     teamName={teamName}
                     userName={userName}
                     isAdmin={isAdmin}
+                    role={role}
                     onCloseAction={() => setIsOpen(false)}
                 />
                 <div className="border-t border-gray-200 p-4">

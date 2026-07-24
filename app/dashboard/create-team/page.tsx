@@ -41,10 +41,10 @@ export default function CreateTeamPage() {
             return;
         }
 
-        // 2. Update profile: set team_id + is_admin
+        // 2. Update profile: set team_id + is_admin + role=coach
         const { error: profileError } = await supabase
             .from("profiles")
-            .update({ team_id: team.id, is_admin: true })
+            .update({ team_id: team.id, is_admin: true, role: "coach" })
             .eq("user_id", user.id);
         if (profileError) {
             setError(profileError.message);

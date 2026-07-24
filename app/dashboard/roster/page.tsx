@@ -21,7 +21,7 @@ export default async function RosterPage() {
         .single();
     const { data: members } = await supabase
         .from("profiles")
-        .select("id, user_id, name, position, shirt_number, is_admin")
+        .select("id, user_id, name, position, shirt_number, is_admin, role")
         .eq("team_id", profile.team_id)
         .order("name");
     return (

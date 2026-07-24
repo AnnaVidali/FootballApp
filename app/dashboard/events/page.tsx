@@ -23,6 +23,7 @@ type AvailabilityRow = {
 export default function EventsPage() {
     const [events, setEvents] = useState<Event[]>([]);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [isCoach, setIsCoach] = useState(false);
     const [currentUserId, setCurrentUserId] = useState("");
     const [loading, setLoading] = useState(true);
     const [availability, setAvailability] = useState<AvailabilityRow[]>([]);
@@ -37,7 +38,7 @@ export default function EventsPage() {
 
             const { data: profile } = await supabase
                 .from("profiles")
-                .select("team_id, is_admin")
+                .select("team_id, is_admin, role")
                 .eq("user_id", user.id)
                 .single();
             if (!profile?.team_id) {
@@ -45,6 +46,7 @@ export default function EventsPage() {
                 return;
             }
             setIsAdmin(profile.is_admin);
+            setIsCoach(profile.role === "coach");
 
             const { data } = await supabase
                 .from("events")
@@ -62,17 +64,19 @@ export default function EventsPage() {
 
                 const userIds = [...new Set((avail ?? []).map((a) => a.user_id))];
                 const { data: profiles } = userIds.length > 0
-                    ? await supabase.from("profiles").select("user_id, name").in("user_id", userIds)
+                    ? await supabase.from("profiles").select("user_id, name, role").in("user_id", userIds)
                     : { data: [] };
-                const nameMap = new Map((profiles ?? []).map((p) => [p.user_id, p.name]));
+                const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, { name: p.name, role: p.role }]));
 
                 setAvailability(
-                    (avail ?? []).map((a) => ({
-                        event_id: a.event_id,
-                        user_id: a.user_id,
-                        status: a.status,
-                        name: nameMap.get(a.user_id) ?? "Unknown",
-                    }))
+                    (avail ?? [])
+                        .filter((a) => profileMap.get(a.user_id)?.role !== "coach")
+                        .map((a) => ({
+                            event_id: a.event_id,
+                            user_id: a.user_id,
+                            status: a.status,
+                            name: profileMap.get(a.user_id)?.name ?? "Unknown",
+                        }))
                 );
             }
             setLoading(false);
@@ -158,14 +162,19 @@ export default function EventsPage() {
                                                 })}
                                                 {event.location && ` · ${event.location}`}
                                             </p>
-                                            <AvailabilityButton
-                                                eventId={event.id}
-                                                eventDate={event.date}
-                                                eventType={event.type}
-                                                currentUserId={currentUserId}
-                                                initialStatus={myStatus(event.id)}
-                                                onUpdate={updateAvailability}
-                                            />
+                                            {!isCoach && (
+                                                <AvailabilityButton
+                                                    eventId={event.id}
+                                                    eventDate={event.date}
+                                                    eventType={event.type}
+                                                    currentUserId={currentUserId}
+                                                    initialStatus={myStatus(event.id)}
+                                                    onUpdate={updateAvailability}
+                                                />
+                                            )}
+                                            {isCoach && (
+                                                <p className="text-xs text-blue-600 mt-2">Coach — always expected to attend</p>
+                                            )}
                                             <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                                                 {counts.available > 0 && <span className="text-green-600">{counts.available} yes</span>}
                                                 {counts.maybe > 0 && <span className="text-yellow-600">{counts.maybe} maybe</span>}

@@ -19,6 +19,7 @@ type Member = {
     name: string;
     position: string | null;
     shirt_number: number | null;
+    role: string;
 };
 
 type LineupEntry = {
@@ -63,7 +64,7 @@ export default function LineupPage() {
 
             const { data: teamMembers } = await supabase
                 .from("profiles")
-                .select("id, user_id, name, position, shirt_number")
+                .select("id, user_id, name, position, shirt_number, role")
                 .eq("team_id", profile.team_id)
                 .order("name");
             setAllMembers(teamMembers ?? []);
@@ -107,7 +108,7 @@ export default function LineupPage() {
         const availableUserIds = new Set((available ?? []).map((a) => a.user_id));
         const lineupPlayerIds = new Set((data ?? []).map((l) => l.player_id));
         setFilteredMembers(
-            allMembers.filter((m) => availableUserIds.has(m.user_id) || lineupPlayerIds.has(m.id))
+            allMembers.filter((m) => m.role !== "coach" && (availableUserIds.has(m.user_id) || lineupPlayerIds.has(m.id)))
         );
 
         setLoading(false);
