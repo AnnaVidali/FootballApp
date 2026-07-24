@@ -197,6 +197,14 @@ export default function EventsPage() {
                                                         ))}
                                                 </div>
                                             )}
+                                            {isAdmin && event.type === "match" && (
+                                                <Link
+                                                    href={`/dashboard/lineup/${event.id}`}
+                                                    className="inline-block mt-2 text-xs font-medium text-gray-500 hover:text-gray-700"
+                                                >
+                                                    ⚽ Set Lineup →
+                                                </Link>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -232,6 +240,14 @@ export default function EventsPage() {
                                                     {counts.maybe > 0 && <span>{counts.maybe} maybe</span>}
                                                     {counts.unavailable > 0 && <span>{counts.unavailable} no</span>}
                                                 </div>
+                                            )}
+                                            {isAdmin && event.type === "match" && (
+                                                <Link
+                                                    href={`/dashboard/lineup/${event.id}`}
+                                                    className="inline-block mt-2 text-xs font-medium text-gray-500 hover:text-gray-700"
+                                                >
+                                                    ⚽ View Lineup →
+                                                </Link>
                                             )}
                                         </div>
                                     );

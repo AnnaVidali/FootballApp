@@ -13,6 +13,17 @@ type Member = {
     is_admin: boolean;
 };
 
+const positionLabels: Record<string, string> = {
+    GK: "Goalkeeper",
+    CB: "Center Back",
+    LB: "Left Back",
+    RB: "Right Back",
+    CM: "Central Midfielder",
+    LM: "Left Midfielder",
+    RM: "Right Midfielder",
+    ST: "Striker",
+};
+
 export default function RosterClient({
     inviteCode,
     members,
@@ -137,13 +148,21 @@ export default function RosterClient({
                                         placeholder="Full name"
                                     />
                                     <div className="grid grid-cols-[5fr_1fr] gap-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Position"
+                                        <select
                                             value={editPosition}
                                             onChange={(e) => setEditPosition(e.target.value)}
                                             className="min-w-0 rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
-                                        />
+                                        >
+                                            <option value="">Position</option>
+                                            <option value="GK">GK - Goalkeeper</option>
+                                            <option value="CB">CB - Center Back</option>
+                                            <option value="LB">LB - Left Back</option>
+                                            <option value="RB">RB - Right Back</option>
+                                            <option value="CM">CM - Central Midfielder</option>
+                                            <option value="LM">LM - Left Midfielder</option>
+                                            <option value="RM">RM - Right Midfielder</option>
+                                            <option value="ST">ST - Striker</option>
+                                        </select>
                                         <input
                                             type="number"
                                             placeholder="#"
@@ -189,7 +208,7 @@ export default function RosterClient({
                                             )}
                                         </p>
                                         <p className="text-sm text-gray-500">
-                                            {member.position || "No position"}
+                                            {member.position ? `${member.position} - ${positionLabels[member.position] ?? member.position}` : "No position"}
                                             {member.is_admin && (
                                                 <span className="ml-2 inline-block rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
                                                     Admin
