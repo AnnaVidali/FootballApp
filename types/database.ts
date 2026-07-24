@@ -3,6 +3,9 @@ export interface Team {
   name: string;
   coach_id: string;
   invite_code: string;
+  logo_url: string | null;
+  primary_color: string;
+  secondary_color: string;
   created_at: string;
 }
 
@@ -25,6 +28,7 @@ export interface Event {
   title: string;
   date: string;
   location: string | null;
+  formation: string | null;
   created_at: string;
 }
 
@@ -42,5 +46,15 @@ export interface Lineup {
   player_id: string;
   position: string;
   shirt_number: number | null;
+  pos_x: number | null;
+  pos_y: number | null;
+  created_at: string;
+}
+
+export interface SetPiece {
+  id: string;
+  event_id: string;
+  piece_type: "foul" | "corner" | "penalty";
+  player_id: string;
   created_at: string;
 }
