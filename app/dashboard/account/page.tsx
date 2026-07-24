@@ -1,0 +1,206 @@
+"use client";
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import AlertModal from "@/components/AlertModal";
+import ConfirmModal from "@/components/ConfirmModal";
+
+export default function AccountPage() {
+    const router = useRouter();
+    const supabase = createClient();
+
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [newEmail, setNewEmail] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const [alertOpen, setAlertOpen] = useState(false);
+    const [alertTitle, setAlertTitle] = useState("");
+    const [alertMsg, setAlertMsg] = useState("");
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    function showAlert(title: string, msg: string) {
+        setAlertTitle(title);
+        setAlertMsg(msg);
+        setAlertOpen(true);
+    }
+
+    async function handleChangePassword(e: React.FormEvent) {
+        e.preventDefault();
+        if (newPassword.length < 6) {
+            showAlert("Error", "Password must be at least 6 characters.");
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            showAlert("Error", "Passwords do not match.");
+            return;
+        }
+        setLoading(true);
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        setLoading(false);
+        if (error) {
+            showAlert("Error", error.message);
+        } else {
+            setNewPassword("");
+            setConfirmPassword("");
+            showAlert("Success", "Password updated successfully.");
+        }
+    }
+
+    async function handleChangeEmail(e: React.FormEvent) {
+        e.preventDefault();
+        if (!newEmail || !newEmail.includes("@")) {
+            showAlert("Error", "Please enter a valid email address.");
+            return;
+        }
+        setLoading(true);
+        const { error } = await supabase.auth.updateUser({ email: newEmail });
+        setLoading(false);
+        if (error) {
+            showAlert("Error", error.message);
+        } else {
+            setNewEmail("");
+            showAlert("Success", "Confirmation email sent. Please check your new email inbox to verify the change.");
+        }
+    }
+
+    async function handleDeleteAccount() {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            showAlert("Error", "Not logged in.");
+            setLoading(false);
+            return;
+        }
+
+        // Check if sole admin
+        const { data: canLeave } = await supabase.rpc("can_leave_team");
+        if (canLeave === false) {
+            showAlert("Can't Delete", "You're the only admin on this team. Promote another player to admin before deleting your account.");
+            setLoading(false);
+            return;
+        }
+
+        // Remove profile (clears team association, roster entry, etc.)
+        const { error: profileError } = await supabase
+            .from("profiles")
+            .delete()
+            .eq("user_id", user.id);
+        if (profileError) {
+            showAlert("Error", "Failed to remove profile: " + profileError.message);
+            setLoading(false);
+            return;
+        }
+
+        await supabase.auth.signOut();
+        setLoading(false);
+        router.push("/");
+        router.refresh();
+    }
+
+    return (
+        <div className="max-w-md mx-auto space-y-8">
+            <h1 className="text-2xl font-bold text-black">Account</h1>
+
+            <AlertModal open={alertOpen} title={alertTitle} message={alertMsg} onClose={() => setAlertOpen(false)} />
+            <ConfirmModal
+                open={confirmOpen}
+                title="Delete Account"
+                message="This will remove you from your team and sign you out. You'll need to rejoin with an invite code if you want to come back. This action cannot be undone."
+                confirmLabel="Delete"
+                danger
+                onConfirm={() => { setConfirmOpen(false); handleDeleteAccount(); }}
+                onCancel={() => setConfirmOpen(false)}
+            />
+
+            {/* Change Password */}
+            <div className="rounded-lg bg-white p-4 shadow-sm">
+                <h2 className="font-bold text-black mb-3">Change Password</h2>
+                <form onSubmit={handleChangePassword} className="space-y-3">
+                    <div>
+                        <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-1">
+                            New Password
+                        </label>
+                        <input
+                            id="new-password"
+                            type="password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            required
+                            minLength={6}
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
+                            Confirm Password
+                        </label>
+                        <input
+                            id="confirm-password"
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                            minLength={6}
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        aria-busy={loading}
+                        className="w-full rounded-md px-4 py-2 font-medium disabled:opacity-50"
+                        style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
+                    >
+                        {loading ? "Saving..." : "Update Password"}
+                    </button>
+                </form>
+            </div>
+
+            {/* Change Email */}
+            <div className="rounded-lg bg-white p-4 shadow-sm">
+                <h2 className="font-bold text-black mb-3">Change Email</h2>
+                <form onSubmit={handleChangeEmail} className="space-y-3">
+                    <div>
+                        <label htmlFor="new-email" className="block text-sm font-medium text-gray-700 mb-1">
+                            New Email
+                        </label>
+                        <input
+                            id="new-email"
+                            type="email"
+                            value={newEmail}
+                            onChange={(e) => setNewEmail(e.target.value)}
+                            required
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        aria-busy={loading}
+                        className="w-full rounded-md px-4 py-2 font-medium disabled:opacity-50"
+                        style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
+                    >
+                        {loading ? "Saving..." : "Update Email"}
+                    </button>
+                </form>
+            </div>
+
+            {/* Danger Zone */}
+            <div className="rounded-lg bg-white p-4 shadow-sm border border-red-200">
+                <h2 className="font-bold text-red-600 mb-2">Danger Zone</h2>
+                <p className="text-sm text-gray-500 mb-3">
+                    This will remove you from your team and sign you out. You can&apos;t delete your account if you&apos;re the only admin — promote someone first.
+                </p>
+                <button
+                    onClick={() => setConfirmOpen(true)}
+                    disabled={loading}
+                    className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                    Delete Account
+                </button>
+            </div>
+        </div>
+    );
+}
