@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
             return new NextResponse(blob, {
               headers: {
                 "Content-Type": res.headers.get("Content-Type") || "image/png",
-                "Cache-Control": "no-store, max-age=0",
+                "Cache-Control": "private, max-age=3600",
               },
             });
           }
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "no-store, max-age=0",
+      "Cache-Control": "private, max-age=3600",
     },
   });
 }

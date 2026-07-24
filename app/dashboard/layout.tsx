@@ -6,7 +6,7 @@ import DashboardShell from "@/components/DashboardShell";
 export async function generateMetadata(): Promise<Metadata> {
   return {
     icons: {
-      icon: `/api/favicon?t=${Date.now()}`,
+      icon: "/api/favicon",
     },
   };
 }
