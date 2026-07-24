@@ -161,6 +161,7 @@ export default function EventsPage() {
                                             <AvailabilityButton
                                                 eventId={event.id}
                                                 eventDate={event.date}
+                                                eventType={event.type}
                                                 currentUserId={currentUserId}
                                                 initialStatus={myStatus(event.id)}
                                                 onUpdate={updateAvailability}

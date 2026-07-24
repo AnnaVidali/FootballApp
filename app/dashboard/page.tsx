@@ -74,7 +74,9 @@ export default async function DashboardPage() {
     if (status === "unavailable") return false;
     if (!status) return false;
     if (status === "maybe") {
-      const deadline = new Date(new Date(e.date).getTime() - 24 * 60 * 60 * 1000);
+      const deadline = e.type === "match"
+        ? new Date(new Date(e.date).setHours(0, 0, 0, 0))
+        : new Date(new Date(e.date).getTime() - 25 * 60 * 60 * 1000);
       if (now > deadline) return false;
     }
     return true;
@@ -175,7 +177,7 @@ export default async function DashboardPage() {
                       Mark your availability
                     </p>
                   )}
-                  <AvailabilityStatus eventDate={event.date} />
+                   <AvailabilityStatus eventDate={event.date} eventType={event.type} />
                   <div className="mt-2">
                     <AddToCalendarButton
                       title={event.title}

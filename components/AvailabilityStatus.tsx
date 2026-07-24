@@ -14,8 +14,10 @@ function formatTimeLeft(ms: number) {
     return `${minutes}m ${seconds}s`;
 }
 
-export default function AvailabilityStatus({ eventDate }: { eventDate: string }) {
-    const deadline = new Date(new Date(eventDate).getTime() - 24 * 60 * 60 * 1000);
+export default function AvailabilityStatus({ eventDate, eventType }: { eventDate: string; eventType: string }) {
+    const deadline = eventType === "match"
+        ? new Date(new Date(eventDate).setHours(0, 0, 0, 0))
+        : new Date(new Date(eventDate).getTime() - 25 * 60 * 60 * 1000);
     const [timeLeft, setTimeLeft] = useState(deadline.getTime() - Date.now());
 
     useEffect(() => {

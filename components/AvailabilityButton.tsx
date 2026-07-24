@@ -26,12 +26,14 @@ function formatTimeLeft(ms: number) {
 export default function AvailabilityButton({
     eventId,
     eventDate,
+    eventType,
     currentUserId,
     initialStatus,
     onUpdate,
 }: {
     eventId: string;
     eventDate: string;
+    eventType: string;
     currentUserId: string;
     initialStatus: Status | null;
     onUpdate: (eventId: string, userId: string, status: Status) => void;
@@ -39,7 +41,9 @@ export default function AvailabilityButton({
     const supabase = createClient();
     const [selected, setSelected] = useState<Status | null>(initialStatus);
     const [loading, setLoading] = useState(false);
-    const deadline = new Date(new Date(eventDate).getTime() - 24 * 60 * 60 * 1000);
+    const deadline = eventType === "match"
+        ? new Date(new Date(eventDate).setHours(0, 0, 0, 0))
+        : new Date(new Date(eventDate).getTime() - 25 * 60 * 60 * 1000);
     const [timeLeft, setTimeLeft] = useState(deadline.getTime() - Date.now());
 
     useEffect(() => {
