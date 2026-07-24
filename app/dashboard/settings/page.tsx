@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+const supabase = createClient();
+
 export default function SettingsPage() {
     const [teamName, setTeamName] = useState("");
     const [primaryColour, setPrimaryColour] = useState("#16a34a");
@@ -15,7 +17,6 @@ export default function SettingsPage() {
     const [teamId, setTeamId] = useState<string | null>(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const router = useRouter();
-    const supabase = createClient();
 
     // Load current team data on page load
     useEffect(() => {
@@ -46,7 +47,7 @@ export default function SettingsPage() {
             }
         }
         loadTeam();
-    }, [router, supabase]);
+    }, [router]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();

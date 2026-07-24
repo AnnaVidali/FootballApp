@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import LineupEditor from "@/components/LineupEditor";
 
+const supabase = createClient();
+
 type Event = {
     id: string;
     title: string;
@@ -37,7 +39,6 @@ type SetPiece = {
 };
 
 export default function LineupPage() {
-    const supabase = createClient();
     const [events, setEvents] = useState<Event[]>([]);
     const [allMembers, setAllMembers] = useState<Member[]>([]);
     const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
@@ -87,7 +88,7 @@ export default function LineupPage() {
             }
         }
         load();
-    }, [supabase]);
+    }, []);
 
     const loadLineup = useCallback(async (eventId: string) => {
         const { data } = await supabase

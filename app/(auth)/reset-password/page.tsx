@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+const supabase = createClient();
+
 export default function ResetPasswordPage() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -13,7 +15,6 @@ export default function ResetPasswordPage() {
     const [ready, setReady] = useState(false);
     const [invalid, setInvalid] = useState(false);
     const router = useRouter();
-    const supabase = createClient();
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -41,7 +42,7 @@ export default function ResetPasswordPage() {
             subscription.unsubscribe();
             clearTimeout(timeout);
         };
-    }, [supabase]);
+    }, []);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();

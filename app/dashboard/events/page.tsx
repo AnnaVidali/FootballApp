@@ -7,6 +7,8 @@ import AvailabilityButton from "@/components/AvailabilityButton";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
+const supabase = createClient();
+
 type Event = {
     id: string;
     title: string;
@@ -43,7 +45,6 @@ export default function EventsPage() {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [confirmMsg, setConfirmMsg] = useState("");
     const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
-    const supabase = createClient();
 
     useEffect(() => {
         async function load() {
@@ -108,7 +109,7 @@ export default function EventsPage() {
             setLoading(false);
         }
         load();
-    }, [supabase]);
+    }, []);
 
     function getCounts(eventId: string) {
         const rows = availability.filter((a) => a.event_id === eventId);

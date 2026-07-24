@@ -13,6 +13,8 @@ const statusConfig: Record<Status, { label: string; activeBg: string; inactiveBg
     unavailable: { label: "No", activeBg: "bg-red-100 text-red-700 border-red-300", inactiveBg: "bg-white text-gray-500 border-gray-200 hover:border-red-300" },
 };
 
+const supabase = createClient();
+
 export default function AvailabilityButton({
     eventId,
     eventDate,
@@ -28,7 +30,6 @@ export default function AvailabilityButton({
     initialStatus: Status | null;
     onUpdate: (eventId: string, userId: string, status: Status) => void;
 }) {
-    const supabase = createClient();
     const [selected, setSelected] = useState<Status | null>(initialStatus);
     const [loading, setLoading] = useState(false);
     const [alertOpen, setAlertOpen] = useState(false);
