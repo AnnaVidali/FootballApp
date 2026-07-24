@@ -115,7 +115,7 @@ export default function EventsPage() {
 
     const now = new Date();
     const upcoming = events.filter((e) => new Date(e.date) >= now);
-    const past = events.filter((e) => new Date(e.date) < now);
+    const past = events.filter((e) => new Date(e.date) < now).slice(0, 50);
 
     return (
         <div className="max-w-2xl mx-auto">
