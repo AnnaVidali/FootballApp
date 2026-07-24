@@ -71,18 +71,28 @@ export default async function DashboardPage() {
   const myStatusMap = new Map((myAvailability ?? []).map((a) => [a.event_id, a.status]));
 
   const now = new Date();
+
+  function getDeadline(event: { date: string; type: string }) {
+    return event.type === "match"
+      ? new Date(new Date(event.date).setHours(0, 0, 0, 0))
+      : new Date(new Date(event.date).getTime() - 25 * 60 * 60 * 1000);
+  }
+
   const visibleEvents = isCoach
     ? (upcomingEvents ?? [])
     : (upcomingEvents ?? []).filter((e) => {
         const status = myStatusMap.get(e.id);
-        if (status === "unavailable") return false;
-        if (!status) return false;
-        if (status === "maybe") {
-          const deadline = e.type === "match"
-            ? new Date(new Date(e.date).setHours(0, 0, 0, 0))
-            : new Date(new Date(e.date).getTime() - 25 * 60 * 60 * 1000);
-          if (now > deadline) return false;
+        const deadline = getDeadline(e);
+        const closed = now > deadline;
+
+        // After deadline: unavailable and maybe are treated as "don't show"
+        if (closed) {
+          if (status === "unavailable" || status === "maybe") return false;
+          if (!status) return false; // missed the deadline entirely
+          return true; // voted available
         }
+
+        // Before deadline: show everything (vote or not)
         return true;
       });
 
@@ -172,16 +182,27 @@ export default async function DashboardPage() {
                     })}
                     {event.location && ` · ${event.location}`}
                   </p>
-                   {!isCoach && myStatusMap.get(event.id) === "maybe" && (
-                    <p className="text-xs text-yellow-600 mt-1">
-                      You answered Maybe — pick Yes or No before it closes
-                    </p>
-                  )}
-                  {!isCoach && !myStatusMap.has(event.id) && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      Mark your availability
-                    </p>
-                  )}
+                   {!isCoach && (() => {
+                    const deadline = getDeadline(event);
+                    const closed = now > deadline;
+                    const status = myStatusMap.get(event.id);
+                    if (closed) return null;
+                    if (status === "maybe") {
+                      return (
+                        <p className="text-xs text-yellow-600 mt-1">
+                          You answered Maybe — pick Yes or No before it closes
+                        </p>
+                      );
+                    }
+                    if (!status) {
+                      return (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Mark your availability
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                    {!isCoach && <AvailabilityStatus eventDate={event.date} eventType={event.type} />}
                   <div className="mt-2">
                     <AddToCalendarButton
