@@ -88,6 +88,12 @@ export default function RosterClient({
 
     // Leave the team
     async function leaveTeam() {
+        // Check if user is the last admin
+        const { data: canLeave } = await supabase.rpc("can_leave_team");
+        if (canLeave === false) {
+            alert("You're the only admin on this team. Promote another player to admin before leaving.");
+            return;
+        }
         if (!confirm("Are you sure you want to leave this team?")) return;
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
