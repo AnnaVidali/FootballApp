@@ -56,8 +56,7 @@ export default async function DashboardPage() {
     .select("id, title, type, date, location")
     .eq("team_id", profile.team_id)
     .gte("date", new Date().toISOString())
-    .order("date", { ascending: true })
-    .limit(5);
+    .order("date", { ascending: true });
 
   const eventIds = (upcomingEvents ?? []).map((e) => e.id);
   const { data: myAvailability } = eventIds.length > 0

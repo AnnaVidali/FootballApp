@@ -58,10 +58,16 @@ export default function AvailabilityButton({
     async function respond(status: Status) {
         if (closed) return;
         setLoading(true);
-        await supabase.from("availability").upsert(
+        const { error } = await supabase.from("availability").upsert(
             { user_id: currentUserId, event_id: eventId, status },
             { onConflict: "user_id,event_id" }
         );
+        if (error) {
+            console.error("Availability save error:", error);
+            alert("Failed to save: " + error.message);
+            setLoading(false);
+            return;
+        }
         setSelected(status);
         onUpdate(eventId, currentUserId, status);
         setLoading(false);
