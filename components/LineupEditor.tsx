@@ -184,39 +184,52 @@ export default function LineupEditor({
         return { x, y };
     }
 
-    function handleMouseDownPlayer(e: React.MouseEvent, playerId: string) {
-        e.preventDefault();
-        setDraggingPlayer(playerId);
-        setDragTarget(null);
-        setGhostPos({ x: e.clientX, y: e.clientY });
-    }
-
-    function handleMouseDownSlot(e: React.MouseEvent, slot: string) {
-        e.preventDefault();
-        e.stopPropagation();
-        setDraggingSlot(slot);
-        setDragTarget(null);
-        setGhostPos({ x: e.clientX, y: e.clientY });
-    }
-
-    function handleMouseMove(e: React.MouseEvent) {
-        if (!draggingPlayer && !draggingSlot) return;
-        setGhostPos({ x: e.clientX, y: e.clientY });
-
+    function getDragTarget(clientX: number, clientY: number): "pitch" | "subs" | null {
         let target: "pitch" | "subs" | null = null;
         if (pitchRef.current) {
             const r = pitchRef.current.getBoundingClientRect();
-            if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+            if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
                 target = "pitch";
             }
         }
         if (!target && subsRef.current) {
             const r = subsRef.current.getBoundingClientRect();
-            if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+            if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
                 target = "subs";
             }
         }
-        setDragTarget(target);
+        return target;
+    }
+
+    function startDragPlayer(e: React.MouseEvent | React.TouchEvent, playerId: string) {
+        e.preventDefault();
+        const pos = "touches" in e ? e.touches[0] : e;
+        setDraggingPlayer(playerId);
+        setDragTarget(null);
+        setGhostPos({ x: pos.clientX, y: pos.clientY });
+    }
+
+    function startDragSlot(e: React.MouseEvent | React.TouchEvent, slot: string) {
+        e.preventDefault();
+        e.stopPropagation();
+        const pos = "touches" in e ? e.touches[0] : e;
+        setDraggingSlot(slot);
+        setDragTarget(null);
+        setGhostPos({ x: pos.clientX, y: pos.clientY });
+    }
+
+    function handleMouseMove(e: React.MouseEvent) {
+        if (!draggingPlayer && !draggingSlot) return;
+        setGhostPos({ x: e.clientX, y: e.clientY });
+        setDragTarget(getDragTarget(e.clientX, e.clientY));
+    }
+
+    function handleTouchMove(e: React.TouchEvent) {
+        if (!draggingPlayer && !draggingSlot) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        setGhostPos({ x: touch.clientX, y: touch.clientY });
+        setDragTarget(getDragTarget(touch.clientX, touch.clientY));
     }
 
     function findNearestEmptySlot(x: number, y: number, currentAssignments: Record<string, Assignment>): string | null {
@@ -236,13 +249,15 @@ export default function LineupEditor({
         return bestKey;
     }
 
-    function handleMouseUp(e: React.MouseEvent) {
+    function handleMouseUp(e: React.MouseEvent | React.TouchEvent) {
         if (!draggingPlayer && !draggingSlot) return;
+        const pos = "changedTouches" in e ? e.changedTouches[0] : e;
+        const target = getDragTarget(pos.clientX, pos.clientY);
 
         if (draggingPlayer) {
             const member = members.find((m) => m.id === draggingPlayer);
-            if (member && dragTarget === "pitch") {
-                const { x, y } = getPitchCoords(e.clientX, e.clientY);
+            if (member && target === "pitch") {
+                const { x, y } = getPitchCoords(pos.clientX, pos.clientY);
                 setAssignments((prev) => {
                     const next = { ...prev };
                     for (const [key, val] of Object.entries(next)) {
@@ -252,13 +267,13 @@ export default function LineupEditor({
                         const slotKey = findNearestEmptySlot(x, y, next);
                         if (slotKey) {
                             const f = FORMATIONS[formation];
-                            const pos = f.positions.find((p, i) => p.name + (i > 0 ? i : "") === slotKey)!;
+                            const slotPos = f.positions.find((p, i) => p.name + (i > 0 ? i : "") === slotKey)!;
                             next[slotKey] = {
                                 playerId: member.id,
                                 name: member.name,
                                 shirtNumber: member.shirt_number,
-                                x: pos.x,
-                                y: pos.y,
+                                x: slotPos.x,
+                                y: slotPos.y,
                             };
                             return next;
                         }
@@ -275,7 +290,7 @@ export default function LineupEditor({
                     return next;
                 });
                 setSubs((prev) => prev.filter((a) => a.playerId !== draggingPlayer));
-            } else if (member && dragTarget === "subs") {
+            } else if (member && target === "subs") {
                 setAssignments((prev) => {
                     const next = { ...prev };
                     for (const [key, val] of Object.entries(next)) {
@@ -298,9 +313,9 @@ export default function LineupEditor({
         }
 
         if (draggingSlot) {
-            if (!dragTarget) {
+            if (!target) {
                 setDraggingSlot(null);
-            } else if (dragTarget === "subs") {
+            } else if (target === "subs") {
                 const moving = assignments[draggingSlot];
                 if (moving && moving.playerId) {
                     setAssignments((prev) => {
@@ -325,7 +340,7 @@ export default function LineupEditor({
                 }
                 setDraggingSlot(null);
             } else {
-                const { x, y } = getPitchCoords(e.clientX, e.clientY);
+                const { x, y } = getPitchCoords(pos.clientX, pos.clientY);
                 setAssignments((prev) => {
                     const moving = prev[draggingSlot];
                     if (!moving) return prev;
@@ -506,6 +521,9 @@ export default function LineupEditor({
             onMouseMove={isAdmin ? handleMouseMove : undefined}
             onMouseUp={isAdmin ? handleMouseUp : undefined}
             onMouseLeave={isAdmin ? () => { if (isDragging) { setDraggingPlayer(null); setDraggingSlot(null); setDragTarget(null); setGhostPos(null); } } : undefined}
+            onTouchMove={isAdmin ? handleTouchMove : undefined}
+            onTouchEnd={isAdmin ? handleMouseUp : undefined}
+            onTouchCancel={isAdmin ? () => { if (isDragging) { setDraggingPlayer(null); setDraggingSlot(null); setDragTarget(null); setGhostPos(null); } } : undefined}
         >
             {/* Ghost element while dragging */}
             {isDragging && ghostPos && (
@@ -578,11 +596,14 @@ export default function LineupEditor({
                             return (
                                 <div
                                     key={slot}
-                                    onMouseDown={isAdmin ? (e) => handleMouseDownSlot(e, slot) : undefined}
+                                    onMouseDown={isAdmin ? (e) => startDragSlot(e, slot) : undefined}
+                                    onTouchStart={isAdmin ? (e) => startDragSlot(e, slot) : undefined}
                                     className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
                                     style={{ left: `${a.x}%`, top: `${a.y}%` }}
                                 >
-                                    <div className={`w-12 h-12 rounded-full bg-white text-black border-2 border-white flex flex-col items-center justify-center text-[10px] font-bold ${isAdmin ? "cursor-grab active:cursor-grabbing" : ""} ${draggingSlot === slot ? "opacity-40" : ""}`}>
+                                    <div className={`w-12 h-12 rounded-full bg-white text-black border-2 border-white flex flex-col items-center justify-center text-[10px] font-bold ${isAdmin ? "cursor-grab active:cursor-grabbing" : ""} ${draggingSlot === slot ? "opacity-40" : ""}`}
+                                        style={{ touchAction: "none" }}
+                                    >
                                         <span className="leading-tight">{a.name.split(" ")[0]}</span>
                                         {a.shirtNumber && (
                                             <span className="text-[9px] text-gray-500">#{a.shirtNumber}</span>
@@ -615,12 +636,14 @@ export default function LineupEditor({
                             pool.map((player) => (
                                 <div
                                     key={player.id}
-                                    onMouseDown={isAdmin ? (e) => handleMouseDownPlayer(e, player.id) : undefined}
+                                    onMouseDown={isAdmin ? (e) => startDragPlayer(e, player.id) : undefined}
+                                    onTouchStart={isAdmin ? (e) => startDragPlayer(e, player.id) : undefined}
                                     className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm ${
                                         isAdmin
                                             ? "cursor-grab border-gray-200 bg-white hover:border-gray-400 active:cursor-grabbing"
                                             : "border-gray-100 bg-gray-50"
                                     } ${draggingPlayer === player.id ? "opacity-40" : ""}`}
+                                    style={{ touchAction: "none" }}
                                 >
                                     <span className="text-black font-medium">{player.name}</span>
                                     <div className="flex items-center gap-2 text-xs text-gray-400">
@@ -648,8 +671,10 @@ export default function LineupEditor({
                                         {subs.map((sub) => (
                                             <div
                                                 key={sub.playerId}
-                                                onMouseDown={(e) => handleMouseDownPlayer(e, sub.playerId)}
+                                                onMouseDown={(e) => startDragPlayer(e, sub.playerId)}
+                                                onTouchStart={(e) => startDragPlayer(e, sub.playerId)}
                                                 className={`flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm cursor-grab active:cursor-grabbing ${draggingPlayer === sub.playerId ? "opacity-40" : ""}`}
+                                                style={{ touchAction: "none" }}
                                             >
                                                 <span className="text-black font-medium">{sub.name}</span>
                                                 <div className="flex items-center gap-2">
