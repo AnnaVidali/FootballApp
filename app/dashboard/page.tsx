@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
+import AvailabilityStatus from "@/components/AvailabilityStatus";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -175,6 +176,7 @@ export default async function DashboardPage() {
                       Mark your availability
                     </p>
                   )}
+                  <AvailabilityStatus eventDate={event.date} />
                   <div className="mt-2">
                     <AddToCalendarButton
                       title={event.title}
