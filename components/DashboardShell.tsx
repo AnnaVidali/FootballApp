@@ -65,10 +65,18 @@ export default function DashboardShell({
 
     return (
         <div className="flex h-screen overflow-hidden">
+            {/* Skip to content link */}
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:shadow-md focus:text-sm focus:font-medium focus:text-gray-900"
+            >
+                Skip to content
+            </a>
             {/* Hamburger button - mobile only */}
             <button
                 onClick={() => setIsOpen(true)}
                 className="fixed top-4 left-4 z-50 rounded-md bg-white p-2 shadow-md md:hidden"
+                aria-label="Open navigation menu"
             >
                 ☰
             </button>
@@ -98,7 +106,7 @@ export default function DashboardShell({
                 </div>
             </div>
             {/* Main content */}
-            <main className="flex-1 overflow-y-auto bg-gray-50 pt-16 pl-16 pr-4 md:p-6">
+            <main id="main-content" className="flex-1 overflow-y-auto bg-gray-50 pt-16 pl-16 pr-4 md:p-6">
                 {children}
             </main>
         </div>

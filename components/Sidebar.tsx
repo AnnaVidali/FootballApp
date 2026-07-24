@@ -9,6 +9,7 @@ const navLinks = [
     { href: "/dashboard/events", label: "Events", icon: "📅" },
     { href: "/dashboard/lineup", label: "Lineup", icon: "⚽" },
     { href: "/dashboard/settings", label: "Settings", icon: "⚙️" },
+    { href: "/dashboard/account", label: "Account", icon: "👤" },
 ];
 
 export default function Sidebar({
@@ -50,7 +51,7 @@ export default function Sidebar({
                 </div>
             </div>
 
-            <nav className="flex-1 p-4 space-y-1">
+            <nav className="flex-1 p-4 space-y-1" aria-label="Main navigation">
                 {navLinks.map((link) => {
                     const isActive =
                         link.href === "/dashboard"
@@ -62,6 +63,7 @@ export default function Sidebar({
                             key={link.href}
                             href={link.href}
                             onClick={onCloseAction}
+                            aria-current={isActive ? "page" : undefined}
                             className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                                 isActive
                                 ? "text-[var(--primary-text)]"
@@ -69,7 +71,7 @@ export default function Sidebar({
                             }`}
                             style={isActive ? { backgroundColor: "color-mix(in srgb, var(--primary) 10%, transparent)" } : undefined}
                         >
-                        <span>{link.icon}</span>
+                        <span aria-hidden="true">{link.icon}</span>
                         {link.label}
                         </Link>
                    );

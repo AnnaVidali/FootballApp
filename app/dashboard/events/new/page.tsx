@@ -52,10 +52,11 @@ export default function NewEventPage() {
             <h1 className="text-2xl font-bold text-black mb-6">New Event</h1>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="event-type" className="block text-sm font-medium text-gray-700 mb-1">
                         Event Type
                     </label>
                     <select
+                        id="event-type"
                         value={type}
                         onChange={(e) => setType(e.target.value as "match" | "training")}
                         className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
@@ -65,10 +66,11 @@ export default function NewEventPage() {
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="event-title" className="block text-sm font-medium text-gray-700 mb-1">
                         Title
                     </label>
                     <input
+                        id="event-title"
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
@@ -78,10 +80,11 @@ export default function NewEventPage() {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="event-date" className="block text-sm font-medium text-gray-700 mb-1">
                         Date & Time
                     </label>
                     <input
+                        id="event-date"
                         type="datetime-local"
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
@@ -90,10 +93,11 @@ export default function NewEventPage() {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="event-location" className="block text-sm font-medium text-gray-700 mb-1">
                         Location (optional)
                     </label>
                     <input
+                        id="event-location"
                         type="text"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
@@ -102,11 +106,12 @@ export default function NewEventPage() {
                     />
                 </div>
                 {error && (
-                    <p className="text-sm text-red-600">{error}</p>
+                    <p className="text-sm text-red-600" role="alert">{error}</p>
                 )}
                 <button
                     type="submit"
                     disabled={loading}
+                    aria-busy={loading}
                     className="w-full rounded-md px-4 py-2 font-medium disabled:opacity-50"
                     style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                 >

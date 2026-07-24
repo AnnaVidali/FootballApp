@@ -92,16 +92,17 @@ export default function SettingsPage() {
         <div className="max-w-md mx-auto">
             <h1 className="text-2xl font-bold text-black mb-6">Team Settings</h1>
             {message && (
-                <p className={`mb-4 text-sm ${message.startsWith("Error") ? "text-red-600" : ""}`} style={!message.startsWith("Error") ? { color: "var(--primary-display)" } : undefined}>
+                <p className={`mb-4 text-sm ${message.startsWith("Error") ? "text-red-600" : ""}`} style={!message.startsWith("Error") ? { color: "var(--primary-display)" } : undefined} role="status">
                     {message}
                 </p>
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="settings-team-name" className="block text-sm font-medium text-gray-700 mb-1">
                         Team Name
                     </label>
                     <input
+                        id="settings-team-name"
                         type="text"
                         value={teamName}
                         onChange={(e) => setTeamName(e.target.value)}
@@ -110,11 +111,12 @@ export default function SettingsPage() {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="settings-primary-color" className="block text-sm font-medium text-gray-700 mb-1">
                         Primary Color
                     </label>
                     <div className="flex items-center gap-3">
                         <input
+                            id="settings-primary-color"
                             type="color"
                             value={primaryColour}
                             onChange={(e) => setPrimaryColour(e.target.value)}
@@ -125,11 +127,12 @@ export default function SettingsPage() {
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="settings-secondary-color" className="block text-sm font-medium text-gray-700 mb-1">
                         Secondary Color
                     </label>
                     <div className="flex items-center gap-3">
                         <input
+                            id="settings-secondary-color"
                             type="color"
                             value={secondaryColour}
                             onChange={(e) => setSecondaryColour(e.target.value)}
@@ -140,7 +143,7 @@ export default function SettingsPage() {
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="settings-team-logo" className="block text-sm font-medium text-gray-700 mb-1">
                         Team Logo
                     </label>
                     {logoPreview && (
@@ -153,6 +156,7 @@ export default function SettingsPage() {
                     )}
                     {isAdmin ? (
                         <input
+                            id="settings-team-logo"
                             type="file"
                             accept="image/*"
                             onChange={(e) => {
@@ -172,6 +176,7 @@ export default function SettingsPage() {
                     <button
                         type="submit"
                         disabled={loading}
+                        aria-busy={loading}
                         className="w-full rounded-md px-4 py-2 font-medium disabled:opacity-50"
                         style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                     >

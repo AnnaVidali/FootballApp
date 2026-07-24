@@ -50,10 +50,11 @@ export default function JoinTeamPage() {
             <h1 className="text-2xl font-bold text-black mb-6">Join a Team</h1>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="invite-code" className="block text-sm font-medium text-gray-700 mb-1">
                         Invite Code
                     </label>
                     <input
+                        id="invite-code"
                         type="text"
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
@@ -66,11 +67,12 @@ export default function JoinTeamPage() {
                     </p>
                 </div>
                 {error && (
-                    <p className="text-sm text-red-600">{error}</p>
+                    <p className="text-sm text-red-600" role="alert">{error}</p>
                 )}
                 <button
                     type="submit"
                     disabled={loading}
+                    aria-busy={loading}
                     className="w-full rounded-md px-4 py-2 font-medium disabled:opacity-50"
                     style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                 >

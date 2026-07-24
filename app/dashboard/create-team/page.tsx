@@ -111,10 +111,11 @@ export default function CreateTeamPage() {
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="team-name" className="block text-sm font-medium text-gray-700 mb-1">
                             Team Name
                         </label>
                         <input
+                            id="team-name"
                             type="text"
                             value={teamName}
                             onChange={(e) => setTeamName(e.target.value)}
@@ -124,11 +125,12 @@ export default function CreateTeamPage() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="primary-color" className="block text-sm font-medium text-gray-700 mb-1">
                             Primary Color
                         </label>
                         <div className="flex items-center gap-3">
                             <input
+                                id="primary-color"
                                 type="color"
                                 value={primaryColour}
                                 onChange={(e) => setPrimaryColour(e.target.value)}
@@ -138,11 +140,12 @@ export default function CreateTeamPage() {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="secondary-color" className="block text-sm font-medium text-gray-700 mb-1">
                             Secondary Color
                         </label>
                         <div className="flex items-center gap-3">
                             <input
+                                id="secondary-color"
                                 type="color"
                                 value={secondaryColour}
                                 onChange={(e) => setSecondaryColour(e.target.value)}
@@ -152,10 +155,11 @@ export default function CreateTeamPage() {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="team-logo" className="block text-sm font-medium text-gray-700 mb-1">
                             Team Logo (optional)
                         </label>
                         <input
+                            id="team-logo"
                             type="file"
                             accept="image/*"
                             onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
@@ -163,11 +167,12 @@ export default function CreateTeamPage() {
                         />
                     </div>
                     {error && (
-                        <p className="text-sm text-red-600">{error}</p>
+                        <p className="text-sm text-red-600" role="alert">{error}</p>
                     )}
                     <button
                         type="submit"
                         disabled={loading}
+                        aria-busy={loading}
                         className="w-full rounded-md px-4 py-2 font-medium disabled:opacity-50"
                         style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                     >
