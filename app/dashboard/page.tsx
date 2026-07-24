@@ -21,8 +21,7 @@ export default async function DashboardPage() {
             Welcome, {profile?.name || "Player"}!
           </h1>
           <p className="text-gray-600 mb-8">
-            You&apos;re not on a team yet. Wait for an admin to add you, or
-            create your own team.
+            You&apos;re not on a team yet. Create your own or join one with an invite code.
           </p>
           <div className="space-y-3">
             <Link

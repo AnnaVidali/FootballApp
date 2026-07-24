@@ -24,19 +24,10 @@ export default async function RosterPage() {
         .select("id, user_id, name, position, shirt_number, is_admin")
         .eq("team_id", profile.team_id)
         .order("name");
-    let unassigned: { id: string; user_id: string; name: string }[] = [];
-    if (profile.is_admin) {
-        const { data } = await supabase
-            .from("profiles")
-            .select("id, user_id, name")
-            .is("team_id", null);
-        unassigned = data ?? [];
-    }
     return (
         <RosterClient
             inviteCode={team?.invite_code ?? ""}
             members={members ?? []}
-            unassigned={unassigned}
             isAdmin={profile.is_admin}
             currentUserId={user.id}
         />

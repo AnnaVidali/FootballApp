@@ -13,22 +13,14 @@ type Member = {
     is_admin: boolean;
 };
 
-type Unassigned = {
-    id: string;
-    user_id: string;
-    name: string;
-};
-
 export default function RosterClient({
     inviteCode,
     members,
-    unassigned,
     isAdmin,
     currentUserId,
 }: {
     inviteCode: string;
     members: Member[];
-    unassigned: Unassigned[];
     isAdmin: boolean;
     currentUserId: string;
 }) {
@@ -79,19 +71,25 @@ export default function RosterClient({
         router.refresh();
     }
 
-    // Add unassigned player to team
-    async function addToTeam(userId: string) {
+    // Leave the team
+    async function leaveTeam() {
+        if (!confirm("Are you sure you want to leave this team?")) return;
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: me } = await supabase
-            .from("profiles")
-            .select("team_id")
-            .eq("user_id", user!.id)
-            .single();
         await supabase
             .from("profiles")
-            .update({ team_id: me?.team_id })
-            .eq("user_id", userId);
+            .update({ team_id: null })
+            .eq("user_id", user!.id);
+        setLoading(false);
+        router.push("/dashboard");
+        router.refresh();
+    }
+
+    // Remove a player from the team (admin only)
+    async function removeFromTeam(member: Member) {
+        if (!confirm(`Remove ${member.name} from the team?`)) return;
+        setLoading(true);
+        await supabase.rpc("admin_remove_player", { target_profile_id: member.id });
         setLoading(false);
         router.refresh();
     }
@@ -99,6 +97,13 @@ export default function RosterClient({
     return (
         <div className="max-w-2xl mx-auto space-y-6">
             <h1 className="text-2xl font-bold text-black">Team Roster</h1>
+            {/* Leave Team*/}
+            <button
+                onClick={leaveTeam}
+                className="rounded-md bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
+            >
+                Leave Team
+            </button>
             {/* Invite Code Section */}
             {isAdmin && (
                 <div className="rounded-lg bg-white p-4 shadow-sm">
@@ -192,43 +197,30 @@ export default function RosterClient({
                                             )}
                                         </p>
                                     </div>
-                                    {(isAdmin || member.user_id === currentUserId) && (
-                                        <button
-                                            onClick={() => startEdit(member)}
-                                            className="text-sm text-gray-500 hover:text-gray-700"
-                                        >
-                                            Edit
-                                        </button>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        {(isAdmin || member.user_id === currentUserId) && (
+                                            <button
+                                                onClick={() => startEdit(member)}
+                                                className="text-sm text-gray-500 hover:text-gray-700"
+                                            >
+                                                Edit
+                                            </button>
+                                        )}
+                                        {isAdmin && member.user_id !== currentUserId && (
+                                            <button
+                                                onClick={() => removeFromTeam(member)}
+                                                className="text-sm text-red-500 hover:text-red-700"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
                     ))}
                 </div>
             </div>
-            {/* Unassigned Users Section (admin only) */}
-            {isAdmin && unassigned.length > 0 && (
-                <div className="rounded-lg bg-white p-4 shadow-sm">
-                    <h2 className="font-bold text-black mb-3">Waiting to Join ({unassigned.length})</h2>
-                    <div className="divide-y divide-gray-100">
-                        {unassigned.map((user) => (
-                            <div key={user.id} className="flex items-center justify-between py-3">
-                                <div>
-                                    <p className="font-medium text-black">{user.name}</p>
-                                </div>
-                                <button
-                                    onClick={() => addToTeam(user.user_id)}
-                                    disabled={loading}
-                                    className="rounded-md px-3 py-1 text-sm font-medium"
-                                    style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
-                                >
-                                    Add to Team
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
