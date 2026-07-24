@@ -74,12 +74,19 @@ export default function AccountPage() {
             return;
         }
 
-        // Check if sole admin
-        const { data: canLeave } = await supabase.rpc("can_leave_team");
-        if (canLeave === false) {
-            showAlert("Can't Delete", "You're the only admin on this team. Promote another player to admin before deleting your account.");
-            setLoading(false);
-            return;
+        // Check if sole admin (only applies to admins)
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("is_admin")
+            .eq("user_id", user.id)
+            .single();
+        if (profile?.is_admin) {
+            const { data: canLeave } = await supabase.rpc("can_leave_team");
+            if (canLeave === false) {
+                showAlert("Can't Delete", "You're the only admin on this team. Promote another player to admin before deleting your account.");
+                setLoading(false);
+                return;
+            }
         }
 
         // Remove profile (clears team association, roster entry, etc.)
