@@ -29,6 +29,7 @@ export interface Event {
   date: string;
   location: string | null;
   formation: string | null;
+  captain_id: string | null;
   created_at: string;
 }
 

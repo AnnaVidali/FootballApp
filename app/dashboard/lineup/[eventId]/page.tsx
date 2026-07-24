@@ -23,7 +23,7 @@ export default async function LineupPage({
 
     const { data: event } = await supabase
         .from("events")
-        .select("id, title, type, date, location, team_id, formation")
+        .select("id, title, type, date, location, team_id, formation, captain_id")
         .eq("id", eventId)
         .single();
     if (!event || event.team_id !== profile.team_id) notFound();

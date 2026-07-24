@@ -11,6 +11,7 @@ type Event = {
     date: string;
     location: string | null;
     formation: string | null;
+    captain_id: string | null;
 };
 
 type Member = {
@@ -69,12 +70,13 @@ export default function LineupPage() {
                 .order("name");
             setAllMembers(teamMembers ?? []);
 
+            const cutoff = new Date(Date.now() - 90 * 60 * 1000).toISOString(); // 1.5h ago
             const { data: upcoming } = await supabase
                 .from("events")
-                .select("id, title, type, date, location, formation")
+                .select("id, title, type, date, location, formation, captain_id")
                 .eq("team_id", profile.team_id)
                 .eq("type", "match")
-                .gte("date", new Date().toISOString())
+                .gte("date", cutoff)
                 .order("date", { ascending: true });
             setEvents(upcoming ?? []);
 
