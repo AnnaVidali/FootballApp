@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { positionLabels } from "@/lib/constants";
+import AlertModal from "@/components/AlertModal";
 
 type Member = {
     id: string;
@@ -91,17 +93,6 @@ const FORMATIONS: Record<string, { label: string; positions: { name: string; x: 
     },
 };
 
-const positionLabels: Record<string, string> = {
-    GK: "Goalkeeper",
-    CB: "Center Back",
-    LB: "Left Back",
-    RB: "Right Back",
-    CM: "Central Midfielder",
-    LM: "Left Midfielder",
-    RM: "Right Midfielder",
-    ST: "Striker",
-};
-
 export default function LineupEditor({
     event,
     members,
@@ -109,7 +100,7 @@ export default function LineupEditor({
     existingSetPieces,
     isAdmin,
 }: {
-    event: { id: string; title: string; type: string; date: string; location: string | null; formation: string | null };
+    event: { id: string; title: string; type: string; date: string; location: string | null; formation: string | null; captain_id: string | null };
     members: Member[];
     existingLineup: LineupEntry[];
     existingSetPieces: { piece_type: string; player_id: string }[];
@@ -120,9 +111,16 @@ export default function LineupEditor({
     const pitchRef = useRef<HTMLDivElement>(null);
     const [saving, setSaving] = useState(false);
     const [formation, setFormation] = useState<string>(event.formation ?? "");
+    const [captainId, setCaptainId] = useState<string>(event.captain_id ?? "");
+    const [alertOpen, setAlertOpen] = useState(false);
+    const [alertMsg, setAlertMsg] = useState("");
+
+    const isLocked = new Date(event.date) <= new Date();
+    const canEdit = isAdmin && !isLocked;
 
     useEffect(() => {
         setFormation(event.formation ?? "");
+        setCaptainId(event.captain_id ?? "");
     }, [event.id]);
 
     const [assignments, setAssignments] = useState<Record<string, Assignment>>({});
@@ -367,8 +365,6 @@ export default function LineupEditor({
                         f.positions.forEach((pos, i) => {
                             const slotKey = pos.name + (i > 0 ? i : "");
                             if (slotKey === draggingSlot) return;
-                            const occupant = prev[slotKey];
-                            if (occupant && occupant.playerId) return;
                             const dist = Math.hypot(pos.x - x, pos.y - y);
                             if (dist < bestDist) {
                                 bestDist = dist;
@@ -377,9 +373,18 @@ export default function LineupEditor({
                         });
                         if (bestKey) {
                             const next = { ...prev };
-                            next[draggingSlot] = { ...moving, playerId: "", name: "", shirtNumber: null };
-                            const targetPos = f.positions.find((p, i) => p.name + (i > 0 ? i : "") === bestKey)!;
-                            next[bestKey] = { ...moving, x: targetPos.x, y: targetPos.y };
+                            const targetSlot = next[bestKey];
+                            if (targetSlot && targetSlot.playerId) {
+                                // Swap: move target player to the dragged-from slot
+                                next[draggingSlot] = { ...targetSlot, x: moving.x, y: moving.y };
+                                const targetPos = f.positions.find((p, i) => p.name + (i > 0 ? i : "") === bestKey)!;
+                                next[bestKey] = { ...moving, x: targetPos.x, y: targetPos.y };
+                            } else {
+                                // Empty slot: move there
+                                const targetPos = f.positions.find((p, i) => p.name + (i > 0 ? i : "") === bestKey)!;
+                                next[draggingSlot] = { ...moving, playerId: "", name: "", shirtNumber: null };
+                                next[bestKey] = { ...moving, x: targetPos.x, y: targetPos.y };
+                            }
                             return next;
                         }
                     }
@@ -478,7 +483,8 @@ export default function LineupEditor({
         const { error: deleteError } = await supabase.from("lineups").delete().eq("event_id", event.id);
         if (deleteError) {
             console.error("Lineup delete error:", deleteError);
-            alert("Failed to clear existing lineup: " + deleteError.message);
+            setAlertMsg("Failed to clear existing lineup: " + deleteError.message);
+            setAlertOpen(true);
             setSaving(false);
             return;
         }
@@ -506,10 +512,11 @@ export default function LineupEditor({
             const { error } = await supabase.from("lineups").insert(rows);
             if (error) {
                 console.error("Lineup save error:", error);
-                alert("Failed to save lineup: " + error.message);
+                setAlertMsg("Failed to save lineup: " + error.message);
+                setAlertOpen(true);
             }
         }
-        await supabase.from("events").update({ formation: formation || null }).eq("id", event.id);
+        await supabase.from("events").update({ formation: formation || null, captain_id: captainId || null }).eq("id", event.id);
 
         await supabase.from("set_pieces").delete().eq("event_id", event.id);
         const spRows: { event_id: string; piece_type: string; player_id: string }[] = [];
@@ -534,13 +541,14 @@ export default function LineupEditor({
     return (
         <div
             className="max-w-5xl mx-auto relative"
-            onMouseMove={isAdmin ? handleMouseMove : undefined}
-            onMouseUp={isAdmin ? handleMouseUp : undefined}
-            onMouseLeave={isAdmin ? () => { if (isDragging) { setDraggingPlayer(null); setDraggingSlot(null); setDragTarget(null); setGhostPos(null); } } : undefined}
-            onTouchMove={isAdmin ? handleTouchMove : undefined}
-            onTouchEnd={isAdmin ? handleMouseUp : undefined}
-            onTouchCancel={isAdmin ? () => { if (isDragging) { setDraggingPlayer(null); setDraggingSlot(null); setDragTarget(null); setGhostPos(null); } } : undefined}
+            onMouseMove={canEdit ? handleMouseMove : undefined}
+            onMouseUp={canEdit ? handleMouseUp : undefined}
+            onMouseLeave={canEdit ? () => { if (isDragging) { setDraggingPlayer(null); setDraggingSlot(null); setDragTarget(null); setGhostPos(null); } } : undefined}
+            onTouchMove={canEdit ? handleTouchMove : undefined}
+            onTouchEnd={canEdit ? handleMouseUp : undefined}
+            onTouchCancel={canEdit ? () => { if (isDragging) { setDraggingPlayer(null); setDraggingSlot(null); setDragTarget(null); setGhostPos(null); } } : undefined}
         >
+            <AlertModal open={alertOpen} title="Error" message={alertMsg} onClose={() => setAlertOpen(false)} />
             {/* Ghost element while dragging */}
             {isDragging && ghostPos && (
                 <div
@@ -570,18 +578,42 @@ export default function LineupEditor({
                 <div className="flex-1">
                     {isAdmin && (
                         <div className="mb-3">
+                            {isLocked && (
+                                <p className="text-xs text-red-500 mb-1">Lineup is locked — event has started</p>
+                            )}
                             <label className="text-sm font-medium text-gray-700 mr-2">Formation:</label>
                             <select
                                 value={formation}
                                 onChange={(e) => applyFormation(e.target.value)}
-                                className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                disabled={isLocked}
+                                className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black disabled:opacity-50"
                             >
                                 <option value="">Select formation</option>
                                 {Object.entries(FORMATIONS).map(([key, f]) => (
                                     <option key={key} value={key}>{f.label}</option>
                                 ))}
                             </select>
+                            <label className="text-sm font-medium text-gray-700 mr-2 ml-4">Captain:</label>
+                            <select
+                                value={captainId}
+                                onChange={(e) => setCaptainId(e.target.value)}
+                                disabled={isLocked}
+                                className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black disabled:opacity-50"
+                            >
+                                <option value="">None</option>
+                                {members.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                        {m.name}{m.shirt_number ? ` #${m.shirt_number}` : ""}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
+                    )}
+                    {isAdmin && captainId && !isLocked && (
+                        <p className="text-xs text-gray-400 mb-1">Captain will be shown with a &quot;C&quot; badge on the pitch</p>
+                    )}
+                    {!isAdmin && captainId && (
+                        <p className="text-xs text-gray-400 mb-1">Captain: <span className="font-medium text-black">{members.find(m => m.id === captainId)?.name ?? "Unknown"}</span></p>
                     )}
 
                     {/* Pitch */}
@@ -612,20 +644,23 @@ export default function LineupEditor({
                             return (
                                 <div
                                     key={slot}
-                                    onMouseDown={isAdmin ? (e) => startDragSlot(e, slot) : undefined}
-                                    onTouchStart={isAdmin ? (e) => startDragSlot(e, slot) : undefined}
+                                    onMouseDown={canEdit ? (e) => startDragSlot(e, slot) : undefined}
+                                    onTouchStart={canEdit ? (e) => startDragSlot(e, slot) : undefined}
                                     className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
                                     style={{ left: `${a.x}%`, top: `${a.y}%` }}
                                 >
-                                    <div className={`w-12 h-12 rounded-full bg-white text-black border-2 border-white flex flex-col items-center justify-center text-[10px] font-bold ${isAdmin ? "cursor-grab active:cursor-grabbing" : ""} ${draggingSlot === slot ? "opacity-40" : ""}`}
+                                    <div className={`w-12 h-12 rounded-full bg-white text-black border-2 ${a.playerId === captainId ? "border-yellow-500" : "border-white"} flex flex-col items-center justify-center text-[10px] font-bold ${canEdit ? "cursor-grab active:cursor-grabbing" : ""} ${draggingSlot === slot ? "opacity-40" : ""}`}
                                         style={{ touchAction: "none" }}
                                     >
+                                        {a.playerId === captainId && (
+                                            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-yellow-400 text-black text-[8px] font-bold flex items-center justify-center border border-yellow-600">C</span>
+                                        )}
                                         <span className="leading-tight">{a.name.split(" ")[0]}</span>
                                         {a.shirtNumber && (
                                             <span className="text-[9px] text-gray-500">#{a.shirtNumber}</span>
                                         )}
                                     </div>
-                                    {isAdmin && (
+                                    {canEdit && (
                                         <button
                                             onMouseDown={(e) => e.stopPropagation()}
                                             onTouchStart={(e) => e.stopPropagation()}
@@ -653,10 +688,10 @@ export default function LineupEditor({
                             pool.map((player) => (
                                 <div
                                     key={player.id}
-                                    onMouseDown={isAdmin ? (e) => startDragPlayer(e, player.id) : undefined}
-                                    onTouchStart={isAdmin ? (e) => startDragPlayer(e, player.id) : undefined}
+                                    onMouseDown={canEdit ? (e) => startDragPlayer(e, player.id) : undefined}
+                                    onTouchStart={canEdit ? (e) => startDragPlayer(e, player.id) : undefined}
                                     className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm ${
-                                        isAdmin
+                                        canEdit
                                             ? "cursor-grab border-gray-200 bg-white hover:border-gray-400 active:cursor-grabbing"
                                             : "border-gray-100 bg-gray-50"
                                     } ${draggingPlayer === player.id ? "opacity-40" : ""}`}
@@ -688,22 +723,24 @@ export default function LineupEditor({
                                         {subs.map((sub) => (
                                             <div
                                                 key={sub.playerId}
-                                                onMouseDown={(e) => startDragPlayer(e, sub.playerId)}
-                                                onTouchStart={(e) => startDragPlayer(e, sub.playerId)}
-                                                className={`flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm cursor-grab active:cursor-grabbing ${draggingPlayer === sub.playerId ? "opacity-40" : ""}`}
+                                                onMouseDown={canEdit ? (e) => startDragPlayer(e, sub.playerId) : undefined}
+                                                onTouchStart={canEdit ? (e) => startDragPlayer(e, sub.playerId) : undefined}
+                                                className={`flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm ${canEdit ? "cursor-grab active:cursor-grabbing" : ""} ${draggingPlayer === sub.playerId ? "opacity-40" : ""}`}
                                                 style={{ touchAction: "none" }}
                                             >
-                                                <span className="text-black font-medium">{sub.name}</span>
+                                                <span className="text-black font-medium">{sub.name}{sub.playerId === captainId && <span className="ml-1 inline-block w-4 h-4 rounded-full bg-yellow-400 text-black text-[8px] font-bold text-center leading-4 border border-yellow-600">C</span>}</span>
                                                 <div className="flex items-center gap-2">
                                                     {sub.shirtNumber && (
                                                         <span className="text-gray-400 text-xs">#{sub.shirtNumber}</span>
                                                     )}
+                                                    {canEdit && (
                                                     <button
                                                         onClick={() => handleRemoveSub(sub.playerId)}
                                                         className="text-gray-400 hover:text-red-500 text-xs"
                                                     >
                                                         ✕
                                                     </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -719,7 +756,8 @@ export default function LineupEditor({
                                         <select
                                             value={setPieceFoul}
                                             onChange={(e) => setSetPieceFoul(e.target.value)}
-                                            className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-black"
+                                            disabled={isLocked}
+                                            className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-black disabled:opacity-50"
                                         >
                                             <option value="">None</option>
                                             {members.map((m) => (
@@ -734,7 +772,8 @@ export default function LineupEditor({
                                         <select
                                             value={setPieceCorner}
                                             onChange={(e) => setSetPieceCorner(e.target.value)}
-                                            className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-black"
+                                            disabled={isLocked}
+                                            className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-black disabled:opacity-50"
                                         >
                                             <option value="">None</option>
                                             {members.map((m) => (
@@ -749,7 +788,8 @@ export default function LineupEditor({
                                         <select
                                             value={setPiecePenalty}
                                             onChange={(e) => setSetPiecePenalty(e.target.value)}
-                                            className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-black"
+                                            disabled={isLocked}
+                                            className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-black disabled:opacity-50"
                                         >
                                             <option value="">None</option>
                                             {members.map((m) => (
@@ -764,7 +804,7 @@ export default function LineupEditor({
 
                             <button
                                 onClick={save}
-                                disabled={saving}
+                                disabled={saving || isLocked}
                                 className="mt-4 w-full rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
                                 style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                             >

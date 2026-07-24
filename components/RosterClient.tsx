@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { positionLabels } from "@/lib/constants";
+import AlertModal from "@/components/AlertModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type Member = {
     id: string;
@@ -12,17 +15,6 @@ type Member = {
     shirt_number: number | null;
     is_admin: boolean;
     role: string;
-};
-
-const positionLabels: Record<string, string> = {
-    GK: "Goalkeeper",
-    CB: "Center Back",
-    LB: "Left Back",
-    RB: "Right Back",
-    CM: "Central Midfielder",
-    LM: "Left Midfielder",
-    RM: "Right Midfielder",
-    ST: "Striker",
 };
 
 export default function RosterClient({
@@ -46,6 +38,11 @@ export default function RosterClient({
     const [editAdmin, setEditAdmin] = useState(false);
     const [editCoach, setEditCoach] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [alertOpen, setAlertOpen] = useState(false);
+    const [alertMsg, setAlertMsg] = useState("");
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmMsg, setConfirmMsg] = useState("");
+    const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
 
 
     // Copy invite code
@@ -88,35 +85,50 @@ export default function RosterClient({
 
     // Leave the team
     async function leaveTeam() {
-        // Check if user is the last admin
         const { data: canLeave } = await supabase.rpc("can_leave_team");
         if (canLeave === false) {
-            alert("You're the only admin on this team. Promote another player to admin before leaving.");
+            setAlertMsg("You're the only admin on this team. Promote another player to admin before leaving.");
+            setAlertOpen(true);
             return;
         }
-        if (!confirm("Are you sure you want to leave this team?")) return;
-        setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        await supabase
-            .from("profiles")
-            .update({ team_id: null })
-            .eq("user_id", user!.id);
-        setLoading(false);
-        router.push("/dashboard");
-        router.refresh();
+        setConfirmMsg("Are you sure you want to leave this team?");
+        setConfirmAction(() => async () => {
+            setLoading(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            await supabase
+                .from("profiles")
+                .update({ team_id: null })
+                .eq("user_id", user!.id);
+            setLoading(false);
+            router.push("/dashboard");
+            router.refresh();
+        });
+        setConfirmOpen(true);
     }
 
     // Remove a player from the team (admin only)
     async function removeFromTeam(member: Member) {
-        if (!confirm(`Remove ${member.name} from the team?`)) return;
-        setLoading(true);
-        await supabase.rpc("admin_remove_player", { target_profile_id: member.id });
-        setLoading(false);
-        router.refresh();
+        setConfirmMsg(`Remove ${member.name} from the team?`);
+        setConfirmAction(() => async () => {
+            setLoading(true);
+            await supabase.rpc("admin_remove_player", { target_profile_id: member.id });
+            setLoading(false);
+            router.refresh();
+        });
+        setConfirmOpen(true);
     }
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
+            <AlertModal open={alertOpen} title="Notice" message={alertMsg} onClose={() => setAlertOpen(false)} />
+            <ConfirmModal
+                open={confirmOpen}
+                title="Confirm"
+                message={confirmMsg}
+                danger
+                onConfirm={async () => { setConfirmOpen(false); await confirmAction?.(); }}
+                onCancel={() => { setConfirmOpen(false); setConfirmAction(null); }}
+            />
             <h1 className="text-2xl font-bold text-black">Team Roster</h1>
             {/* Leave Team*/}
             <button

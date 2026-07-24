@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatTimeLeft } from "@/lib/utils";
+import AlertModal from "@/components/AlertModal";
 
 type Status = "available" | "maybe" | "unavailable";
 
@@ -10,18 +12,6 @@ const statusConfig: Record<Status, { label: string; activeBg: string; inactiveBg
     maybe: { label: "Maybe", activeBg: "bg-yellow-100 text-yellow-700 border-yellow-300", inactiveBg: "bg-white text-gray-500 border-gray-200 hover:border-yellow-300" },
     unavailable: { label: "No", activeBg: "bg-red-100 text-red-700 border-red-300", inactiveBg: "bg-white text-gray-500 border-gray-200 hover:border-red-300" },
 };
-
-function formatTimeLeft(ms: number) {
-    if (ms <= 0) return null;
-    const totalSeconds = Math.floor(ms / 1000);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
-    return `${minutes}m ${seconds}s`;
-}
 
 export default function AvailabilityButton({
     eventId,
@@ -41,6 +31,8 @@ export default function AvailabilityButton({
     const supabase = createClient();
     const [selected, setSelected] = useState<Status | null>(initialStatus);
     const [loading, setLoading] = useState(false);
+    const [alertOpen, setAlertOpen] = useState(false);
+    const [alertMsg, setAlertMsg] = useState("");
     const deadline = eventType === "match"
         ? new Date(new Date(eventDate).setHours(0, 0, 0, 0))
         : new Date(new Date(eventDate).getTime() - 25 * 60 * 60 * 1000);
@@ -68,7 +60,8 @@ export default function AvailabilityButton({
         );
         if (error) {
             console.error("Availability save error:", error);
-            alert("Failed to save: " + error.message);
+            setAlertMsg("Failed to save: " + error.message);
+            setAlertOpen(true);
             setLoading(false);
             return;
         }
@@ -83,6 +76,7 @@ export default function AvailabilityButton({
 
     return (
         <div>
+            <AlertModal open={alertOpen} title="Error" message={alertMsg} onClose={() => setAlertOpen(false)} />
             <div className="flex gap-2 mt-2">
                 {(["available", "maybe", "unavailable"] as Status[]).map((status) => {
                     const isActive = selected === status;

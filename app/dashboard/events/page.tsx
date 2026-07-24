@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import AvailabilityButton from "@/components/AvailabilityButton";
+import AlertModal from "@/components/AlertModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type Event = {
     id: string;
@@ -11,6 +13,7 @@ type Event = {
     type: "match" | "training";
     date: string;
     location: string | null;
+    captain_id: string | null;
 };
 
 type AvailabilityRow = {
@@ -34,6 +37,12 @@ export default function EventsPage() {
     const [editDate, setEditDate] = useState("");
     const [editLocation, setEditLocation] = useState("");
     const [saving, setSaving] = useState(false);
+    const [captainNames, setCaptainNames] = useState<Record<string, string>>({});
+    const [alertOpen, setAlertOpen] = useState(false);
+    const [alertMsg, setAlertMsg] = useState("");
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmMsg, setConfirmMsg] = useState("");
+    const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
     const supabase = createClient();
 
     useEffect(() => {
@@ -56,10 +65,21 @@ export default function EventsPage() {
 
             const { data } = await supabase
                 .from("events")
-                .select("id, title, type, date, location")
+                .select("id, title, type, date, location, captain_id")
                 .eq("team_id", profile.team_id)
                 .order("date", { ascending: true });
             setEvents(data ?? []);
+
+            const captainIds = [...new Set((data ?? []).map((e) => e.captain_id).filter(Boolean))] as string[];
+            if (captainIds.length > 0) {
+                const { data: captainProfiles } = await supabase
+                    .from("profiles")
+                    .select("id, name")
+                    .in("id", captainIds);
+                const nameMap: Record<string, string> = {};
+                (captainProfiles ?? []).forEach((p) => { nameMap[p.id] = p.name; });
+                setCaptainNames(nameMap);
+            }
 
             const eventIds = (data ?? []).map((e) => e.id);
             if (eventIds.length > 0) {
@@ -139,7 +159,8 @@ export default function EventsPage() {
             })
             .eq("id", eventId);
         if (error) {
-            alert("Failed to save: " + error.message);
+            setAlertMsg("Failed to save: " + error.message);
+            setAlertOpen(true);
             setSaving(false);
             return;
         }
@@ -155,21 +176,25 @@ export default function EventsPage() {
     }
 
     async function deleteEvent(eventId: string) {
-        if (!confirm("Delete this event? This cannot be undone.")) return;
-        setSaving(true);
-        const { error } = await supabase.from("events").delete().eq("id", eventId);
-        if (error) {
-            alert("Failed to delete: " + error.message);
+        setConfirmMsg("Delete this event? This cannot be undone.");
+        setConfirmAction(() => async () => {
+            setSaving(true);
+            const { error } = await supabase.from("events").delete().eq("id", eventId);
+            if (error) {
+                setAlertMsg("Failed to delete: " + error.message);
+                setAlertOpen(true);
+                setSaving(false);
+                return;
+            }
+            setEvents((prev) => prev.filter((e) => e.id !== eventId));
+            setAvailability((prev) => prev.filter((a) => a.event_id !== eventId));
             setSaving(false);
-            return;
-        }
-        setEvents((prev) => prev.filter((e) => e.id !== eventId));
-        setAvailability((prev) => prev.filter((a) => a.event_id !== eventId));
-        setSaving(false);
+        });
+        setConfirmOpen(true);
     }
 
     if (loading) {
-        return <p className="text-gray-500">Loading...</p>;
+        return <p className="text-gray-500" aria-live="polite">Loading...</p>;
     }
 
     const now = new Date();
@@ -178,6 +203,15 @@ export default function EventsPage() {
 
     return (
         <div className="max-w-2xl mx-auto">
+            <AlertModal open={alertOpen} title="Error" message={alertMsg} onClose={() => setAlertOpen(false)} />
+            <ConfirmModal
+                open={confirmOpen}
+                title="Confirm"
+                message={confirmMsg}
+                danger
+                onConfirm={async () => { setConfirmOpen(false); await confirmAction?.(); }}
+                onCancel={() => { setConfirmOpen(false); setConfirmAction(null); }}
+            />
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold text-black">Events</h1>
                 {isAdmin && (
@@ -271,6 +305,11 @@ export default function EventsPage() {
                                                                 })}
                                                                 {event.location && ` · ${event.location}`}
                                                             </p>
+                                                            {event.captain_id && captainNames[event.captain_id] && (
+                                                                <p className="text-xs text-gray-400 mt-0.5">
+                                                                    Captain: {captainNames[event.captain_id]}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                         {isAdmin && (
                                                             <div className="flex gap-2 shrink-0 ml-2">
@@ -427,6 +466,11 @@ export default function EventsPage() {
                                                                 })}
                                                                 {event.location && ` · ${event.location}`}
                                                             </p>
+                                                            {event.captain_id && captainNames[event.captain_id] && (
+                                                                <p className="text-xs text-gray-400 mt-0.5">
+                                                                    Captain: {captainNames[event.captain_id]}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                         {isAdmin && (
                                                             <div className="flex gap-2 shrink-0 ml-2">
