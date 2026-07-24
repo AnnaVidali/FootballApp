@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import AddToCalendarButton from "@/components/AddToCalendarButton";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -56,6 +57,28 @@ export default async function DashboardPage() {
     .gte("date", new Date().toISOString())
     .order("date", { ascending: true })
     .limit(5);
+
+  const eventIds = (upcomingEvents ?? []).map((e) => e.id);
+  const { data: myAvailability } = eventIds.length > 0
+    ? await supabase
+        .from("availability")
+        .select("event_id, status")
+        .eq("user_id", user!.id)
+        .in("event_id", eventIds)
+    : { data: [] };
+  const myStatusMap = new Map((myAvailability ?? []).map((a) => [a.event_id, a.status]));
+
+  const now = new Date();
+  const visibleEvents = (upcomingEvents ?? []).filter((e) => {
+    const status = myStatusMap.get(e.id);
+    if (status === "unavailable") return false;
+    if (!status) return false;
+    if (status === "maybe") {
+      const deadline = new Date(new Date(e.date).getTime() - 24 * 60 * 60 * 1000);
+      if (now > deadline) return false;
+    }
+    return true;
+  });
 
   const { count: rosterCount } = await supabase
     .from("profiles")
@@ -122,12 +145,12 @@ export default async function DashboardPage() {
 
       <div>
         <h2 className="text-lg font-bold text-black mb-3">Upcoming Events</h2>
-        {upcomingEvents && upcomingEvents.length > 0 ? (
+        {visibleEvents.length > 0 ? (
           <div className="space-y-3">
-            {upcomingEvents.map((event) => (
+            {visibleEvents.map((event) => (
               <div
                 key={event.id}
-                className="flex items-center justify-between rounded-lg bg-white p-4 shadow-sm"
+                className="rounded-lg bg-white p-4 shadow-sm"
               >
                 <div>
                   <p className="font-medium text-black">{event.title}</p>
@@ -142,6 +165,24 @@ export default async function DashboardPage() {
                     })}
                     {event.location && ` · ${event.location}`}
                   </p>
+                  {myStatusMap.get(event.id) === "maybe" && (
+                    <p className="text-xs text-yellow-600 mt-1">
+                      You answered Maybe — pick Yes or No before it closes
+                    </p>
+                  )}
+                  {!myStatusMap.has(event.id) && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Mark your availability
+                    </p>
+                  )}
+                  <div className="mt-2">
+                    <AddToCalendarButton
+                      title={event.title}
+                      date={event.date}
+                      location={event.location}
+                      type={event.type}
+                    />
+                  </div>
                 </div>
               </div>
             ))}
