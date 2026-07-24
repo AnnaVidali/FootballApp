@@ -514,16 +514,18 @@ export default function LineupEditor({
                 console.error("Lineup save error:", error);
                 setAlertMsg("Failed to save lineup: " + error.message);
                 setAlertOpen(true);
+                setSaving(false);
+                return;
             }
         }
         await supabase.from("events").update({ formation: formation || null, captain_id: captainId || null }).eq("id", event.id);
 
-        await supabase.from("set_pieces").delete().eq("event_id", event.id);
+        const { error: spDeleteError } = await supabase.from("set_pieces").delete().eq("event_id", event.id);
         const spRows: { event_id: string; piece_type: string; player_id: string }[] = [];
         if (setPieceFoul) spRows.push({ event_id: event.id, piece_type: "foul", player_id: setPieceFoul });
         if (setPieceCorner) spRows.push({ event_id: event.id, piece_type: "corner", player_id: setPieceCorner });
         if (setPiecePenalty) spRows.push({ event_id: event.id, piece_type: "penalty", player_id: setPiecePenalty });
-        if (spRows.length > 0) {
+        if (spRows.length > 0 && !spDeleteError) {
             await supabase.from("set_pieces").insert(spRows);
         }
 
