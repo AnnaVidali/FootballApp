@@ -28,6 +28,12 @@ export default function EventsPage() {
     const [loading, setLoading] = useState(true);
     const [availability, setAvailability] = useState<AvailabilityRow[]>([]);
     const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+    const [editingEvent, setEditingEvent] = useState<string | null>(null);
+    const [editTitle, setEditTitle] = useState("");
+    const [editType, setEditType] = useState<"match" | "training">("match");
+    const [editDate, setEditDate] = useState("");
+    const [editLocation, setEditLocation] = useState("");
+    const [saving, setSaving] = useState(false);
     const supabase = createClient();
 
     useEffect(() => {
@@ -113,6 +119,55 @@ export default function EventsPage() {
         });
     }
 
+    function startEdit(event: Event) {
+        setEditingEvent(event.id);
+        setEditTitle(event.title);
+        setEditType(event.type);
+        setEditDate(event.date.slice(0, 16)); // format for datetime-local input
+        setEditLocation(event.location ?? "");
+    }
+
+    async function saveEdit(eventId: string) {
+        setSaving(true);
+        const { error } = await supabase
+            .from("events")
+            .update({
+                title: editTitle,
+                type: editType,
+                date: new Date(editDate).toISOString(),
+                location: editLocation || null,
+            })
+            .eq("id", eventId);
+        if (error) {
+            alert("Failed to save: " + error.message);
+            setSaving(false);
+            return;
+        }
+        setEvents((prev) =>
+            prev.map((e) =>
+                e.id === eventId
+                    ? { ...e, title: editTitle, type: editType, date: new Date(editDate).toISOString(), location: editLocation || null }
+                    : e
+            )
+        );
+        setEditingEvent(null);
+        setSaving(false);
+    }
+
+    async function deleteEvent(eventId: string) {
+        if (!confirm("Delete this event? This cannot be undone.")) return;
+        setSaving(true);
+        const { error } = await supabase.from("events").delete().eq("id", eventId);
+        if (error) {
+            alert("Failed to delete: " + error.message);
+            setSaving(false);
+            return;
+        }
+        setEvents((prev) => prev.filter((e) => e.id !== eventId));
+        setAvailability((prev) => prev.filter((a) => a.event_id !== eventId));
+        setSaving(false);
+    }
+
     if (loading) {
         return <p className="text-gray-500">Loading...</p>;
     }
@@ -145,75 +200,149 @@ export default function EventsPage() {
                             <div className="space-y-3">
                                 {upcoming.map((event) => {
                                     const counts = getCounts(event.id);
+                                    const isEditing = editingEvent === event.id;
                                     return (
                                         <div
                                             key={event.id}
                                             className="rounded-lg bg-white p-4 shadow-sm"
                                         >
-                                            <p className="font-medium text-black">{event.title}</p>
-                                            <p className="text-sm text-gray-500">
-                                                {event.type === "match" ? "⚽ Match" : "🏃 Training"} ·{" "}
-                                                {new Date(event.date).toLocaleDateString("en-GB", {
-                                                    weekday: "short",
-                                                    day: "numeric",
-                                                    month: "short",
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                                {event.location && ` · ${event.location}`}
-                                            </p>
-                                            {!isCoach && (
-                                                <AvailabilityButton
-                                                    eventId={event.id}
-                                                    eventDate={event.date}
-                                                    eventType={event.type}
-                                                    currentUserId={currentUserId}
-                                                    initialStatus={myStatus(event.id)}
-                                                    onUpdate={updateAvailability}
-                                                />
-                                            )}
-                                            {isCoach && (
-                                                <p className="text-xs text-blue-600 mt-2">Coach — always expected to attend</p>
-                                            )}
-                                            <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                                                {counts.available > 0 && <span className="text-green-600">{counts.available} yes</span>}
-                                                {counts.maybe > 0 && <span className="text-yellow-600">{counts.maybe} maybe</span>}
-                                                {counts.unavailable > 0 && <span className="text-red-500">{counts.unavailable} no</span>}
-                                                {counts.total > 0 && (
-                                                    <button
-                                                        onClick={() => setExpandedEvent(expandedEvent === event.id ? null : event.id)}
-                                                        className="underline hover:text-gray-600"
-                                                    >
-                                                        {expandedEvent === event.id ? "Hide" : "Who"}
-                                                    </button>
-                                                )}
-                                            </div>
-                                            {expandedEvent === event.id && (
-                                                <div className="mt-2 text-xs space-y-1">
-                                                    {availability
-                                                        .filter((a) => a.event_id === event.id)
-                                                        .sort((a, b) => a.name.localeCompare(b.name))
-                                                        .map((a) => (
-                                                            <div key={a.user_id} className="flex items-center gap-2">
-                                                                <span className={
-                                                                    a.status === "available" ? "text-green-600" :
-                                                                    a.status === "maybe" ? "text-yellow-600" :
-                                                                    "text-red-500"
-                                                                }>
-                                                                    {a.status === "available" ? "✓" : a.status === "maybe" ? "?" : "✗"}
-                                                                </span>
-                                                                <span className="text-gray-700">{a.name}</span>
-                                                            </div>
-                                                        ))}
+                                            {isEditing ? (
+                                                <div className="space-y-2">
+                                                    <input
+                                                        type="text"
+                                                        value={editTitle}
+                                                        onChange={(e) => setEditTitle(e.target.value)}
+                                                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                                        placeholder="Event title"
+                                                    />
+                                                    <div className="flex gap-2">
+                                                        <select
+                                                            value={editType}
+                                                            onChange={(e) => setEditType(e.target.value as "match" | "training")}
+                                                            className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                                        >
+                                                            <option value="match">Match</option>
+                                                            <option value="training">Training</option>
+                                                        </select>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={editDate}
+                                                            onChange={(e) => setEditDate(e.target.value)}
+                                                            className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                                        />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={editLocation}
+                                                        onChange={(e) => setEditLocation(e.target.value)}
+                                                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                                        placeholder="Location (optional)"
+                                                    />
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => saveEdit(event.id)}
+                                                            disabled={saving}
+                                                            className="rounded-md px-3 py-1 text-sm font-medium"
+                                                            style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
+                                                        >
+                                                            {saving ? "Saving..." : "Save"}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setEditingEvent(null)}
+                                                            className="rounded-md bg-gray-200 px-3 py-1 text-sm text-gray-700"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            )}
-                                            {isAdmin && event.type === "match" && (
-                                                <Link
-                                                    href={`/dashboard/lineup/${event.id}`}
-                                                    className="inline-block mt-2 text-xs font-medium text-gray-500 hover:text-gray-700"
-                                                >
-                                                    ⚽ Set Lineup →
-                                                </Link>
+                                            ) : (
+                                                <>
+                                                    <div className="flex items-start justify-between">
+                                                        <div>
+                                                            <p className="font-medium text-black">{event.title}</p>
+                                                            <p className="text-sm text-gray-500">
+                                                                {event.type === "match" ? "⚽ Match" : "🏃 Training"} ·{" "}
+                                                                {new Date(event.date).toLocaleDateString("en-GB", {
+                                                                    weekday: "short",
+                                                                    day: "numeric",
+                                                                    month: "short",
+                                                                    hour: "2-digit",
+                                                                    minute: "2-digit",
+                                                                })}
+                                                                {event.location && ` · ${event.location}`}
+                                                            </p>
+                                                        </div>
+                                                        {isAdmin && (
+                                                            <div className="flex gap-2 shrink-0 ml-2">
+                                                                <button
+                                                                    onClick={() => startEdit(event)}
+                                                                    className="text-xs text-gray-400 hover:text-gray-600"
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => deleteEvent(event.id)}
+                                                                    className="text-xs text-gray-400 hover:text-red-500"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {!isCoach && (
+                                                        <AvailabilityButton
+                                                            eventId={event.id}
+                                                            eventDate={event.date}
+                                                            eventType={event.type}
+                                                            currentUserId={currentUserId}
+                                                            initialStatus={myStatus(event.id)}
+                                                            onUpdate={updateAvailability}
+                                                        />
+                                                    )}
+                                                    {isCoach && (
+                                                        <p className="text-xs text-blue-600 mt-2">Coach — always expected to attend</p>
+                                                    )}
+                                                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                                                        {counts.available > 0 && <span className="text-green-600">{counts.available} yes</span>}
+                                                        {counts.maybe > 0 && <span className="text-yellow-600">{counts.maybe} maybe</span>}
+                                                        {counts.unavailable > 0 && <span className="text-red-500">{counts.unavailable} no</span>}
+                                                        {counts.total > 0 && (
+                                                            <button
+                                                                onClick={() => setExpandedEvent(expandedEvent === event.id ? null : event.id)}
+                                                                className="underline hover:text-gray-600"
+                                                            >
+                                                                {expandedEvent === event.id ? "Hide" : "Who"}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    {expandedEvent === event.id && (
+                                                        <div className="mt-2 text-xs space-y-1">
+                                                            {availability
+                                                                .filter((a) => a.event_id === event.id)
+                                                                .sort((a, b) => a.name.localeCompare(b.name))
+                                                                .map((a) => (
+                                                                    <div key={a.user_id} className="flex items-center gap-2">
+                                                                        <span className={
+                                                                            a.status === "available" ? "text-green-600" :
+                                                                            a.status === "maybe" ? "text-yellow-600" :
+                                                                            "text-red-500"
+                                                                        }>
+                                                                            {a.status === "available" ? "✓" : a.status === "maybe" ? "?" : "✗"}
+                                                                        </span>
+                                                                        <span className="text-gray-700">{a.name}</span>
+                                                                    </div>
+                                                                ))}
+                                                        </div>
+                                                    )}
+                                                    {isAdmin && event.type === "match" && (
+                                                        <Link
+                                                            href={`/dashboard/lineup/${event.id}`}
+                                                            className="inline-block mt-2 text-xs font-medium text-gray-500 hover:text-gray-700"
+                                                        >
+                                                            ⚽ Set Lineup →
+                                                        </Link>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     );
@@ -227,37 +356,111 @@ export default function EventsPage() {
                             <div className="space-y-3">
                                 {past.map((event) => {
                                     const counts = getCounts(event.id);
+                                    const isEditing = editingEvent === event.id;
                                     return (
                                         <div
                                             key={event.id}
                                             className="rounded-lg bg-white p-4 shadow-sm opacity-60"
                                         >
-                                            <p className="font-medium text-black">{event.title}</p>
-                                            <p className="text-sm text-gray-500">
-                                                {event.type === "match" ? "⚽ Match" : "🏃 Training"} ·{" "}
-                                                {new Date(event.date).toLocaleDateString("en-GB", {
-                                                    weekday: "short",
-                                                    day: "numeric",
-                                                    month: "short",
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                                {event.location && ` · ${event.location}`}
-                                            </p>
-                                            {counts.total > 0 && (
-                                                <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                                                    {counts.available > 0 && <span>{counts.available} yes</span>}
-                                                    {counts.maybe > 0 && <span>{counts.maybe} maybe</span>}
-                                                    {counts.unavailable > 0 && <span>{counts.unavailable} no</span>}
+                                            {isEditing ? (
+                                                <div className="space-y-2">
+                                                    <input
+                                                        type="text"
+                                                        value={editTitle}
+                                                        onChange={(e) => setEditTitle(e.target.value)}
+                                                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                                        placeholder="Event title"
+                                                    />
+                                                    <div className="flex gap-2">
+                                                        <select
+                                                            value={editType}
+                                                            onChange={(e) => setEditType(e.target.value as "match" | "training")}
+                                                            className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                                        >
+                                                            <option value="match">Match</option>
+                                                            <option value="training">Training</option>
+                                                        </select>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={editDate}
+                                                            onChange={(e) => setEditDate(e.target.value)}
+                                                            className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                                        />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={editLocation}
+                                                        onChange={(e) => setEditLocation(e.target.value)}
+                                                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
+                                                        placeholder="Location (optional)"
+                                                    />
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => saveEdit(event.id)}
+                                                            disabled={saving}
+                                                            className="rounded-md px-3 py-1 text-sm font-medium"
+                                                            style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
+                                                        >
+                                                            {saving ? "Saving..." : "Save"}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setEditingEvent(null)}
+                                                            className="rounded-md bg-gray-200 px-3 py-1 text-sm text-gray-700"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            )}
-                                            {isAdmin && event.type === "match" && (
-                                                <Link
-                                                    href={`/dashboard/lineup/${event.id}`}
-                                                    className="inline-block mt-2 text-xs font-medium text-gray-500 hover:text-gray-700"
-                                                >
-                                                    ⚽ View Lineup →
-                                                </Link>
+                                            ) : (
+                                                <>
+                                                    <div className="flex items-start justify-between">
+                                                        <div>
+                                                            <p className="font-medium text-black">{event.title}</p>
+                                                            <p className="text-sm text-gray-500">
+                                                                {event.type === "match" ? "⚽ Match" : "🏃 Training"} ·{" "}
+                                                                {new Date(event.date).toLocaleDateString("en-GB", {
+                                                                    weekday: "short",
+                                                                    day: "numeric",
+                                                                    month: "short",
+                                                                    hour: "2-digit",
+                                                                    minute: "2-digit",
+                                                                })}
+                                                                {event.location && ` · ${event.location}`}
+                                                            </p>
+                                                        </div>
+                                                        {isAdmin && (
+                                                            <div className="flex gap-2 shrink-0 ml-2">
+                                                                <button
+                                                                    onClick={() => startEdit(event)}
+                                                                    className="text-xs text-gray-400 hover:text-gray-600"
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => deleteEvent(event.id)}
+                                                                    className="text-xs text-gray-400 hover:text-red-500"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {counts.total > 0 && (
+                                                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                                                            {counts.available > 0 && <span>{counts.available} yes</span>}
+                                                            {counts.maybe > 0 && <span>{counts.maybe} maybe</span>}
+                                                            {counts.unavailable > 0 && <span>{counts.unavailable} no</span>}
+                                                        </div>
+                                                    )}
+                                                    {isAdmin && event.type === "match" && (
+                                                        <Link
+                                                            href={`/dashboard/lineup/${event.id}`}
+                                                            className="inline-block mt-2 text-xs font-medium text-gray-500 hover:text-gray-700"
+                                                        >
+                                                            ⚽ View Lineup →
+                                                        </Link>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     );
