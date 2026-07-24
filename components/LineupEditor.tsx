@@ -160,9 +160,25 @@ export default function LineupEditor({
                 newAssignments[entry.position] = a;
             }
         }
+        // Fill in empty formation slots so ghost circles appear
+        const f = FORMATIONS[event.formation ?? ""];
+        if (f) {
+            f.positions.forEach((pos, i) => {
+                const slotKey = pos.name + (i > 0 ? i : "");
+                if (!newAssignments[slotKey]) {
+                    newAssignments[slotKey] = {
+                        playerId: "",
+                        name: "",
+                        shirtNumber: null,
+                        x: pos.x,
+                        y: pos.y,
+                    };
+                }
+            });
+        }
         setAssignments(newAssignments);
         setSubs(newSubs);
-    }, [existingLineup, members]);
+    }, [existingLineup, members, event.formation]);
 
     const allAssignedIds = new Set([
         ...Object.values(assignments).map((a) => a.playerId),
@@ -612,6 +628,7 @@ export default function LineupEditor({
                                     {isAdmin && (
                                         <button
                                             onMouseDown={(e) => e.stopPropagation()}
+                                            onTouchStart={(e) => e.stopPropagation()}
                                             onClick={() => handleRemove(slot)}
                                             className="mt-0.5 text-[10px] text-white/60 hover:text-white"
                                         >
