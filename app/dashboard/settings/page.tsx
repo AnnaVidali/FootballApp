@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import AlertModal from "@/components/AlertModal";
 
 const supabase = createClient();
 
@@ -14,6 +15,8 @@ export default function SettingsPage() {
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
+    const [alertOpen, setAlertOpen] = useState(false);
+    const [alertMsg, setAlertMsg] = useState("");
     const [teamId, setTeamId] = useState<string | null>(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const router = useRouter();
@@ -91,6 +94,7 @@ export default function SettingsPage() {
 
     return (
         <div className="max-w-md mx-auto">
+            <AlertModal open={alertOpen} title="Notice" message={alertMsg} onClose={() => setAlertOpen(false)} />
             <h1 className="text-2xl font-bold text-black mb-6">Team Settings</h1>
             {message && (
                 <p className={`mb-4 text-sm ${message.startsWith("Error") ? "text-red-600" : ""}`} style={!message.startsWith("Error") ? { color: "var(--primary-display)" } : undefined} role="status">
@@ -162,6 +166,12 @@ export default function SettingsPage() {
                             accept="image/*"
                             onChange={(e) => {
                                 const file = e.target.files?.[0] ?? null;
+                                if (file && file.size > 2 * 1024 * 1024) {
+                                    setAlertMsg("Logo must be under 2MB.");
+                                    setAlertOpen(true);
+                                    e.target.value = "";
+                                    return;
+                                }
                                 setLogoFile(file);
                                 if (file) {
                                     setLogoPreview(URL.createObjectURL(file));
