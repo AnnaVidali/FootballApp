@@ -1,7 +1,7 @@
 export interface Team {
   id: string;
   name: string;
-  coach_id: string;
+  owner_id: string;
   invite_code: string;
   logo_url: string | null;
   primary_color: string;

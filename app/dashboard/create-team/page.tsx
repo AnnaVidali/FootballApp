@@ -29,7 +29,7 @@ export default function CreateTeamPage() {
         // 1. Create the team
         const { data: team, error: teamError } = await supabase
             .from("teams")
-            .insert({ name: teamName, coach_id: user.id })
+            .insert({ name: teamName, owner_id: user.id })
             .select()
             .maybeSingle();
         if (teamError) {

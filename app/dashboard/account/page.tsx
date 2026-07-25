@@ -55,13 +55,18 @@ export default function AccountPage() {
             return;
         }
         setLoading(true);
-        const { error } = await supabase.auth.updateUser({ email: newEmail });
+        const res = await fetch("/api/account/update-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ newEmail }),
+        });
+        const data = await res.json();
         setLoading(false);
-        if (error) {
-            showAlert("Error", error.message);
+        if (!res.ok) {
+            showAlert("Error", data.error || "Failed to update email.");
         } else {
             setNewEmail("");
-            showAlert("Success", "Confirmation email sent. Please check your new email inbox to verify the change.");
+            showAlert("Success", "Email updated successfully.");
         }
     }
 
@@ -96,6 +101,15 @@ export default function AccountPage() {
             .eq("user_id", user.id);
         if (profileError) {
             showAlert("Error", "Failed to remove profile: " + profileError.message);
+            setLoading(false);
+            return;
+        }
+
+        // Delete the Supabase auth user entirely
+        const deleteRes = await fetch("/api/account/delete", { method: "POST" });
+        if (!deleteRes.ok) {
+            const data = await deleteRes.json();
+            showAlert("Error", "Profile removed but failed to delete account: " + (data.error || "Unknown error"));
             setLoading(false);
             return;
         }
