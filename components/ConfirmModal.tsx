@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 export default function ConfirmModal({
     open,
@@ -20,19 +20,37 @@ export default function ConfirmModal({
     onCancel: () => void;
 }) {
     const cancelRef = useRef<HTMLButtonElement>(null);
+    const dialogRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (open) cancelRef.current?.focus();
     }, [open]);
 
+    const handleKey = useCallback(
+        (e: KeyboardEvent) => {
+            if (e.key === "Escape") onCancel();
+            if (e.key === "Tab" && dialogRef.current) {
+                const focusable = dialogRef.current.querySelectorAll<HTMLElement>("button");
+                if (focusable.length === 0) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+        },
+        [onCancel]
+    );
+
     useEffect(() => {
         if (!open) return;
-        function handleKey(e: KeyboardEvent) {
-            if (e.key === "Escape") onCancel();
-        }
         window.addEventListener("keydown", handleKey);
         return () => window.removeEventListener("keydown", handleKey);
-    }, [open, onCancel]);
+    }, [open, handleKey]);
 
     if (!open) return null;
 
@@ -42,10 +60,14 @@ export default function ConfirmModal({
             onClick={onCancel}
         >
             <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="confirm-dialog-title"
                 className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h3 className="text-lg font-bold text-black mb-2">{title}</h3>
+                <h3 id="confirm-dialog-title" className="text-lg font-bold text-black mb-2">{title}</h3>
                 <p className="text-sm text-gray-600 mb-4">{message}</p>
                 <div className="flex gap-2">
                     <button

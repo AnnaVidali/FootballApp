@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 export default function AlertModal({
     open,
@@ -14,19 +14,37 @@ export default function AlertModal({
     onClose: () => void;
 }) {
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const dialogRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (open) buttonRef.current?.focus();
     }, [open]);
 
+    const handleKey = useCallback(
+        (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+            if (e.key === "Tab" && dialogRef.current) {
+                const focusable = dialogRef.current.querySelectorAll<HTMLElement>("button");
+                if (focusable.length === 0) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+        },
+        [onClose]
+    );
+
     useEffect(() => {
         if (!open) return;
-        function handleKey(e: KeyboardEvent) {
-            if (e.key === "Escape") onClose();
-        }
         window.addEventListener("keydown", handleKey);
         return () => window.removeEventListener("keydown", handleKey);
-    }, [open, onClose]);
+    }, [open, handleKey]);
 
     if (!open) return null;
 
@@ -36,10 +54,14 @@ export default function AlertModal({
             onClick={onClose}
         >
             <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="alert-dialog-title"
                 className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h3 className="text-lg font-bold text-black mb-2">{title}</h3>
+                <h3 id="alert-dialog-title" className="text-lg font-bold text-black mb-2">{title}</h3>
                 <p className="text-sm text-gray-600 mb-4">{message}</p>
                 <button
                     ref={buttonRef}
