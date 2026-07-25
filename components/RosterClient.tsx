@@ -42,7 +42,8 @@ export default function RosterClient({
     const [alertMsg, setAlertMsg] = useState("");
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [confirmMsg, setConfirmMsg] = useState("");
-    const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+    const [pendingLeave, setPendingLeave] = useState(false);
+    const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
 
 
     // Copy invite code
@@ -92,29 +93,14 @@ export default function RosterClient({
             return;
         }
         setConfirmMsg("Are you sure you want to leave this team?");
-        setConfirmAction(() => async () => {
-            setLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            await supabase
-                .from("profiles")
-                .update({ team_id: null })
-                .eq("user_id", user!.id);
-            setLoading(false);
-            router.push("/dashboard");
-            router.refresh();
-        });
+        setPendingLeave(true);
         setConfirmOpen(true);
     }
 
     // Remove a player from the team (admin only)
     async function removeFromTeam(member: Member) {
         setConfirmMsg(`Remove ${member.name} from the team?`);
-        setConfirmAction(() => async () => {
-            setLoading(true);
-            await supabase.rpc("admin_remove_player", { target_profile_id: member.id });
-            setLoading(false);
-            router.refresh();
-        });
+        setPendingRemoveId(member.id);
         setConfirmOpen(true);
     }
 
@@ -126,8 +112,30 @@ export default function RosterClient({
                 title="Confirm"
                 message={confirmMsg}
                 danger
-                onConfirm={async () => { setConfirmOpen(false); await confirmAction?.(); }}
-                onCancel={() => { setConfirmOpen(false); setConfirmAction(null); }}
+                onConfirm={async () => {
+                    setConfirmOpen(false);
+                    if (pendingLeave) {
+                        setPendingLeave(false);
+                        setLoading(true);
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) return;
+                        await supabase
+                            .from("profiles")
+                            .update({ team_id: null })
+                            .eq("user_id", user.id);
+                        setLoading(false);
+                        router.push("/dashboard");
+                        router.refresh();
+                    } else if (pendingRemoveId) {
+                        const targetId = pendingRemoveId;
+                        setPendingRemoveId(null);
+                        setLoading(true);
+                        await supabase.rpc("admin_remove_player", { target_profile_id: targetId });
+                        setLoading(false);
+                        router.refresh();
+                    }
+                }}
+                onCancel={() => { setConfirmOpen(false); setPendingLeave(false); setPendingRemoveId(null); }}
             />
             <h1 className="text-2xl font-bold text-black">Team Roster</h1>
             {/* Leave Team*/}

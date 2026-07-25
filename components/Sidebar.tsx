@@ -34,7 +34,7 @@ export default function Sidebar({
             <div className="border-b border-gray-200 p-4">
                 <div className="flex items-center gap-3">
                     {teamLogo ? (
-                        <img src={teamLogo} alt="" className="h-10 w-10 rounded-full object-cover" />
+                        <img src={teamLogo} alt={teamName || "Team logo"} className="h-10 w-10 rounded-full object-cover" />
                     ) : (
                         <span className="text-2xl">⚽</span>
                     )}

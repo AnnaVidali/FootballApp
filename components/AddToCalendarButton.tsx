@@ -2,11 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 
-function toGCalDate(date: Date): string {
-    return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-}
-
-function toICSDate(date: Date): string {
+function toISOCompact(date: Date): string {
     return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
@@ -45,7 +41,7 @@ export default function AddToCalendarButton({
         const params = new URLSearchParams({
             action: "TEMPLATE",
             text: title,
-            dates: `${toGCalDate(start)}/${toGCalDate(end)}`,
+            dates: `${toISOCompact(start)}/${toISOCompact(end)}`,
             ...(location ? { location } : {}),
         });
         window.open(`https://calendar.google.com/calendar/render?${params}`, "_blank");
@@ -58,8 +54,8 @@ export default function AddToCalendarButton({
             "VERSION:2.0",
             "PRODID:-//SquadUp//EN",
             "BEGIN:VEVENT",
-            `DTSTART:${toICSDate(start)}`,
-            `DTEND:${toICSDate(end)}`,
+            `DTSTART:${toISOCompact(start)}`,
+            `DTEND:${toISOCompact(end)}`,
             `SUMMARY:${title}`,
             location ? `LOCATION:${location}` : "",
             "END:VEVENT",

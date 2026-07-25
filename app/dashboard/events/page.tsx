@@ -44,7 +44,7 @@ export default function EventsPage() {
     const [alertMsg, setAlertMsg] = useState("");
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [confirmMsg, setConfirmMsg] = useState("");
-    const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+    const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null);
 
     useEffect(() => {
         async function load() {
@@ -178,20 +178,24 @@ export default function EventsPage() {
 
     async function deleteEvent(eventId: string) {
         setConfirmMsg("Delete this event? This cannot be undone.");
-        setConfirmAction(() => async () => {
-            setSaving(true);
-            const { error } = await supabase.from("events").delete().eq("id", eventId);
-            if (error) {
-                setAlertMsg("Failed to delete: " + error.message);
-                setAlertOpen(true);
-                setSaving(false);
-                return;
-            }
-            setEvents((prev) => prev.filter((e) => e.id !== eventId));
-            setAvailability((prev) => prev.filter((a) => a.event_id !== eventId));
-            setSaving(false);
-        });
+        setPendingDeleteEventId(eventId);
         setConfirmOpen(true);
+    }
+
+    async function confirmDeleteEvent() {
+        if (!pendingDeleteEventId) return;
+        setSaving(true);
+        const { error } = await supabase.from("events").delete().eq("id", pendingDeleteEventId);
+        if (error) {
+            setAlertMsg("Failed to delete: " + error.message);
+            setAlertOpen(true);
+            setSaving(false);
+            return;
+        }
+        setEvents((prev) => prev.filter((e) => e.id !== pendingDeleteEventId));
+        setAvailability((prev) => prev.filter((a) => a.event_id !== pendingDeleteEventId));
+        setPendingDeleteEventId(null);
+        setSaving(false);
     }
 
     if (loading) {
@@ -210,8 +214,8 @@ export default function EventsPage() {
                 title="Confirm"
                 message={confirmMsg}
                 danger
-                onConfirm={async () => { setConfirmOpen(false); await confirmAction?.(); }}
-                onCancel={() => { setConfirmOpen(false); setConfirmAction(null); }}
+                onConfirm={async () => { setConfirmOpen(false); await confirmDeleteEvent(); }}
+                onCancel={() => { setConfirmOpen(false); setPendingDeleteEventId(null); }}
             />
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold text-black">Events</h1>

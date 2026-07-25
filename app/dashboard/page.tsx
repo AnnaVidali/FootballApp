@@ -9,10 +9,18 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <p className="text-gray-500">Please log in.</p>
+      </div>
+    );
+  }
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("name, role, is_admin, team_id")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .single();
 
   const isCoach = profile?.role === "coach";
@@ -65,7 +73,7 @@ export default async function DashboardPage() {
     ? await supabase
         .from("availability")
         .select("event_id, status")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .in("event_id", eventIds)
     : { data: [] };
   const myStatusMap = new Map((myAvailability ?? []).map((a) => [a.event_id, a.status]));
