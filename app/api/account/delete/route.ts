@@ -69,6 +69,7 @@ export async function POST(request: Request) {
     // Delete the auth user
     const { error } = await adminClient.auth.admin.deleteUser(user.id);
     if (error) {
+        console.error("Failed to delete auth user:", error.message);
         return NextResponse.json({ error: error.message }, { status: 400 });
     }
 

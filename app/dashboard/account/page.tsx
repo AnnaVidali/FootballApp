@@ -116,26 +116,16 @@ export default function AccountPage() {
             }
         }
 
-        // Remove profile (clears team association, roster entry, etc.)
-        const { error: profileError } = await supabase
-            .from("profiles")
-            .delete()
-            .eq("user_id", user.id);
-        if (profileError) {
-            showAlert("Error", "Failed to remove profile: " + profileError.message);
-            setLoading(false);
-            return;
-        }
-
-        // Delete the Supabase auth user entirely
+        // Delete the Supabase auth user first (profile is cascade-deleted)
         const deleteRes = await fetch("/api/account/delete", { method: "POST" });
         if (!deleteRes.ok) {
             const data = await deleteRes.json();
-            showAlert("Error", "Profile removed but failed to delete account: " + (data.error || "Unknown error"));
+            showAlert("Error", "Failed to delete account: " + (data.error || "Unknown error"));
             setLoading(false);
             return;
         }
 
+        // Sign out after successful deletion
         await supabase.auth.signOut();
         setLoading(false);
         router.push("/");
