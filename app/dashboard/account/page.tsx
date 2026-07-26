@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AlertModal from "@/components/AlertModal";
@@ -19,12 +19,34 @@ export default function AccountPage() {
     const [alertTitle, setAlertTitle] = useState("");
     const [alertMsg, setAlertMsg] = useState("");
     const [confirmOpen, setConfirmOpen] = useState(false);
+    const [disbandConfirmOpen, setDisbandConfirmOpen] = useState(false);
+    const [isOwner, setIsOwner] = useState(false);
 
     function showAlert(title: string, msg: string) {
         setAlertTitle(title);
         setAlertMsg(msg);
         setAlertOpen(true);
     }
+
+    useEffect(() => {
+        async function fetchOwnership() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("team_id")
+                .eq("user_id", user.id)
+                .single();
+            if (!profile?.team_id) return;
+            const { data: team } = await supabase
+                .from("teams")
+                .select("owner_id")
+                .eq("id", profile.team_id)
+                .single();
+            if (team?.owner_id === user.id) setIsOwner(true);
+        }
+        fetchOwnership();
+    }, []);
 
     async function handleChangePassword(e: React.FormEvent) {
         e.preventDefault();
@@ -120,6 +142,18 @@ export default function AccountPage() {
         router.refresh();
     }
 
+    async function handleDisbandTeam() {
+        setLoading(true);
+        const { error } = await supabase.rpc("disband_team");
+        setLoading(false);
+        if (error) {
+            showAlert("Error", error.message);
+        } else {
+            router.push("/dashboard");
+            router.refresh();
+        }
+    }
+
     return (
         <div className="max-w-md mx-auto space-y-8">
             <h1 className="text-2xl font-bold text-black">Account</h1>
@@ -133,6 +167,15 @@ export default function AccountPage() {
                 danger
                 onConfirm={() => { setConfirmOpen(false); handleDeleteAccount(); }}
                 onCancel={() => setConfirmOpen(false)}
+            />
+            <ConfirmModal
+                open={disbandConfirmOpen}
+                title="Disband Team"
+                message="This will permanently delete your team and all its data (events, lineups, set pieces). Every member will be removed from the team and lose their admin/coach roles. This action cannot be undone."
+                confirmLabel="Disband"
+                danger
+                onConfirm={() => { setDisbandConfirmOpen(false); handleDisbandTeam(); }}
+                onCancel={() => setDisbandConfirmOpen(false)}
             />
 
             {/* Change Password */}
@@ -211,6 +254,21 @@ export default function AccountPage() {
             {/* Danger Zone */}
             <div className="rounded-lg bg-white p-4 shadow-sm border border-red-200">
                 <h2 className="font-bold text-red-600 mb-2">Danger Zone</h2>
+                {isOwner && (
+                    <>
+                        <p className="text-sm text-gray-500 mb-3">
+                            Disband your team. All members will be removed and lose their roles. All team data (events, lineups, set pieces) will be permanently deleted.
+                        </p>
+                        <button
+                            onClick={() => setDisbandConfirmOpen(true)}
+                            disabled={loading}
+                            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 mb-3"
+                        >
+                            Disband Team
+                        </button>
+                        <hr className="border-red-200 my-3" />
+                    </>
+                )}
                 <p className="text-sm text-gray-500 mb-3">
                     This will remove you from your team and sign you out. You can&apos;t delete your account if you&apos;re the only admin — promote someone first.
                 </p>
