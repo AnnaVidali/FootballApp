@@ -101,13 +101,34 @@ export default function AccountPage() {
             return;
         }
 
-        // Check if sole admin (only applies to admins)
+        // Check if user is the team owner or sole admin
         const { data: profile } = await supabase
+            .from("profiles")
+            .select("team_id")
+            .eq("user_id", user.id)
+            .single();
+
+        if (profile?.team_id) {
+            const { data: team } = await supabase
+                .from("teams")
+                .select("owner_id")
+                .eq("id", profile.team_id)
+                .single();
+
+            if (team?.owner_id === user.id) {
+                showAlert("Can't Delete", "You're the team owner. Transfer ownership to another member before deleting your account.");
+                setLoading(false);
+                return;
+            }
+        }
+
+        const { data: isAdmin } = await supabase
             .from("profiles")
             .select("is_admin")
             .eq("user_id", user.id)
             .single();
-        if (profile?.is_admin) {
+
+        if (isAdmin?.is_admin) {
             const { data: canLeave } = await supabase.rpc("can_leave_team");
             if (canLeave === false) {
                 showAlert("Can't Delete", "You're the only admin on this team. Promote another player to admin before deleting your account.");

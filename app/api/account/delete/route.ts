@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Transfer team ownership before deleting the user
+    // Block team owner from deleting account — must transfer ownership first
     const { data: profile } = await adminClient
         .from("profiles")
         .select("team_id")
@@ -46,23 +46,11 @@ export async function POST(request: Request) {
             .eq("id", profile.team_id)
             .single();
 
-        // If this user is the team owner, transfer to another admin
         if (team?.owner_id === user.id) {
-            const { data: otherAdmin } = await adminClient
-                .from("profiles")
-                .select("user_id")
-                .eq("team_id", profile.team_id)
-                .eq("is_admin", true)
-                .neq("user_id", user.id)
-                .limit(1)
-                .single();
-
-            if (otherAdmin) {
-                await adminClient
-                    .from("teams")
-                    .update({ owner_id: otherAdmin.user_id })
-                    .eq("id", profile.team_id);
-            }
+            return NextResponse.json(
+                { error: "You're the team owner. Transfer ownership to another member before deleting your account." },
+                { status: 400 },
+            );
         }
     }
 

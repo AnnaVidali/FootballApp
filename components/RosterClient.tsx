@@ -46,6 +46,9 @@ export default function RosterClient({
     const [confirmMsg, setConfirmMsg] = useState("");
     const [pendingLeave, setPendingLeave] = useState(false);
     const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+    const [pendingTransferId, setPendingTransferId] = useState<string | null>(null);
+
+    const isOwner = currentUserId === ownerId;
 
 
     // Copy invite code
@@ -90,12 +93,23 @@ export default function RosterClient({
     async function leaveTeam() {
         const { data: canLeave } = await supabase.rpc("can_leave_team");
         if (canLeave === false) {
-            setAlertMsg("You're the only admin on this team. Promote another player to admin before leaving.");
+            if (isOwner) {
+                setAlertMsg("You're the team owner. Transfer ownership to another member before leaving.");
+            } else {
+                setAlertMsg("You're the only admin on this team. Promote another player to admin before leaving.");
+            }
             setAlertOpen(true);
             return;
         }
         setConfirmMsg("Are you sure you want to leave this team?");
         setPendingLeave(true);
+        setConfirmOpen(true);
+    }
+
+    // Transfer ownership to another member
+    function promptTransferOwnership(member: Member) {
+        setConfirmMsg(`Transfer ownership to ${member.name}? You'll remain an admin.`);
+        setPendingTransferId(member.id);
         setConfirmOpen(true);
     }
 
@@ -128,6 +142,13 @@ export default function RosterClient({
                         setLoading(false);
                         router.push("/dashboard");
                         router.refresh();
+                    } else if (pendingTransferId) {
+                        const targetId = pendingTransferId;
+                        setPendingTransferId(null);
+                        setLoading(true);
+                        await supabase.rpc("transfer_ownership", { target_profile_id: targetId });
+                        setLoading(false);
+                        router.refresh();
                     } else if (pendingRemoveId) {
                         const targetId = pendingRemoveId;
                         setPendingRemoveId(null);
@@ -137,7 +158,7 @@ export default function RosterClient({
                         router.refresh();
                     }
                 }}
-                onCancel={() => { setConfirmOpen(false); setPendingLeave(false); setPendingRemoveId(null); }}
+                onCancel={() => { setConfirmOpen(false); setPendingLeave(false); setPendingTransferId(null); setPendingRemoveId(null); }}
             />
             <h1 className="text-2xl font-bold text-black">Team Roster</h1>
             {/* Leave Team*/}
@@ -275,6 +296,14 @@ export default function RosterClient({
                                                 className="text-sm text-gray-500 hover:text-gray-700"
                                             >
                                                 Edit
+                                            </button>
+                                        )}
+                                        {isOwner && member.user_id !== currentUserId && member.user_id !== ownerId && (
+                                            <button
+                                                onClick={() => promptTransferOwnership(member)}
+                                                className="text-sm text-purple-600 hover:text-purple-800"
+                                            >
+                                                Make Owner
                                             </button>
                                         )}
                                         {isAdmin && member.user_id !== currentUserId && (
