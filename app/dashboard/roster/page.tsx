@@ -16,7 +16,7 @@ export default async function RosterPage() {
     if (!profile?.team_id) redirect("/dashboard");
     const { data: team } = await supabase
         .from("teams")
-        .select("id, name, invite_code")
+        .select("id, name, invite_code, owner_id")
         .eq("id", profile.team_id)
         .single();
     const { data: members } = await supabase
@@ -30,6 +30,7 @@ export default async function RosterPage() {
             members={members ?? []}
             isAdmin={profile.is_admin}
             currentUserId={user.id}
+            ownerId={team?.owner_id ?? ""}
         />
     );
 }

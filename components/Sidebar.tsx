@@ -18,6 +18,7 @@ export default function Sidebar({
     userName,
     isAdmin,
     role,
+    isOwner,
     onCloseAction,
 }: {
     teamLogo: string | null;
@@ -25,6 +26,7 @@ export default function Sidebar({
     userName: string;
     isAdmin: boolean;
     role: string;
+    isOwner: boolean;
     onCloseAction: () => void;
 }) {
     const pathname = usePathname();
@@ -43,9 +45,16 @@ export default function Sidebar({
                             {teamName || "No Team"}
                         </h2>
                         {teamName && (
+                        <>
                         <span className="inline-block rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary-text)" }}>
                             {role === "coach" ? "Admin · Coach" : isAdmin ? "Admin" : "Player"}
                         </span>
+                        {isOwner && (
+                            <span className="ml-1 inline-block rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800">
+                                Owner
+                            </span>
+                        )}
+                        </>
                         )}
                     </div>
                 </div>

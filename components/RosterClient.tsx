@@ -22,11 +22,13 @@ export default function RosterClient({
     members,
     isAdmin,
     currentUserId,
+    ownerId,
 }: {
     inviteCode: string;
     members: Member[];
     isAdmin: boolean;
     currentUserId: string;
+    ownerId: string;
 }) {
     const router = useRouter();
     const supabase = createClient();
@@ -249,6 +251,11 @@ export default function RosterClient({
                                         </p>
                                         <p className="text-sm text-gray-500">
                                             {member.position ? `${member.position} - ${positionLabels[member.position] ?? member.position}` : "No position"}
+                                            {member.user_id === ownerId && (
+                                                <span className="ml-2 inline-block rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800">
+                                                    Owner
+                                                </span>
+                                            )}
                                             {member.is_admin && (
                                                 <span className="ml-2 inline-block rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
                                                     Admin

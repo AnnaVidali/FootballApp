@@ -31,10 +31,10 @@ export default async function DashboardLayout({
     .eq("user_id", user.id)
     .single();
 
-  const { data: team } = profile?.team_id
+    const { data: team } = profile?.team_id
     ? await supabase
         .from("teams")
-        .select("name, logo_url, primary_color, secondary_color")
+        .select("name, logo_url, primary_color, secondary_color, owner_id")
         .eq("id", profile.team_id)
         .single()
     : { data: null };
@@ -48,6 +48,7 @@ export default async function DashboardLayout({
         userName={profile?.name ?? user.email ?? "User"}
         isAdmin={profile?.is_admin ?? false}
         role={profile?.role ?? "player"}
+        isOwner={team?.owner_id === user.id}
     >
       {children}
     </DashboardShell>
