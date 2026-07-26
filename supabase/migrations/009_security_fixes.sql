@@ -36,12 +36,18 @@ CREATE OR REPLACE FUNCTION can_leave_team()
 RETURNS BOOLEAN AS $$
 DECLARE
   my_team_id UUID;
+  am_i_admin BOOLEAN;
   admin_count INTEGER;
 BEGIN
-  SELECT team_id INTO my_team_id FROM profiles WHERE user_id = auth.uid();
+  SELECT team_id, is_admin INTO my_team_id, am_i_admin FROM profiles WHERE user_id = auth.uid();
 
   IF my_team_id IS NULL THEN
     RETURN true; -- Not on a team, nothing to guard
+  END IF;
+
+  -- If I'm not an admin, nothing blocks me from leaving
+  IF NOT am_i_admin THEN
+    RETURN true;
   END IF;
 
   -- Count admins on the team (including self)
