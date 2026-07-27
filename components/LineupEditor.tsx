@@ -271,6 +271,13 @@ export default function LineupEditor({
         if (draggingPlayer) {
             const member = members.find((m) => m.id === draggingPlayer);
             if (member && target === "pitch") {
+                const playersOnPitch = Object.values(assignments).filter((a) => a.playerId).length;
+                if (playersOnPitch >= 7) {
+                    setDraggingPlayer(null);
+                    setDragTarget(null);
+                    setGhostPos(null);
+                    return;
+                }
                 const { x, y } = getPitchCoords(pos.clientX, pos.clientY);
                 setAssignments((prev) => {
                     const next = { ...prev };
@@ -651,23 +658,21 @@ export default function LineupEditor({
                                     className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
                                     style={{ left: `${a.x}%`, top: `${a.y}%` }}
                                 >
-                                    <div className={`w-12 h-12 rounded-full bg-white text-black border-2 ${a.playerId === captainId ? "border-yellow-500" : "border-white"} flex flex-col items-center justify-center text-[10px] font-bold ${canEdit ? "cursor-grab active:cursor-grabbing" : ""} ${draggingSlot === slot ? "opacity-40" : ""}`}
+                                    <div className={`w-12 h-12 rounded-full bg-white text-black border-2 ${a.playerId === captainId ? "border-yellow-500" : "border-white"} flex items-center justify-center font-bold ${canEdit ? "cursor-grab active:cursor-grabbing" : ""} ${draggingSlot === slot ? "opacity-40" : ""}`}
                                         style={{ touchAction: "none" }}
                                     >
                                         {a.playerId === captainId && (
                                             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-yellow-400 text-black text-[8px] font-bold flex items-center justify-center border border-yellow-600">C</span>
                                         )}
-                                        <span className="leading-tight">{a.name.split(" ")[0]}</span>
-                                        {a.shirtNumber && (
-                                            <span className="text-[9px] text-gray-500">#{a.shirtNumber}</span>
-                                        )}
+                                        <span className="text-sm leading-tight">{a.shirtNumber ? `#${a.shirtNumber}` : "?"}</span>
                                     </div>
+                                    <span className="mt-0.5 text-[10px] leading-tight text-white text-center max-w-[5rem] truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">{a.name}</span>
                                     {canEdit && (
                                         <button
                                             onMouseDown={(e) => e.stopPropagation()}
                                             onTouchStart={(e) => e.stopPropagation()}
                                             onClick={() => handleRemove(slot)}
-                                            className="mt-0.5 text-[10px] text-white/60 hover:text-white"
+                                            className="text-[10px] text-white/60 hover:text-white"
                                         >
                                             remove
                                         </button>
