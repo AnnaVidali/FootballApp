@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { formatTimeLeft } from "@/lib/utils";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function AvailabilityStatus({ eventDate, eventType }: { eventDate: string; eventType: string }) {
     const [deadline] = useState(() =>
@@ -10,6 +11,7 @@ export default function AvailabilityStatus({ eventDate, eventType }: { eventDate
             : new Date(new Date(eventDate).getTime() - 25 * 60 * 60 * 1000)
     );
     const [timeLeft, setTimeLeft] = useState(deadline.getTime() - Date.now());
+    const { t } = useLocaleContext();
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -19,12 +21,12 @@ export default function AvailabilityStatus({ eventDate, eventType }: { eventDate
     }, [deadline]);
 
     if (timeLeft <= 0) {
-        return <p className="text-xs text-gray-400 mt-1">Availability closed</p>;
+        return <p className="text-xs text-gray-400 mt-1">{t("availability.closed")}</p>;
     }
 
     return (
         <p className="text-xs text-gray-400 mt-1">
-            Closes in {formatTimeLeft(timeLeft)}
+            {t("availability.closesIn", { time: formatTimeLeft(timeLeft) ?? "" })}
         </p>
     );
 }

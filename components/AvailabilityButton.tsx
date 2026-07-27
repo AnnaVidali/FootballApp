@@ -4,13 +4,20 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatTimeLeft } from "@/lib/utils";
 import AlertModal from "@/components/AlertModal";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 type Status = "available" | "maybe" | "unavailable";
 
-const statusConfig: Record<Status, { label: string; activeBg: string; inactiveBg: string }> = {
-    available: { label: "Yes", activeBg: "bg-green-100 text-green-700 border-green-300", inactiveBg: "bg-white text-gray-500 border-gray-200 hover:border-green-300" },
-    maybe: { label: "Maybe", activeBg: "bg-yellow-100 text-yellow-700 border-yellow-300", inactiveBg: "bg-white text-gray-500 border-gray-200 hover:border-yellow-300" },
-    unavailable: { label: "No", activeBg: "bg-red-100 text-red-700 border-red-300", inactiveBg: "bg-white text-gray-500 border-gray-200 hover:border-red-300" },
+const statusKeys: Record<Status, string> = {
+    available: "common.yes",
+    maybe: "common.maybe",
+    unavailable: "common.no",
+};
+
+const statusStyles: Record<Status, { activeBg: string; inactiveBg: string }> = {
+    available: { activeBg: "bg-green-100 text-green-700 border-green-300", inactiveBg: "bg-white text-gray-500 border-gray-200 hover:border-green-300" },
+    maybe: { activeBg: "bg-yellow-100 text-yellow-700 border-yellow-300", inactiveBg: "bg-white text-gray-500 border-gray-200 hover:border-yellow-300" },
+    unavailable: { activeBg: "bg-red-100 text-red-700 border-red-300", inactiveBg: "bg-white text-gray-500 border-gray-200 hover:border-red-300" },
 };
 
 const supabase = createClient();
@@ -40,6 +47,7 @@ export default function AvailabilityButton({
             : new Date(new Date(eventDate).getTime() - 25 * 60 * 60 * 1000)
     );
     const [timeLeft, setTimeLeft] = useState(deadline.getTime() - Date.now());
+    const { t } = useLocaleContext();
 
     useEffect(() => {
         setSelected(initialStatus);
@@ -74,12 +82,12 @@ export default function AvailabilityButton({
     }
 
     if (closed) {
-        return <p className="text-xs text-gray-400 mt-2">Availability closed</p>;
+        return <p className="text-xs text-gray-400 mt-2">{t("availability.closed")}</p>;
     }
 
     return (
         <div>
-            <AlertModal open={alertOpen} title="Error" message={alertMsg} onClose={() => setAlertOpen(false)} />
+            <AlertModal open={alertOpen} title={t("common.error")} message={alertMsg} onClose={() => setAlertOpen(false)} />
             <div className="flex gap-2 mt-2">
                 {(["available", "maybe", "unavailable"] as Status[]).map((status) => {
                     const isActive = selected === status;
@@ -89,16 +97,16 @@ export default function AvailabilityButton({
                             onClick={() => respond(status)}
                             disabled={loading}
                             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                                isActive ? statusConfig[status].activeBg : statusConfig[status].inactiveBg
+                                isActive ? statusStyles[status].activeBg : statusStyles[status].inactiveBg
                             }`}
                         >
-                            {statusConfig[status].label}
+                            {t(statusKeys[status])}
                         </button>
                     );
                 })}
             </div>
             <p className="text-xs text-gray-400 mt-1">
-                Closes in {formatTimeLeft(timeLeft)}
+                {t("availability.closesIn", { time: formatTimeLeft(timeLeft) ?? "" })}
             </p>
         </div>
     );

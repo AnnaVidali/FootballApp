@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLocaleContext } from "@/lib/i18n-context";
 import AlertModal from "@/components/AlertModal";
 
 const supabase = createClient();
@@ -20,8 +21,8 @@ export default function SettingsPage() {
     const [teamId, setTeamId] = useState<string | null>(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const router = useRouter();
+    const { t } = useLocaleContext();
 
-    // Load current team data on page load
     useEffect(() => {
         async function loadTeam() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -59,7 +60,6 @@ export default function SettingsPage() {
         setMessage("");
 
         let logoUrl = logoPreview;
-        // Upload new logo if selected
         if (logoFile) {
             const fileName = `${teamId}/${logoFile.name}`;
             const { error: uploadError } = await supabase.storage
@@ -73,7 +73,6 @@ export default function SettingsPage() {
             }
         }
 
-        // Update team
         const { error } = await supabase
             .from("teams")
             .update({
@@ -84,9 +83,9 @@ export default function SettingsPage() {
             })
             .eq("id", teamId);
         if (error) {
-            setMessage("Error: " + error.message);
+            setMessage(t("common.error") + ": " + error.message);
         } else {
-            setMessage("Settings saved!");
+            setMessage(t("settings.settingsSaved"));
             router.refresh();
         }
         setLoading(false);
@@ -94,17 +93,17 @@ export default function SettingsPage() {
 
     return (
         <div className="max-w-md mx-auto">
-            <AlertModal open={alertOpen} title="Notice" message={alertMsg} onClose={() => setAlertOpen(false)} />
-            <h1 className="text-2xl font-bold text-black mb-6">Team Settings</h1>
+            <AlertModal open={alertOpen} title={t("common.notice")} message={alertMsg} onClose={() => setAlertOpen(false)} />
+            <h1 className="text-2xl font-bold text-black mb-6">{t("settings.teamSettings")}</h1>
             {message && (
-                <p className={`mb-4 text-sm ${message.startsWith("Error") ? "text-red-600" : ""}`} style={!message.startsWith("Error") ? { color: "var(--primary-display)" } : undefined} role="status">
+                <p className={`mb-4 text-sm ${message.includes(t("common.error")) ? "text-red-600" : ""}`} style={!message.includes(t("common.error")) ? { color: "var(--primary-display)" } : undefined} role="status">
                     {message}
                 </p>
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label htmlFor="settings-team-name" className="block text-sm font-medium text-gray-700 mb-1">
-                        Team Name
+                        {t("settings.teamName")}
                     </label>
                     <input
                         id="settings-team-name"
@@ -117,7 +116,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                     <label htmlFor="settings-primary-color" className="block text-sm font-medium text-gray-700 mb-1">
-                        Primary Color
+                        {t("settings.primaryColor")}
                     </label>
                     <div className="flex items-center gap-3">
                         <input
@@ -133,7 +132,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                     <label htmlFor="settings-secondary-color" className="block text-sm font-medium text-gray-700 mb-1">
-                        Secondary Color
+                        {t("settings.secondaryColor")}
                     </label>
                     <div className="flex items-center gap-3">
                         <input
@@ -149,7 +148,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                     <label htmlFor="settings-team-logo" className="block text-sm font-medium text-gray-700 mb-1">
-                        Team Logo
+                        {t("settings.teamLogo")}
                     </label>
                     {logoPreview && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -180,7 +179,7 @@ export default function SettingsPage() {
                             className="w-full text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium"
                         />
                     ) : (
-                        <p className="text-sm text-gray-400">Only admins can change the logo</p>
+                        <p className="text-sm text-gray-400">{t("settings.adminLogoOnly")}</p>
                     )}
                 </div>
                 {isAdmin && (
@@ -191,7 +190,7 @@ export default function SettingsPage() {
                         className="w-full rounded-md px-4 py-2 font-medium disabled:opacity-50"
                         style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                     >
-                        {loading ? "Saving..." : "Save Changes"}
+                        {loading ? t("common.saving") : t("settings.saveChanges")}
                     </button>
                 )}
             </form>

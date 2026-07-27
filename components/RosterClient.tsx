@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { positionLabels } from "@/lib/constants";
+import { useLocaleContext } from "@/lib/i18n-context";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
@@ -16,6 +16,8 @@ type Member = {
     is_admin: boolean;
     role: string;
 };
+
+const positionOptions = ["GK", "CB", "LB", "RB", "CM", "LM", "RM", "ST"] as const;
 
 export default function RosterClient({
     inviteCode,
@@ -32,6 +34,7 @@ export default function RosterClient({
 }) {
     const router = useRouter();
     const supabase = createClient();
+    const { t } = useLocaleContext();
     const [copied, setCopied] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editPosition, setEditPosition] = useState("");
@@ -50,15 +53,12 @@ export default function RosterClient({
 
     const isOwner = currentUserId === ownerId;
 
-
-    // Copy invite code
     async function copyInviteCode() {
         await navigator.clipboard.writeText(inviteCode);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     }
 
-    // Start editing a player
     function startEdit(member: Member) {
         setEditingId(member.id);
         setEditName(member.name);
@@ -68,7 +68,6 @@ export default function RosterClient({
         setEditCoach(member.role === "coach");
     }
 
-    // Save the edit
     async function saveEdit(memberId: string) {
         setLoading(true);
         const update: { name: string; position: string | null; shirt_number: number | null; is_admin?: boolean; role?: string } = {
@@ -89,43 +88,40 @@ export default function RosterClient({
         router.refresh();
     }
 
-    // Leave the team
     async function leaveTeam() {
         const { data: canLeave } = await supabase.rpc("can_leave_team");
         if (canLeave === false) {
             if (isOwner) {
-                setAlertMsg("You're the team owner. Transfer ownership to another member before leaving.");
+                setAlertMsg(t("roster.ownerWarning"));
             } else {
-                setAlertMsg("You're the only admin on this team. Promote another player to admin before leaving.");
+                setAlertMsg(t("roster.soleAdminWarning"));
             }
             setAlertOpen(true);
             return;
         }
-        setConfirmMsg("Are you sure you want to leave this team?");
+        setConfirmMsg(t("roster.leaveConfirm"));
         setPendingLeave(true);
         setConfirmOpen(true);
     }
 
-    // Transfer ownership to another member
     function promptTransferOwnership(member: Member) {
-        setConfirmMsg(`Transfer ownership to ${member.name}? You'll remain an admin.`);
+        setConfirmMsg(t("roster.transferConfirm", { name: member.name }));
         setPendingTransferId(member.id);
         setConfirmOpen(true);
     }
 
-    // Remove a player from the team (admin only)
-    async function removeFromTeam(member: Member) {
-        setConfirmMsg(`Remove ${member.name} from the team?`);
+    function removeFromTeam(member: Member) {
+        setConfirmMsg(t("roster.removeConfirm", { name: member.name }));
         setPendingRemoveId(member.id);
         setConfirmOpen(true);
     }
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
-            <AlertModal open={alertOpen} title="Notice" message={alertMsg} onClose={() => setAlertOpen(false)} />
+            <AlertModal open={alertOpen} title={t("common.notice")} message={alertMsg} onClose={() => setAlertOpen(false)} />
             <ConfirmModal
                 open={confirmOpen}
-                title="Confirm"
+                title={t("common.confirm")}
                 message={confirmMsg}
                 danger
                 onConfirm={async () => {
@@ -160,18 +156,18 @@ export default function RosterClient({
                 }}
                 onCancel={() => { setConfirmOpen(false); setPendingLeave(false); setPendingTransferId(null); setPendingRemoveId(null); }}
             />
-            <h1 className="text-2xl font-bold text-black">Team Roster</h1>
+            <h1 className="text-2xl font-bold text-black">{t("roster.teamRoster")}</h1>
             {/* Leave Team*/}
             <button
                 onClick={leaveTeam}
                 className="rounded-md bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
             >
-                Leave Team
+                {t("roster.leaveTeam")}
             </button>
             {/* Invite Code Section */}
             {isAdmin && (
                 <div className="rounded-lg bg-white p-4 shadow-sm">
-                    <p className="text-sm text-gray-500 mb-1">📋 Invite Code</p>
+                    <p className="text-sm text-gray-500 mb-1">{t("roster.inviteCode")}</p>
                     <div className="flex items-center gap-3">
                         <span className="text-xl font-mono font-bold text-black">{inviteCode}</span>
                         <button
@@ -179,15 +175,15 @@ export default function RosterClient({
                             className="rounded-md px-3 py-1 text-sm font-medium"
                             style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                         >
-                            {copied ? "Copied!" : "Copy"}
+                            {copied ? t("roster.copied") : t("roster.copy")}
                         </button>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">Share this code with players to join</p>
+                    <p className="text-xs text-gray-400 mt-1">{t("roster.shareCode")}</p>
                 </div>
             )}
             {/* Team Members Section */}
             <div className="rounded-lg bg-white p-4 shadow-sm">
-                <h2 className="font-bold text-black mb-3">Team Members ({members.length})</h2>
+                <h2 className="font-bold text-black mb-3">{t("roster.teamMembers", { count: members.length })}</h2>
                 <div className="divide-y divide-gray-100">
                     {members.map((member) => (
                         <div key={member.id} className="py-3">
@@ -198,7 +194,7 @@ export default function RosterClient({
                                         value={editName}
                                         onChange={(e) => setEditName(e.target.value)}
                                         className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
-                                        placeholder="Full name"
+                                        placeholder={t("auth.fullName")}
                                     />
                                     <div className="grid grid-cols-[5fr_1fr] gap-2">
                                         <select
@@ -206,15 +202,12 @@ export default function RosterClient({
                                             onChange={(e) => setEditPosition(e.target.value)}
                                             className="min-w-0 rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
                                         >
-                                            <option value="">Position</option>
-                                            <option value="GK">GK - Goalkeeper</option>
-                                            <option value="CB">CB - Center Back</option>
-                                            <option value="LB">LB - Left Back</option>
-                                            <option value="RB">RB - Right Back</option>
-                                            <option value="CM">CM - Central Midfielder</option>
-                                            <option value="LM">LM - Left Midfielder</option>
-                                            <option value="RM">RM - Right Midfielder</option>
-                                            <option value="ST">ST - Striker</option>
+                                            <option value="">{t("roster.position")}</option>
+                                            {positionOptions.map((pos) => (
+                                                <option key={pos} value={pos}>
+                                                    {pos} - {t(`positions.${pos}`)}
+                                                </option>
+                                            ))}
                                         </select>
                                         <input
                                             type="number"
@@ -232,7 +225,7 @@ export default function RosterClient({
                                                     checked={editAdmin}
                                                     onChange={(e) => setEditAdmin(e.target.checked)}
                                                 />
-                                                Make Admin
+                                                {t("roster.makeAdmin")}
                                             </label>
                                             <label className="flex items-center gap-2 text-sm text-gray-700">
                                                 <input
@@ -240,7 +233,7 @@ export default function RosterClient({
                                                     checked={editCoach}
                                                     onChange={(e) => setEditCoach(e.target.checked)}
                                                 />
-                                                Coach (doesn&apos;t play in lineups)
+                                                {t("roster.coachDescription")}
                                             </label>
                                         </>
                                     )}
@@ -251,13 +244,13 @@ export default function RosterClient({
                                             className="rounded-md px-3 py-1 text-sm font-medium"
                                             style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                                         >
-                                            {loading ? "Saving..." : "Save"}
+                                            {loading ? t("common.saving") : t("common.save")}
                                         </button>
                                         <button
                                             onClick={() => setEditingId(null)}
                                             className="rounded-md bg-gray-200 px-3 py-1 text-sm text-gray-700"
                                         >
-                                            Cancel
+                                            {t("common.cancel")}
                                         </button>
                                     </div>
                                 </div>
@@ -271,20 +264,20 @@ export default function RosterClient({
                                             )}
                                         </p>
                                         <p className="text-sm text-gray-500">
-                                            {member.position ? `${member.position} - ${positionLabels[member.position] ?? member.position}` : "No position"}
+                                            {member.position ? `${member.position} - ${t(`positions.${member.position}`)}` : t("roster.noPosition")}
                                             {member.user_id === ownerId && (
                                                 <span className="ml-2 inline-block rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800">
-                                                    Owner
+                                                    {t("roles.owner")}
                                                 </span>
                                             )}
                                             {member.is_admin && (
                                                 <span className="ml-2 inline-block rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
-                                                    Admin
+                                                    {t("roles.admin")}
                                                 </span>
                                             )}
                                             {member.role === "coach" && (
                                                 <span className="ml-2 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-                                                    Coach
+                                                    {t("roles.coach")}
                                                 </span>
                                             )}
                                         </p>
@@ -295,7 +288,7 @@ export default function RosterClient({
                                                 onClick={() => startEdit(member)}
                                                 className="text-sm text-gray-500 hover:text-gray-700"
                                             >
-                                                Edit
+                                                {t("common.edit")}
                                             </button>
                                         )}
                                         {isOwner && member.user_id !== currentUserId && member.user_id !== ownerId && (
@@ -303,7 +296,7 @@ export default function RosterClient({
                                                 onClick={() => promptTransferOwnership(member)}
                                                 className="text-sm text-purple-600 hover:text-purple-800"
                                             >
-                                                Make Owner
+                                                {t("roster.makeOwner")}
                                             </button>
                                         )}
                                         {isAdmin && member.user_id !== currentUserId && (
@@ -311,7 +304,7 @@ export default function RosterClient({
                                                 onClick={() => removeFromTeam(member)}
                                                 className="text-sm text-red-500 hover:text-red-700"
                                             >
-                                                Remove
+                                                {t("common.remove")}
                                             </button>
                                         )}
                                     </div>

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import AvailabilityStatus from "@/components/AvailabilityStatus";
+import { getServerT, getServerLocale } from "@/lib/server-i18n";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -9,10 +10,14 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const t = await getServerT();
+  const locale = await getServerLocale();
+  const dateFmt = locale === "es" ? "es-ES" : "en-GB";
+
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
-        <p className="text-gray-500">Please log in.</p>
+        <p className="text-gray-500">{t("dashboard.pleaseLogIn")}</p>
       </div>
     );
   }
@@ -30,10 +35,10 @@ export default async function DashboardPage() {
       <div className="flex flex-col items-center justify-center h-full">
         <div className="text-center max-w-md">
           <h1 className="text-2xl font-bold text-black mb-4">
-            Welcome, {profile?.name || "Player"}!
+            {t("dashboard.welcome", { name: profile?.name || "Player" })}
           </h1>
           <p className="text-gray-600 mb-8">
-            You&apos;re not on a team yet. Create your own or join one with an invite code.
+            {t("dashboard.noTeamYet")}
           </p>
           <div className="space-y-3">
             <Link
@@ -41,13 +46,13 @@ export default async function DashboardPage() {
               className="block w-full rounded-md px-4 py-3 font-medium text-center"
               style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
             >
-              Create a Team
+              {t("dashboard.createTeam")}
             </Link>
             <Link
                 href="/dashboard/join-team"
                 className="block w-full rounded-md bg-gray-200 px-4 py-3 text-center font-medium text-gray-700 hover:bg-gray-300"
             >
-              Join a Team
+              {t("dashboard.joinTeam")}
             </Link>
           </div>
         </div>
@@ -93,14 +98,12 @@ export default async function DashboardPage() {
         const deadline = getDeadline(e);
         const closed = now > deadline;
 
-        // After deadline: unavailable and maybe are treated as "don't show"
         if (closed) {
           if (status === "unavailable" || status === "maybe") return false;
-          if (!status) return false; // missed the deadline entirely
-          return true; // voted available
+          if (!status) return false;
+          return true;
         }
 
-        // Before deadline: show everything (vote or not)
         return true;
       });
 
@@ -113,12 +116,12 @@ export default async function DashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-black mb-6">
-        Welcome, {profile.name}!
+        {t("dashboard.welcome", { name: profile.name })}
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="rounded-lg bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Team</h3>
+          <h3 className="text-sm font-medium text-gray-500">{t("dashboard.team")}</h3>
           <div className="flex items-center gap-3 mt-1">
             {team?.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -132,14 +135,14 @@ export default async function DashboardPage() {
           </div>
         </div>
         <div className="rounded-lg bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Players</h3>
+          <h3 className="text-sm font-medium text-gray-500">{t("dashboard.players")}</h3>
           <p className="text-2xl font-bold text-black mt-1">
             {rosterCount ?? 0}
           </p>
         </div>
         {profile.is_admin && (
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500">Invite Code</h3>
+            <h3 className="text-sm font-medium text-gray-500">{t("dashboard.inviteCode")}</h3>
             <p className="text-2xl font-bold mt-1 font-mono" style={{ color: "var(--primary-display)" }}>
               {team?.invite_code}
             </p>
@@ -149,27 +152,27 @@ export default async function DashboardPage() {
 
       {profile.is_admin && (
         <div className="mb-8">
-          <h2 className="text-lg font-bold text-black mb-3">Quick Actions</h2>
+          <h2 className="text-lg font-bold text-black mb-3">{t("dashboard.quickActions")}</h2>
           <div className="flex flex-wrap gap-3">
             <Link
               href="/dashboard/events/new"
               className="rounded-md px-4 py-2 text-sm font-medium"
               style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
             >
-              + New Event
+              {t("dashboard.newEvent")}
             </Link>
             <Link
               href="/dashboard/roster"
               className="rounded-md bg-gray-200 px-4 py-2 text-gray-700 text-sm font-medium hover:bg-gray-300"
             >
-              Manage Roster
+              {t("dashboard.manageRoster")}
             </Link>
           </div>
         </div>
       )}
 
       <div>
-        <h2 className="text-lg font-bold text-black mb-3">Upcoming Events</h2>
+        <h2 className="text-lg font-bold text-black mb-3">{t("dashboard.upcomingEvents")}</h2>
         {visibleEvents.length > 0 ? (
           <div className="space-y-3">
             {visibleEvents.map((event) => (
@@ -180,8 +183,8 @@ export default async function DashboardPage() {
                 <div>
                   <p className="font-medium text-black">{event.title}</p>
                   <p className="text-sm text-gray-500">
-                    {event.type === "match" ? "⚽ Match" : "🏃 Training"} ·{" "}
-                    {new Date(event.date).toLocaleDateString("en-GB", {
+                    {event.type === "match" ? t("dashboard.match") : t("dashboard.training")} · 
+                    {new Date(event.date).toLocaleDateString(dateFmt, {
                       weekday: "short",
                       day: "numeric",
                       month: "short",
@@ -198,14 +201,14 @@ export default async function DashboardPage() {
                     if (status === "maybe") {
                       return (
                         <p className="text-xs text-yellow-600 mt-1">
-                          You answered Maybe — pick Yes or No before it closes
+                          {t("dashboard.maybeAnswer")}
                         </p>
                       );
                     }
                     if (!status) {
                       return (
                         <p className="text-xs text-gray-400 mt-1">
-                          Mark your availability
+                          {t("dashboard.markAvailability")}
                         </p>
                       );
                     }
@@ -225,7 +228,7 @@ export default async function DashboardPage() {
             ))}
           </div>
         ) : (
-          <p className="text-gray-500">No upcoming events.</p>
+          <p className="text-gray-500">{t("dashboard.noUpcomingEvents")}</p>
         )}
       </div>
     </div>

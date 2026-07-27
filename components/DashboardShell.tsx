@@ -3,6 +3,7 @@
 import React from "react";
 import Sidebar from "@/components/Sidebar";
 import SignOutButton from "@/components/SignOutButton";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function DashboardShell({
     children,
@@ -26,6 +27,7 @@ export default function DashboardShell({
     isOwner: boolean;
 }) {
     const [isOpen, setIsOpen] = React.useState(false);
+    const { t } = useLocaleContext();
 
     React.useEffect(() => {
         document.documentElement.style.setProperty("--primary", primaryColor);
@@ -72,13 +74,13 @@ export default function DashboardShell({
                 href="#main-content"
                 className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:shadow-md focus:text-sm focus:font-medium focus:text-gray-900"
             >
-                Skip to content
+                {t("shell.skipToContent")}
             </a>
             {/* Hamburger button - mobile only */}
             <button
                 onClick={() => setIsOpen(true)}
                 className="fixed top-4 left-4 z-50 rounded-md bg-white p-2 shadow-md md:hidden"
-                aria-label="Open navigation menu"
+                aria-label={t("shell.openNav")}
             >
                 ☰
             </button>

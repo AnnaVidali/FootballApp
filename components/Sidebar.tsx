@@ -2,15 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const navLinks = [
-    { href: "/dashboard", label: "Dashboard", icon: "🏠" },
-    { href: "/dashboard/roster", label: "Roster", icon: "👥" },
-    { href: "/dashboard/events", label: "Events", icon: "📅" },
-    { href: "/dashboard/lineup", label: "Lineup", icon: "⚽" },
-    { href: "/dashboard/settings", label: "Settings", icon: "⚙️" },
-    { href: "/dashboard/account", label: "Account", icon: "👤" },
-];
+import { useLocaleContext } from "@/lib/i18n-context";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function Sidebar({
     teamLogo,
@@ -30,6 +23,22 @@ export default function Sidebar({
     onCloseAction: () => void;
 }) {
     const pathname = usePathname();
+    const { t } = useLocaleContext();
+
+    const navLinks = [
+        { href: "/dashboard", label: t("nav.dashboard"), icon: "\ud83c\udfe0" },
+        { href: "/dashboard/roster", label: t("nav.roster"), icon: "\ud83d\udc65" },
+        { href: "/dashboard/events", label: t("nav.events"), icon: "\ud83d\udcc5" },
+        { href: "/dashboard/lineup", label: t("nav.lineup"), icon: "\u26bd" },
+        { href: "/dashboard/settings", label: t("nav.settings"), icon: "\u2699\ufe0f" },
+        { href: "/dashboard/account", label: t("nav.account"), icon: "\ud83d\udc64" },
+    ];
+
+    function getRoleLabel(): string {
+        if (role === "coach") return t("roles.adminCoach");
+        if (isAdmin) return t("roles.admin");
+        return t("roles.player");
+    }
 
     return (
         <aside className="flex w-64 flex-col border-r border-gray-200 bg-white">
@@ -42,22 +51,26 @@ export default function Sidebar({
                     )}
                     <div>
                         <h2 className="text-lg font-bold text-black truncate">
-                            {teamName || "No Team"}
+                            {teamName || t("sidebar.noTeam")}
                         </h2>
                         {teamName && (
                         <>
                         <span className="inline-block rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary-text)" }}>
-                            {role === "coach" ? "Admin · Coach" : isAdmin ? "Admin" : "Player"}
+                            {getRoleLabel()}
                         </span>
                         {isOwner && (
                             <span className="ml-1 inline-block rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800">
-                                Owner
+                                {t("roles.owner")}
                             </span>
                         )}
                         </>
                         )}
                     </div>
                 </div>
+            </div>
+
+            <div className="border-b border-gray-200 px-4 py-2">
+                <LanguageSwitcher />
             </div>
 
             <nav className="flex-1 p-4 space-y-1" aria-label="Main navigation">

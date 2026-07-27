@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function NewEventPage() {
     const [type, setType] = useState<"match" | "training">("training");
@@ -13,13 +14,15 @@ export default function NewEventPage() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const supabase = createClient();
+    const { t } = useLocaleContext();
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setLoading(true);
         setError("");
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-            setError("Not logged in");
+            setError(t("auth.notLoggedIn"));
             setLoading(false);
             return;
         }
@@ -29,7 +32,7 @@ export default function NewEventPage() {
             .eq("user_id", user.id)
             .single();
         if (!profile?.is_admin) {
-            setError("Only admins can create events");
+            setError(t("events.onlyAdminsCreate"));
             setLoading(false);
             return;
         }
@@ -49,11 +52,11 @@ export default function NewEventPage() {
     }
     return (
         <div className="max-w-md mx-auto">
-            <h1 className="text-2xl font-bold text-black mb-6">New Event</h1>
+            <h1 className="text-2xl font-bold text-black mb-6">{t("events.newEvent")}</h1>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label htmlFor="event-type" className="block text-sm font-medium text-gray-700 mb-1">
-                        Event Type
+                        {t("events.eventType")}
                     </label>
                     <select
                         id="event-type"
@@ -61,13 +64,13 @@ export default function NewEventPage() {
                         onChange={(e) => setType(e.target.value as "match" | "training")}
                         className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
                     >
-                        <option value="training">Training</option>
-                        <option value="match">Match</option>
+                        <option value="training">{t("events.trainingOption")}</option>
+                        <option value="match">{t("events.matchOption")}</option>
                     </select>
                 </div>
                 <div>
                     <label htmlFor="event-title" className="block text-sm font-medium text-gray-700 mb-1">
-                        Title
+                        {t("events.typeTitle")}
                     </label>
                     <input
                         id="event-title"
@@ -81,7 +84,7 @@ export default function NewEventPage() {
                 </div>
                 <div>
                     <label htmlFor="event-date" className="block text-sm font-medium text-gray-700 mb-1">
-                        Date & Time
+                        {t("events.dateTime")}
                     </label>
                     <input
                         id="event-date"
@@ -94,7 +97,7 @@ export default function NewEventPage() {
                 </div>
                 <div>
                     <label htmlFor="event-location" className="block text-sm font-medium text-gray-700 mb-1">
-                        Location (optional)
+                        {t("events.location")}
                     </label>
                     <input
                         id="event-location"
@@ -115,7 +118,7 @@ export default function NewEventPage() {
                     className="w-full rounded-md px-4 py-2 font-medium disabled:opacity-50"
                     style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                 >
-                    {loading ? "Creating..." : "Create Event"}
+                    {loading ? t("events.creating") : t("events.createEvent")}
                 </button>
             </form>
         </div>

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState("");
@@ -10,6 +11,7 @@ export default function ForgotPasswordPage() {
     const [sent, setSent] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const supabase = createClient();
+    const { t } = useLocaleContext();
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -32,18 +34,18 @@ export default function ForgotPasswordPage() {
 
     return (
         <div className="rounded-lg bg-white p-8 shadow-md">
-            <h1 className="mb-6 text-2xl font-bold text-center text-black">Reset Password</h1>
+            <h1 className="mb-6 text-2xl font-bold text-center text-black">{t("auth.resetPassword")}</h1>
 
             {sent ? (
                 <div className="text-center">
                     <p className="mb-4 text-sm text-gray-600">
-                        Check your email for a password reset link.
+                        {t("auth.checkEmail")}
                     </p>
                     <Link
                         href="/login"
                         className="text-green-600 hover:underline text-sm font-medium"
                     >
-                        Back to Login
+                        {t("auth.backToLogin")}
                     </Link>
                 </div>
             ) : (
@@ -60,7 +62,7 @@ export default function ForgotPasswordPage() {
                                 htmlFor="email"
                                 className="block text-sm font-medium text-gray-700"
                             >
-                                Email
+                                {t("auth.email")}
                             </label>
                             <input
                                 id="email"
@@ -78,14 +80,14 @@ export default function ForgotPasswordPage() {
                             disabled={loading}
                             className="w-full rounded-md bg-green-600 px-4 py-2 text-white font-medium hover:bg-green-700 disabled:opacity-50"
                         >
-                            {loading ? "Sending..." : "Send Reset Link"}
+                            {loading ? t("auth.sending") : t("auth.sendResetLink")}
                         </button>
                     </form>
 
                     <p className="mt-4 text-center text-sm text-gray-600">
-                        Remember your password?{" "}
+                        {t("auth.rememberPassword")}{" "}
                         <Link href="/login" className="text-green-600 hover:underline">
-                            Login
+                            {t("auth.login")}
                         </Link>
                     </p>
                 </>

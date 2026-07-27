@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useLocaleContext } from "@/lib/i18n-context";
 import LineupEditor from "@/components/LineupEditor";
 
 const supabase = createClient();
@@ -47,6 +48,8 @@ export default function LineupPage() {
     const [setPieces, setSetPieces] = useState<SetPiece[]>([]);
     const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
+    const { t, locale } = useLocaleContext();
+    const dateFmt = locale === "es" ? "es-ES" : "en-GB";
 
     useEffect(() => {
         async function load() {
@@ -71,7 +74,7 @@ export default function LineupPage() {
                 .order("name");
             setAllMembers(teamMembers ?? []);
 
-            const cutoff = new Date(Date.now() - 90 * 60 * 1000).toISOString(); // 1.5h ago
+            const cutoff = new Date(Date.now() - 90 * 60 * 1000).toISOString();
             const { data: upcoming } = await supabase
                 .from("events")
                 .select("id, title, type, date, location, formation, captain_id")
@@ -129,15 +132,14 @@ export default function LineupPage() {
     if (events.length === 0 && !loading) {
         return (
             <div className="max-w-2xl mx-auto">
-                <h1 className="text-2xl font-bold text-black mb-6">Lineup</h1>
-                <p className="text-gray-500">No upcoming matches.</p>
+                <h1 className="text-2xl font-bold text-black mb-6">{t("lineup.title")}</h1>
+                <p className="text-gray-500">{t("lineup.noUpcomingMatches")}</p>
             </div>
         );
     }
 
     return (
         <div className="flex flex-col md:flex-row gap-6">
-            {/* Editor */}
             <div className="flex-1 min-w-0">
                 {selectedEvent && (
                     <LineupEditor
@@ -150,9 +152,8 @@ export default function LineupPage() {
                 )}
             </div>
 
-            {/* Match list */}
             <div className="w-full md:w-72 shrink-0">
-                <h2 className="font-bold text-black mb-3">Matches</h2>
+                <h2 className="font-bold text-black mb-3">{t("lineup.matches")}</h2>
                 <div className="space-y-2">
                     {events.map((event) => (
                         <button
@@ -166,7 +167,7 @@ export default function LineupPage() {
                         >
                             <p className="font-medium truncate">{event.title}</p>
                             <p className="text-xs text-gray-400">
-                                {new Date(event.date).toLocaleDateString("en-GB", {
+                                {new Date(event.date).toLocaleDateString(dateFmt, {
                                     weekday: "short",
                                     day: "numeric",
                                     month: "short",

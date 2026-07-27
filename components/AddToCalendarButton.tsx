@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 function toISOCompact(date: Date): string {
     return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
@@ -21,6 +22,7 @@ export default function AddToCalendarButton({
     const ref = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const menuItemsRef = useRef<(HTMLButtonElement | null)[]>([]);
+    const { t } = useLocaleContext();
 
     useEffect(() => {
         function handleClick(e: MouseEvent) {
@@ -108,7 +110,7 @@ export default function AddToCalendarButton({
                 className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:border-gray-300 transition-colors whitespace-nowrap"
             >
                 <span aria-hidden="true">📅</span>
-                <span>Add to calendar</span>
+                <span>{t("calendar.addToCalendar")}</span>
             </button>
             {open && (
                 <div
@@ -123,7 +125,7 @@ export default function AddToCalendarButton({
                         onKeyDown={(e) => handleMenuKeyDown(e, 0)}
                         className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-t-md"
                     >
-                        Google Calendar
+                        {t("calendar.googleCalendar")}
                     </button>
                     <button
                         ref={(el) => { menuItemsRef.current[1] = el; }}

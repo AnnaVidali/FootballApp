@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useLocaleContext } from "@/lib/i18n-context";
 import AvailabilityButton from "@/components/AvailabilityButton";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -45,6 +46,9 @@ export default function EventsPage() {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [confirmMsg, setConfirmMsg] = useState("");
     const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null);
+    const { t } = useLocaleContext();
+    const locale = useLocaleContext().locale;
+    const dateFmt = locale === "es" ? "es-ES" : "en-GB";
 
     useEffect(() => {
         async function load() {
@@ -144,7 +148,7 @@ export default function EventsPage() {
         setEditingEvent(event.id);
         setEditTitle(event.title);
         setEditType(event.type);
-        setEditDate(event.date.slice(0, 16)); // format for datetime-local input
+        setEditDate(event.date.slice(0, 16));
         setEditLocation(event.location ?? "");
     }
 
@@ -160,7 +164,7 @@ export default function EventsPage() {
             })
             .eq("id", eventId);
         if (error) {
-            setAlertMsg("Failed to save: " + error.message);
+            setAlertMsg(t("events.failedSave") + error.message);
             setAlertOpen(true);
             setSaving(false);
             return;
@@ -177,7 +181,7 @@ export default function EventsPage() {
     }
 
     async function deleteEvent(eventId: string) {
-        setConfirmMsg("Delete this event? This cannot be undone.");
+        setConfirmMsg(t("events.deleteConfirm"));
         setPendingDeleteEventId(eventId);
         setConfirmOpen(true);
     }
@@ -187,7 +191,7 @@ export default function EventsPage() {
         setSaving(true);
         const { error } = await supabase.from("events").delete().eq("id", pendingDeleteEventId);
         if (error) {
-            setAlertMsg("Failed to delete: " + error.message);
+            setAlertMsg(t("events.failedDelete") + error.message);
             setAlertOpen(true);
             setSaving(false);
             return;
@@ -199,7 +203,7 @@ export default function EventsPage() {
     }
 
     if (loading) {
-        return <p className="text-gray-500" aria-live="polite">Loading...</p>;
+        return <p className="text-gray-500" aria-live="polite">{t("common.loading")}</p>;
     }
 
     const now = new Date();
@@ -208,34 +212,34 @@ export default function EventsPage() {
 
     return (
         <div className="max-w-2xl mx-auto">
-            <AlertModal open={alertOpen} title="Error" message={alertMsg} onClose={() => setAlertOpen(false)} />
+            <AlertModal open={alertOpen} title={t("common.error")} message={alertMsg} onClose={() => setAlertOpen(false)} />
             <ConfirmModal
                 open={confirmOpen}
-                title="Confirm"
+                title={t("common.confirm")}
                 message={confirmMsg}
                 danger
                 onConfirm={async () => { setConfirmOpen(false); await confirmDeleteEvent(); }}
                 onCancel={() => { setConfirmOpen(false); setPendingDeleteEventId(null); }}
             />
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-black">Events</h1>
+                <h1 className="text-2xl font-bold text-black">{t("events.title")}</h1>
                 {isAdmin && (
                     <Link
                         href="/dashboard/events/new"
                         className="rounded-md px-4 py-2 text-sm font-medium"
                         style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                     >
-                        + New Event
+                        {t("events.newEvent")}
                     </Link>
                 )}
             </div>
             {events.length === 0 ? (
-                <p className="text-gray-500">No events yet.</p>
+                <p className="text-gray-500">{t("events.noEvents")}</p>
             ) : (
                 <>
                     {upcoming.length > 0 && (
                         <div className="mb-8">
-                            <h2 className="text-lg font-bold text-black mb-3">Upcoming</h2>
+                            <h2 className="text-lg font-bold text-black mb-3">{t("events.upcoming")}</h2>
                             <div className="space-y-3">
                                 {upcoming.map((event) => {
                                     const counts = getCounts(event.id);
@@ -252,7 +256,7 @@ export default function EventsPage() {
                                                         value={editTitle}
                                                         onChange={(e) => setEditTitle(e.target.value)}
                                                         className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
-                                                        placeholder="Event title"
+                                                        placeholder={t("events.eventTitle")}
                                                     />
                                                     <div className="flex gap-2">
                                                         <select
@@ -260,8 +264,8 @@ export default function EventsPage() {
                                                             onChange={(e) => setEditType(e.target.value as "match" | "training")}
                                                             className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
                                                         >
-                                                            <option value="match">Match</option>
-                                                            <option value="training">Training</option>
+                                                            <option value="match">{t("events.matchOption")}</option>
+                                                            <option value="training">{t("events.trainingOption")}</option>
                                                         </select>
                                                         <input
                                                             type="datetime-local"
@@ -275,7 +279,7 @@ export default function EventsPage() {
                                                         value={editLocation}
                                                         onChange={(e) => setEditLocation(e.target.value)}
                                                         className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
-                                                        placeholder="Location (optional)"
+                                                        placeholder={t("events.locationOptional")}
                                                     />
                                                     <div className="flex gap-2">
                                                         <button
@@ -284,13 +288,13 @@ export default function EventsPage() {
                                                             className="rounded-md px-3 py-1 text-sm font-medium"
                                                             style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                                                         >
-                                                            {saving ? "Saving..." : "Save"}
+                                                            {saving ? t("common.saving") : t("events.save")}
                                                         </button>
                                                         <button
                                                             onClick={() => setEditingEvent(null)}
                                                             className="rounded-md bg-gray-200 px-3 py-1 text-sm text-gray-700"
                                                         >
-                                                            Cancel
+                                                            {t("events.cancel")}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -300,8 +304,8 @@ export default function EventsPage() {
                                                         <div>
                                                             <p className="font-medium text-black">{event.title}</p>
                                                             <p className="text-sm text-gray-500">
-                                                                {event.type === "match" ? "⚽ Match" : "🏃 Training"} ·{" "}
-                                                                {new Date(event.date).toLocaleDateString("en-GB", {
+                                                                {event.type === "match" ? t("events.match") : t("events.training")} · 
+                                                                {new Date(event.date).toLocaleDateString(dateFmt, {
                                                                     weekday: "short",
                                                                     day: "numeric",
                                                                     month: "short",
@@ -312,7 +316,7 @@ export default function EventsPage() {
                                                             </p>
                                                             {event.captain_id && captainNames[event.captain_id] && (
                                                                 <p className="text-xs text-gray-400 mt-0.5">
-                                                                    Captain: {captainNames[event.captain_id]}
+                                                                    {t("events.captain", { name: captainNames[event.captain_id] })}
                                                                 </p>
                                                             )}
                                                         </div>
@@ -322,13 +326,13 @@ export default function EventsPage() {
                                                                     onClick={() => startEdit(event)}
                                                                     className="text-xs text-gray-400 hover:text-gray-600"
                                                                 >
-                                                                    Edit
+                                                                    {t("events.edit")}
                                                                 </button>
                                                                 <button
                                                                     onClick={() => deleteEvent(event.id)}
                                                                     className="text-xs text-gray-400 hover:text-red-500"
                                                                 >
-                                                                    Delete
+                                                                    {t("events.delete")}
                                                                 </button>
                                                             </div>
                                                         )}
@@ -344,18 +348,18 @@ export default function EventsPage() {
                                                         />
                                                     )}
                                                     {isCoach && (
-                                                        <p className="text-xs text-blue-600 mt-2">Coach — always expected to attend</p>
+                                                        <p className="text-xs text-blue-600 mt-2">{t("events.coachAttend")}</p>
                                                     )}
                                                     <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                                                        {counts.available > 0 && <span className="text-green-600">{counts.available} yes</span>}
-                                                        {counts.maybe > 0 && <span className="text-yellow-600">{counts.maybe} maybe</span>}
-                                                        {counts.unavailable > 0 && <span className="text-red-500">{counts.unavailable} no</span>}
+                                                        {counts.available > 0 && <span className="text-green-600">{t("events.yesCount", { count: counts.available })}</span>}
+                                                        {counts.maybe > 0 && <span className="text-yellow-600">{t("events.maybeCount", { count: counts.maybe })}</span>}
+                                                        {counts.unavailable > 0 && <span className="text-red-500">{t("events.noCount", { count: counts.unavailable })}</span>}
                                                         {counts.total > 0 && (
                                                             <button
                                                                 onClick={() => setExpandedEvent(expandedEvent === event.id ? null : event.id)}
                                                                 className="underline hover:text-gray-600"
                                                             >
-                                                                {expandedEvent === event.id ? "Hide" : "Who"}
+                                                                {expandedEvent === event.id ? t("events.hide") : t("events.who")}
                                                             </button>
                                                         )}
                                                     </div>
@@ -371,7 +375,7 @@ export default function EventsPage() {
                                                                             a.status === "maybe" ? "text-yellow-600" :
                                                                             "text-red-500"
                                                                         }>
-                                                                            {a.status === "available" ? "✓" : a.status === "maybe" ? "?" : "✗"}
+                                                                            {a.status === "available" ? "\u2713" : a.status === "maybe" ? "?" : "\u2717"}
                                                                         </span>
                                                                         <span className="text-gray-700">{a.name}</span>
                                                                     </div>
@@ -383,7 +387,7 @@ export default function EventsPage() {
                                                             href={`/dashboard/lineup/${event.id}`}
                                                             className="inline-block mt-2 text-xs font-medium text-gray-500 hover:text-gray-700"
                                                         >
-                                                            ⚽ Set Lineup →
+                                                            {t("events.setLineup")}
                                                         </Link>
                                                     )}
                                                 </>
@@ -396,7 +400,7 @@ export default function EventsPage() {
                     )}
                     {past.length > 0 && (
                         <div>
-                            <h2 className="text-lg font-bold text-black mb-3">Past</h2>
+                            <h2 className="text-lg font-bold text-black mb-3">{t("events.past")}</h2>
                             <div className="space-y-3">
                                 {past.map((event) => {
                                     const counts = getCounts(event.id);
@@ -413,7 +417,7 @@ export default function EventsPage() {
                                                         value={editTitle}
                                                         onChange={(e) => setEditTitle(e.target.value)}
                                                         className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
-                                                        placeholder="Event title"
+                                                        placeholder={t("events.eventTitle")}
                                                     />
                                                     <div className="flex gap-2">
                                                         <select
@@ -421,8 +425,8 @@ export default function EventsPage() {
                                                             onChange={(e) => setEditType(e.target.value as "match" | "training")}
                                                             className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
                                                         >
-                                                            <option value="match">Match</option>
-                                                            <option value="training">Training</option>
+                                                            <option value="match">{t("events.matchOption")}</option>
+                                                            <option value="training">{t("events.trainingOption")}</option>
                                                         </select>
                                                         <input
                                                             type="datetime-local"
@@ -436,7 +440,7 @@ export default function EventsPage() {
                                                         value={editLocation}
                                                         onChange={(e) => setEditLocation(e.target.value)}
                                                         className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-black"
-                                                        placeholder="Location (optional)"
+                                                        placeholder={t("events.locationOptional")}
                                                     />
                                                     <div className="flex gap-2">
                                                         <button
@@ -445,13 +449,13 @@ export default function EventsPage() {
                                                             className="rounded-md px-3 py-1 text-sm font-medium"
                                                             style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                                                         >
-                                                            {saving ? "Saving..." : "Save"}
+                                                            {saving ? t("common.saving") : t("events.save")}
                                                         </button>
                                                         <button
                                                             onClick={() => setEditingEvent(null)}
                                                             className="rounded-md bg-gray-200 px-3 py-1 text-sm text-gray-700"
                                                         >
-                                                            Cancel
+                                                            {t("events.cancel")}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -461,8 +465,8 @@ export default function EventsPage() {
                                                         <div>
                                                             <p className="font-medium text-black">{event.title}</p>
                                                             <p className="text-sm text-gray-500">
-                                                                {event.type === "match" ? "⚽ Match" : "🏃 Training"} ·{" "}
-                                                                {new Date(event.date).toLocaleDateString("en-GB", {
+                                                                {event.type === "match" ? t("events.match") : t("events.training")} · 
+                                                                {new Date(event.date).toLocaleDateString(dateFmt, {
                                                                     weekday: "short",
                                                                     day: "numeric",
                                                                     month: "short",
@@ -473,7 +477,7 @@ export default function EventsPage() {
                                                             </p>
                                                             {event.captain_id && captainNames[event.captain_id] && (
                                                                 <p className="text-xs text-gray-400 mt-0.5">
-                                                                    Captain: {captainNames[event.captain_id]}
+                                                                    {t("events.captain", { name: captainNames[event.captain_id] })}
                                                                 </p>
                                                             )}
                                                         </div>
@@ -483,22 +487,22 @@ export default function EventsPage() {
                                                                     onClick={() => startEdit(event)}
                                                                     className="text-xs text-gray-400 hover:text-gray-600"
                                                                 >
-                                                                    Edit
+                                                                    {t("events.edit")}
                                                                 </button>
                                                                 <button
                                                                     onClick={() => deleteEvent(event.id)}
                                                                     className="text-xs text-gray-400 hover:text-red-500"
                                                                 >
-                                                                    Delete
+                                                                    {t("events.delete")}
                                                                 </button>
                                                             </div>
                                                         )}
                                                     </div>
                                                     {counts.total > 0 && (
                                                         <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                                                            {counts.available > 0 && <span>{counts.available} yes</span>}
-                                                            {counts.maybe > 0 && <span>{counts.maybe} maybe</span>}
-                                                            {counts.unavailable > 0 && <span>{counts.unavailable} no</span>}
+                                                            {counts.available > 0 && <span>{t("events.yesCount", { count: counts.available })}</span>}
+                                                            {counts.maybe > 0 && <span>{t("events.maybeCount", { count: counts.maybe })}</span>}
+                                                            {counts.unavailable > 0 && <span>{t("events.noCount", { count: counts.unavailable })}</span>}
                                                         </div>
                                                     )}
                                                     {isAdmin && event.type === "match" && (
@@ -506,7 +510,7 @@ export default function EventsPage() {
                                                             href={`/dashboard/lineup/${event.id}`}
                                                             className="inline-block mt-2 text-xs font-medium text-gray-500 hover:text-gray-700"
                                                         >
-                                                            ⚽ View Lineup →
+                                                            {t("events.viewLineup")}
                                                         </Link>
                                                     )}
                                                 </>

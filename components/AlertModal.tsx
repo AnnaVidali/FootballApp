@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function AlertModal({
     open,
@@ -15,6 +16,7 @@ export default function AlertModal({
 }) {
     const buttonRef = useRef<HTMLButtonElement>(null);
     const dialogRef = useRef<HTMLDivElement>(null);
+    const { t } = useLocaleContext();
 
     useEffect(() => {
         if (open) buttonRef.current?.focus();
@@ -69,7 +71,7 @@ export default function AlertModal({
                     className="rounded-md px-4 py-2 text-sm font-medium w-full"
                     style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                 >
-                    OK
+                    {t("common.ok")}
                 </button>
             </div>
         </div>

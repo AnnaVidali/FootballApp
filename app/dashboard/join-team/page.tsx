@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function JoinTeamPage() {
     const [code, setCode] = useState("");
@@ -10,6 +11,7 @@ export default function JoinTeamPage() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const supabase = createClient();
+    const { t } = useLocaleContext();
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -17,22 +19,20 @@ export default function JoinTeamPage() {
         setError("");
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-            setError("Not logged in");
+            setError(t("auth.notLoggedIn"));
             setLoading(false);
             return;
         }
-        // Find the team with this invite code
         const { data: team } = await supabase
             .from("teams")
             .select("id")
             .eq("invite_code", code.trim().toUpperCase())
             .maybeSingle();
         if (!team) {
-            setError("Invalid invite code. Check with your admin for the correct code.");
+            setError(t("joinTeam.invalidCode"));
             setLoading(false);
             return;
         }
-        // Link user to the team
         const { error: updateError } = await supabase
             .from("profiles")
             .update({ team_id: team.id })
@@ -47,11 +47,11 @@ export default function JoinTeamPage() {
     }
     return (
         <div className="max-w-md mx-auto">
-            <h1 className="text-2xl font-bold text-black mb-6">Join a Team</h1>
+            <h1 className="text-2xl font-bold text-black mb-6">{t("joinTeam.title")}</h1>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label htmlFor="invite-code" className="block text-sm font-medium text-gray-700 mb-1">
-                        Invite Code
+                        {t("joinTeam.inviteCode")}
                     </label>
                     <input
                         id="invite-code"
@@ -63,7 +63,7 @@ export default function JoinTeamPage() {
                         className="w-full rounded-md border border-gray-300 px-3 py-2 text-black uppercase tracking-wider text-center text-lg font-mono"
                     />
                     <p className="text-xs text-gray-400 mt-1">
-                        Ask your coach or captain for the code
+                        {t("joinTeam.askCoach")}
                     </p>
                 </div>
                 {error && (
@@ -76,7 +76,7 @@ export default function JoinTeamPage() {
                     className="w-full rounded-md px-4 py-2 font-medium disabled:opacity-50"
                     style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                 >
-                    {loading ? "Joining..." : "Join Team"}
+                    {loading ? t("joinTeam.joining") : t("joinTeam.joinTeam")}
                 </button>
             </form>
         </div>

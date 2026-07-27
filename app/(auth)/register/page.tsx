@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -14,6 +15,7 @@ export default function RegisterPage() {
   const [registered, setRegistered] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useLocaleContext();
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -40,7 +42,7 @@ export default function RegisterPage() {
 
   return (
     <div className="rounded-lg bg-white p-8 shadow-md">
-      <h1 className="mb-6 text-2xl font-bold text-center text-black">Register</h1>
+      <h1 className="mb-6 text-2xl font-bold text-center text-black">{t("auth.register")}</h1>
 
       {error && (
         <div className="mb-4 rounded bg-red-50 p-3 text-sm text-red-600">
@@ -51,14 +53,14 @@ export default function RegisterPage() {
       {registered ? (
         <div className="text-center">
           <div className="mb-4 rounded bg-green-50 p-4">
-            <p className="text-lg font-medium text-green-800">Registration Successful!</p>
-            <p className="text-sm text-green-700 mt-1">Your account has been created. You can now sign in.</p>
+            <p className="text-lg font-medium text-green-800">{t("auth.registrationSuccess")}</p>
+            <p className="text-sm text-green-700 mt-1">{t("auth.accountCreated")}</p>
           </div>
           <button
             onClick={() => router.push("/login")}
             className="w-full rounded-md bg-green-600 px-4 py-2 text-white font-medium hover:bg-green-700"
           >
-            Go to Login
+            {t("auth.goToLogin")}
           </button>
         </div>
       ) : (
@@ -68,7 +70,7 @@ export default function RegisterPage() {
               htmlFor="name"
               className="block text-sm font-medium text-gray-700"
             >
-              Full Name
+              {t("auth.fullName")}
             </label>
             <input
               id="name"
@@ -85,7 +87,7 @@ export default function RegisterPage() {
               htmlFor="email"
               className="block text-sm font-medium text-gray-700"
             >
-              Email
+              {t("auth.email")}
             </label>
             <input
               id="email"
@@ -102,7 +104,7 @@ export default function RegisterPage() {
               htmlFor="password"
               className="block text-sm font-medium text-gray-700"
             >
-              Password
+              {t("auth.password")}
             </label>
             <input
               id="password"
@@ -120,15 +122,15 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full rounded-md bg-green-600 px-4 py-2 text-white font-medium hover:bg-green-700 disabled:opacity-50"
           >
-            {loading ? "Creating account..." : "Create Account"}
+            {loading ? t("auth.creatingAccount") : t("auth.createAccount")}
           </button>
         </form>
       )}
 
       <p className="mt-4 text-center text-sm text-gray-600">
-        Already have an account?{" "}
+        {t("auth.hasAccount")}{" "}
         <Link href="/login" className="text-green-600 hover:underline">
-          Login
+          {t("auth.login")}
         </Link>
       </p>
     </div>

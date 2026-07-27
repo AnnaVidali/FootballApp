@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { positionLabels } from "@/lib/constants";
+import { useLocaleContext } from "@/lib/i18n-context";
 import AlertModal from "@/components/AlertModal";
 
 type Member = {
@@ -30,9 +30,9 @@ type Assignment = {
     y: number;
 };
 
-const FORMATIONS: Record<string, { label: string; positions: { name: string; x: number; y: number }[] }> = {
+const FORMATIONS: Record<string, { labelKey: string; positions: { name: string; x: number; y: number }[] }> = {
     "7v7-standard": {
-        label: "7v7 Standard (3-2-1)",
+        labelKey: "formations.7v7-standard",
         positions: [
             { name: "GK", x: 50, y: 90 },
             { name: "LB", x: 18, y: 65 },
@@ -44,7 +44,7 @@ const FORMATIONS: Record<string, { label: string; positions: { name: string; x: 
         ],
     },
     "7v7-2-3-1": {
-        label: "7v7 (2-3-1)",
+        labelKey: "formations.7v7-2-3-1",
         positions: [
             { name: "GK", x: 50, y: 90 },
             { name: "CB", x: 35, y: 70 },
@@ -56,7 +56,7 @@ const FORMATIONS: Record<string, { label: string; positions: { name: string; x: 
         ],
     },
     "7v7-3-3": {
-        label: "7v7 (3-3)",
+        labelKey: "formations.7v7-3-3",
         positions: [
             { name: "GK", x: 50, y: 90 },
             { name: "LB", x: 20, y: 68 },
@@ -68,7 +68,7 @@ const FORMATIONS: Record<string, { label: string; positions: { name: string; x: 
         ],
     },
     "7v7-4-2": {
-        label: "7v7 (4-2)",
+        labelKey: "formations.7v7-4-2",
         positions: [
             { name: "GK", x: 50, y: 90 },
             { name: "LB", x: 15, y: 65 },
@@ -80,7 +80,7 @@ const FORMATIONS: Record<string, { label: string; positions: { name: string; x: 
         ],
     },
     "7v7-1-3-2": {
-        label: "7v7 (1-3-2)",
+        labelKey: "formations.7v7-1-3-2",
         positions: [
             { name: "GK", x: 50, y: 90 },
             { name: "CB", x: 50, y: 68 },
@@ -109,6 +109,7 @@ export default function LineupEditor({
     const router = useRouter();
     const supabase = createClient();
     const pitchRef = useRef<HTMLDivElement>(null);
+    const { t } = useLocaleContext();
     const [saving, setSaving] = useState(false);
     const [formation, setFormation] = useState<string>(event.formation ?? "");
     const [captainId, setCaptainId] = useState<string>(event.captain_id ?? "");
@@ -158,7 +159,6 @@ export default function LineupEditor({
                 newAssignments[entry.position] = a;
             }
         }
-        // Fill in empty formation slots so ghost circles appear
         const f = FORMATIONS[event.formation ?? ""];
         if (f) {
             f.positions.forEach((pos, i) => {
@@ -382,12 +382,10 @@ export default function LineupEditor({
                             const next = { ...prev };
                             const targetSlot = next[bestKey];
                             if (targetSlot && targetSlot.playerId) {
-                                // Swap: move target player to the dragged-from slot
                                 next[draggingSlot] = { ...targetSlot, x: moving.x, y: moving.y };
                                 const targetPos = f.positions.find((p, i) => p.name + (i > 0 ? i : "") === bestKey)!;
                                 next[bestKey] = { ...moving, x: targetPos.x, y: targetPos.y };
                             } else {
-                                // Empty slot: move there
                                 const targetPos = f.positions.find((p, i) => p.name + (i > 0 ? i : "") === bestKey)!;
                                 next[draggingSlot] = { ...moving, playerId: "", name: "", shirtNumber: null };
                                 next[bestKey] = { ...moving, x: targetPos.x, y: targetPos.y };
@@ -557,8 +555,7 @@ export default function LineupEditor({
             onTouchEnd={canEdit ? handleMouseUp : undefined}
             onTouchCancel={canEdit ? () => { if (isDragging) { setDraggingPlayer(null); setDraggingSlot(null); setDragTarget(null); setGhostPos(null); } } : undefined}
         >
-            <AlertModal open={alertOpen} title="Error" message={alertMsg} onClose={() => setAlertOpen(false)} />
-            {/* Ghost element while dragging */}
+            <AlertModal open={alertOpen} title={t("common.error")} message={alertMsg} onClose={() => setAlertOpen(false)} />
             {isDragging && ghostPos && (
                 <div
                     className="fixed pointer-events-none z-50 w-12 h-12 rounded-full bg-white text-black border-2 border-blue-500 flex items-center justify-center text-[10px] font-bold shadow-lg -translate-x-1/2 -translate-y-1/2"
@@ -569,9 +566,9 @@ export default function LineupEditor({
             )}
 
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-black">{event.title} — Lineup</h1>
+                <h1 className="text-2xl font-bold text-black">{t("lineup.lineupTitle", { title: event.title })}</h1>
                 <p className="text-sm text-gray-500">
-                    {event.type === "match" ? "⚽ Match" : "🏃 Training"} ·{" "}
+                    {event.type === "match" ? t("events.match") : t("events.training")} · 
                     {new Date(event.date).toLocaleDateString("en-GB", {
                         weekday: "short",
                         day: "numeric",
@@ -583,33 +580,32 @@ export default function LineupEditor({
             </div>
 
             <div className="flex flex-col md:flex-row gap-6">
-                {/* Left: pitch + subs */}
                 <div className="flex-1">
                     {isAdmin && (
                         <div className="mb-3">
                             {isLocked && (
-                                <p className="text-xs text-red-500 mb-1">Lineup is locked — event has started</p>
+                                <p className="text-xs text-red-500 mb-1">{t("lineup.locked")}</p>
                             )}
-                            <label className="text-sm font-medium text-gray-700 mr-2">Formation:</label>
+                            <label className="text-sm font-medium text-gray-700 mr-2">{t("lineup.formation")}</label>
                             <select
                                 value={formation}
                                 onChange={(e) => applyFormation(e.target.value)}
                                 disabled={isLocked}
                                 className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black disabled:opacity-50"
                             >
-                                <option value="">Select formation</option>
+                                <option value="">{t("lineup.selectFormation")}</option>
                                 {Object.entries(FORMATIONS).map(([key, f]) => (
-                                    <option key={key} value={key}>{f.label}</option>
+                                    <option key={key} value={key}>{t(f.labelKey)}</option>
                                 ))}
                             </select>
-                            <label className="text-sm font-medium text-gray-700 mr-2 ml-4">Captain:</label>
+                            <label className="text-sm font-medium text-gray-700 mr-2 ml-4">{t("lineup.captainLabel")}</label>
                             <select
                                 value={captainId}
                                 onChange={(e) => setCaptainId(e.target.value)}
                                 disabled={isLocked}
                                 className="rounded-md border border-gray-300 px-2 py-1 text-sm text-black disabled:opacity-50"
                             >
-                                <option value="">None</option>
+                                <option value="">{t("common.none")}</option>
                                 {members.map((m) => (
                                     <option key={m.id} value={m.id}>
                                         {m.name}{m.shirt_number ? ` #${m.shirt_number}` : ""}
@@ -619,25 +615,22 @@ export default function LineupEditor({
                         </div>
                     )}
                     {isAdmin && captainId && !isLocked && (
-                        <p className="text-xs text-gray-400 mb-1">Captain will be shown with a &quot;C&quot; badge on the pitch</p>
+                        <p className="text-xs text-gray-400 mb-1">{t("lineup.captainBadge")}</p>
                     )}
                     {!isAdmin && captainId && (
-                        <p className="text-xs text-gray-400 mb-1">Captain: <span className="font-medium text-black">{members.find(m => m.id === captainId)?.name ?? "Unknown"}</span></p>
+                        <p className="text-xs text-gray-400 mb-1">{t("lineup.captainDisplay", { name: members.find(m => m.id === captainId)?.name ?? "Unknown" })}</p>
                     )}
 
-                    {/* Pitch */}
                     <div
                         ref={pitchRef}
                         className={`relative w-full rounded-lg overflow-hidden border select-none ${dragTarget === "pitch" ? "border-blue-500 border-2" : "border-green-700"}`}
                         style={{ paddingBottom: "130%", backgroundColor: "#15803d" }}
                     >
-                        {/* Field markings */}
                         <div className="absolute top-1/2 left-0 right-0 h-px bg-white/30" />
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-white/30" />
                         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-[15%] border-t border-l border-r border-white/30" />
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-[15%] border-b border-l border-r border-white/30" />
 
-                        {/* Players on pitch */}
                         {Object.entries(assignments).map(([slot, a]) => {
                             if (!a.playerId) {
                                 return (
@@ -674,7 +667,7 @@ export default function LineupEditor({
                                             onClick={() => handleRemove(slot)}
                                             className="text-[10px] text-white/60 hover:text-white"
                                         >
-                                            remove
+                                            {t("lineup.remove")}
                                         </button>
                                     )}
                                 </div>
@@ -683,14 +676,13 @@ export default function LineupEditor({
                     </div>
                 </div>
 
-                {/* Player pool + subs */}
                 <div className="w-full md:w-64">
                     <h2 className="font-bold text-black mb-3">
-                        Players ({pool.length} unassigned)
+                        {t("lineup.players", { count: pool.length })}
                     </h2>
                     <div className="space-y-2">
                         {pool.length === 0 ? (
-                            <p className="text-sm text-gray-400">All players assigned</p>
+                            <p className="text-sm text-gray-400">{t("lineup.allAssigned")}</p>
                         ) : (
                             pool.map((player) => (
                                 <div
@@ -706,7 +698,7 @@ export default function LineupEditor({
                                 >
                                     <span className="text-black font-medium">{player.name}</span>
                                     <div className="flex items-center gap-2 text-xs text-gray-400">
-                                        {player.position && <span>{player.position} - {positionLabels[player.position] ?? player.position}</span>}
+                                        {player.position && <span>{player.position} - {t(`positions.${player.position}`)}</span>}
                                         {player.shirt_number && <span>#{player.shirt_number}</span>}
                                     </div>
                                 </div>
@@ -721,10 +713,10 @@ export default function LineupEditor({
                                 className={`mt-4 rounded-lg border-2 border-dashed p-4 ${dragTarget === "subs" ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-gray-50"}`}
                             >
                                 <h3 className="text-sm font-bold text-black mb-2">
-                                    Substitutes ({subs.length})
+                                    {t("lineup.substitutes", { count: subs.length })}
                                 </h3>
                                 {subs.length === 0 ? (
-                                    <p className="text-xs text-gray-400">Drag players here</p>
+                                    <p className="text-xs text-gray-400">{t("lineup.dragHere")}</p>
                                 ) : (
                                     <div className="space-y-2">
                                         {subs.map((sub) => (
@@ -756,17 +748,17 @@ export default function LineupEditor({
                             </div>
 
                             <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-                                <h3 className="text-sm font-bold text-black mb-3">Set Pieces</h3>
+                                <h3 className="text-sm font-bold text-black mb-3">{t("lineup.setPieces")}</h3>
                                 <div className="space-y-3">
                                     <div>
-                                        <label className="text-xs font-medium text-gray-500 mb-1 block">Fouls (Free Kicks)</label>
+                                        <label className="text-xs font-medium text-gray-500 mb-1 block">{t("lineup.fouls")}</label>
                                         <select
                                             value={setPieceFoul}
                                             onChange={(e) => setSetPieceFoul(e.target.value)}
                                             disabled={isLocked}
                                             className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-black disabled:opacity-50"
                                         >
-                                            <option value="">None</option>
+                                            <option value="">{t("common.none")}</option>
                                             {members.map((m) => (
                                                 <option key={m.id} value={m.id}>
                                                     {m.name}{m.shirt_number ? ` #${m.shirt_number}` : ""}
@@ -775,14 +767,14 @@ export default function LineupEditor({
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-medium text-gray-500 mb-1 block">Corners</label>
+                                        <label className="text-xs font-medium text-gray-500 mb-1 block">{t("lineup.corners")}</label>
                                         <select
                                             value={setPieceCorner}
                                             onChange={(e) => setSetPieceCorner(e.target.value)}
                                             disabled={isLocked}
                                             className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-black disabled:opacity-50"
                                         >
-                                            <option value="">None</option>
+                                            <option value="">{t("common.none")}</option>
                                             {members.map((m) => (
                                                 <option key={m.id} value={m.id}>
                                                     {m.name}{m.shirt_number ? ` #${m.shirt_number}` : ""}
@@ -791,14 +783,14 @@ export default function LineupEditor({
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-medium text-gray-500 mb-1 block">Penalties</label>
+                                        <label className="text-xs font-medium text-gray-500 mb-1 block">{t("lineup.penalties")}</label>
                                         <select
                                             value={setPiecePenalty}
                                             onChange={(e) => setSetPiecePenalty(e.target.value)}
                                             disabled={isLocked}
                                             className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-black disabled:opacity-50"
                                         >
-                                            <option value="">None</option>
+                                            <option value="">{t("common.none")}</option>
                                             {members.map((m) => (
                                                 <option key={m.id} value={m.id}>
                                                     {m.name}{m.shirt_number ? ` #${m.shirt_number}` : ""}
@@ -815,17 +807,17 @@ export default function LineupEditor({
                                 className="mt-4 w-full rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
                                 style={{ backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                             >
-                                {saving ? "Saving..." : "Save Lineup"}
+                                {saving ? t("common.saving") : t("lineup.saveLineup")}
                             </button>
                         </>
                     )}
                     {!isAdmin && (setPieceFoul || setPieceCorner || setPiecePenalty) && (
                         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-                            <h3 className="text-sm font-bold text-black mb-2">Set Pieces</h3>
+                            <h3 className="text-sm font-bold text-black mb-2">{t("lineup.setPieces")}</h3>
                             <div className="space-y-1 text-sm text-gray-600">
-                                {setPieceFoul && <p>Fouls: <span className="font-medium text-black">{members.find(m => m.id === setPieceFoul)?.name ?? "Unknown"}</span></p>}
-                                {setPieceCorner && <p>Corners: <span className="font-medium text-black">{members.find(m => m.id === setPieceCorner)?.name ?? "Unknown"}</span></p>}
-                                {setPiecePenalty && <p>Penalties: <span className="font-medium text-black">{members.find(m => m.id === setPiecePenalty)?.name ?? "Unknown"}</span></p>}
+                                {setPieceFoul && <p>{t("lineup.fouls")}: <span className="font-medium text-black">{members.find(m => m.id === setPieceFoul)?.name ?? "Unknown"}</span></p>}
+                                {setPieceCorner && <p>{t("lineup.corners")}: <span className="font-medium text-black">{members.find(m => m.id === setPieceCorner)?.name ?? "Unknown"}</span></p>}
+                                {setPiecePenalty && <p>{t("lineup.penalties")}: <span className="font-medium text-black">{members.find(m => m.id === setPiecePenalty)?.name ?? "Unknown"}</span></p>}
                             </div>
                         </div>
                     )}

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 const supabase = createClient();
 
@@ -15,6 +16,7 @@ export default function ResetPasswordPage() {
     const [ready, setReady] = useState(false);
     const [invalid, setInvalid] = useState(false);
     const router = useRouter();
+    const { t } = useLocaleContext();
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -47,11 +49,11 @@ export default function ResetPasswordPage() {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (password.length < 6) {
-            setError("Password must be at least 6 characters.");
+            setError(t("account.passwordMinLength"));
             return;
         }
         if (password !== confirmPassword) {
-            setError("Passwords do not match.");
+            setError(t("account.passwordsNoMatch"));
             return;
         }
         setLoading(true);
@@ -72,27 +74,27 @@ export default function ResetPasswordPage() {
     if (invalid) {
         return (
             <div className="rounded-lg bg-white p-8 shadow-md text-center">
-                <h1 className="mb-4 text-2xl font-bold text-black">Invalid Link</h1>
+                <h1 className="mb-4 text-2xl font-bold text-black">{t("auth.invalidLink")}</h1>
                 <p className="mb-4 text-sm text-gray-600">
-                    This password reset link is invalid or has expired.
+                    {t("auth.invalidLinkDesc")}
                 </p>
                 <Link
                     href="/forgot-password"
                     className="text-green-600 hover:underline text-sm font-medium"
                 >
-                    Request a new reset link
+                    {t("auth.requestNewLink")}
                 </Link>
             </div>
         );
     }
 
     if (!ready) {
-        return <p className="text-gray-500">Loading...</p>;
+        return <p className="text-gray-500">{t("common.loading")}</p>;
     }
 
     return (
         <div className="rounded-lg bg-white p-8 shadow-md">
-            <h1 className="mb-6 text-2xl font-bold text-center text-black">Set New Password</h1>
+            <h1 className="mb-6 text-2xl font-bold text-center text-black">{t("auth.setNewPassword")}</h1>
 
             {error && (
                 <div className="mb-4 rounded bg-red-50 p-3 text-sm text-red-600">
@@ -106,7 +108,7 @@ export default function ResetPasswordPage() {
                         htmlFor="new-password"
                         className="block text-sm font-medium text-gray-700"
                     >
-                        New Password
+                        {t("auth.newPassword")}
                     </label>
                     <input
                         id="new-password"
@@ -124,7 +126,7 @@ export default function ResetPasswordPage() {
                         htmlFor="confirm-password"
                         className="block text-sm font-medium text-gray-700"
                     >
-                        Confirm Password
+                        {t("auth.confirmPassword")}
                     </label>
                     <input
                         id="confirm-password"
@@ -142,7 +144,7 @@ export default function ResetPasswordPage() {
                     disabled={loading}
                     className="w-full rounded-md bg-green-600 px-4 py-2 text-white font-medium hover:bg-green-700 disabled:opacity-50"
                 >
-                    {loading ? "Saving..." : "Update Password"}
+                    {loading ? t("common.saving") : t("auth.updatePassword")}
                 </button>
             </form>
         </div>

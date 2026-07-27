@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function ConfirmModal({
     open,
     title,
     message,
-    confirmLabel = "Confirm",
+    confirmLabel,
     danger = false,
     onConfirm,
     onCancel,
@@ -21,6 +22,7 @@ export default function ConfirmModal({
 }) {
     const cancelRef = useRef<HTMLButtonElement>(null);
     const dialogRef = useRef<HTMLDivElement>(null);
+    const { t } = useLocaleContext();
 
     useEffect(() => {
         if (open) cancelRef.current?.focus();
@@ -75,7 +77,7 @@ export default function ConfirmModal({
                         onClick={onCancel}
                         className="flex-1 rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700"
                     >
-                        Cancel
+                        {t("common.cancel")}
                     </button>
                     <button
                         onClick={onConfirm}
@@ -84,7 +86,7 @@ export default function ConfirmModal({
                         }`}
                         style={danger ? {} : { backgroundColor: "var(--primary)", color: "var(--primary-text)" }}
                     >
-                        {confirmLabel}
+                        {confirmLabel ?? t("common.confirm")}
                     </button>
                 </div>
             </div>

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useLocaleContext();
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -35,7 +37,7 @@ export default function LoginPage() {
 
   return (
     <div className="rounded-lg bg-white p-8 shadow-md">
-      <h1 className="mb-6 text-2xl font-bold text-center text-black">Login</h1>
+      <h1 className="mb-6 text-2xl font-bold text-center text-black">{t("auth.login")}</h1>
 
       {error && (
         <div className="mb-4 rounded bg-red-50 p-3 text-sm text-red-600">
@@ -49,7 +51,7 @@ export default function LoginPage() {
             htmlFor="email"
             className="block text-sm font-medium text-gray-700"
           >
-            Email
+            {t("auth.email")}
           </label>
           <input
             id="email"
@@ -66,7 +68,7 @@ export default function LoginPage() {
             htmlFor="password"
             className="block text-sm font-medium text-gray-700"
           >
-            Password
+            {t("auth.password")}
           </label>
           <input
             id="password"
@@ -83,20 +85,20 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full rounded-md bg-green-600 px-4 py-2 text-white font-medium hover:bg-green-700 disabled:opacity-50"
         >
-          {loading ? "Signing in..." : "Sign In"}
+          {loading ? t("auth.signingIn") : t("auth.signIn")}
         </button>
       </form>
 
       <p className="mt-4 text-center text-sm text-gray-600">
         <Link href="/forgot-password" className="text-green-600 hover:underline">
-          Forgot Password?
+          {t("auth.forgotPassword")}
         </Link>
       </p>
 
       <p className="mt-2 text-center text-sm text-gray-600">
-        Don&apos;t have an account?{" "}
+        {t("auth.noAccount")}{" "}
         <Link href="/register" className="text-green-600 hover:underline">
-          Register
+          {t("auth.register")}
         </Link>
       </p>
     </div>
