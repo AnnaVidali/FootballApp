@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Squad HQ
+
+A full-stack web application for managing amateur and semi-professional football (soccer) teams. Built with Next.js, Supabase, and Tailwind CSS.
+
+## Features
+
+- **Team Management** — Create and manage teams with invite codes, customizable colors, and logos
+- **Roster Management** — Add/remove players, assign positions and shirt numbers, designate admins and coaches
+- **Events** — Schedule matches and trainings with date, time, and location
+- **Availability Tracking** — Players can RSVP Yes/Maybe/No with automated deadlines
+- **Lineup Builder** — Drag-and-drop visual lineup editor on a pitch with multiple formations (5 variants of 7v7)
+- **Set Pieces** — Assign players to free kicks, corners, and penalties
+- **Captain Assignment** — Designate a match captain displayed on the pitch
+- **Calendar Export** — Google Calendar links and .ics downloads for events
+- **Internationalization** — English and Spanish language support
+- **Authentication** — Email/password auth with password reset and account management
+
+## Tech Stack
+
+| Category | Technology |
+|---|---|
+| **Framework** | [Next.js](https://nextjs.org/) 16 (App Router) |
+| **UI Library** | React 19 |
+| **Language** | TypeScript |
+| **Styling** | [Tailwind CSS](https://tailwindcss.com/) v4 |
+| **Database** | [Supabase](https://supabase.com/) (PostgreSQL with Row Level Security) |
+| **Auth** | Supabase Auth (email/password) |
+| **Fonts** | Geist Sans + Geist Mono |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 20+
+- A Supabase project with the migrations applied
+
+### Environment Variables
+
+Create a `.env.local` file:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-## Learn More
+### Database Setup
 
-To learn more about Next.js, take a look at the following resources:
+Apply the Supabase migrations in order from `supabase/migrations/001_initial.sql` through `016_transfer_ownership.sql`. Ensure the `team-logos` storage bucket exists for team logo uploads.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Command | Description |
+|---|---|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm start` | Start production server |
+| `npm run lint` | Run ESLint |
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+app/            # Next.js App Router (routes, layouts, API routes)
+components/     # React components
+lib/            # Utilities, i18n, Supabase clients
+messages/       # i18n translations (en, es)
+supabase/       # Database migrations
+types/          # TypeScript interfaces
+public/         # Static assets
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+MIT
