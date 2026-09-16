@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import DashboardShell from "@/components/DashboardShell";
+import pkg from "../../package.json";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -49,6 +50,7 @@ export default async function DashboardLayout({
         isAdmin={profile?.is_admin ?? false}
         role={profile?.role ?? "player"}
         isOwner={team?.owner_id === user.id}
+        appVersion={pkg.version}
     >
       {children}
     </DashboardShell>

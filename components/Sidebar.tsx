@@ -12,6 +12,7 @@ export default function Sidebar({
     isAdmin,
     role,
     isOwner,
+    appVersion,
     onCloseAction,
 }: {
     teamLogo: string | null;
@@ -20,6 +21,7 @@ export default function Sidebar({
     isAdmin: boolean;
     role: string;
     isOwner: boolean;
+    appVersion: string;
     onCloseAction: () => void;
 }) {
     const pathname = usePathname();
@@ -28,7 +30,8 @@ export default function Sidebar({
     const navLinks = [
         { href: "/dashboard", label: t("nav.dashboard"), icon: "\ud83c\udfe0" },
         { href: "/dashboard/roster", label: t("nav.roster"), icon: "\ud83d\udc65" },
-        { href: "/dashboard/events", label: t("nav.events"), icon: "\ud83d\udcc5" },
+        { href: "/dashboard/events", label: t("nav.events"), icon: "\ud83d\udccb" },
+        { href: "/dashboard/calendar", label: t("nav.calendar"), icon: "\ud83d\udcc5" },
         { href: "/dashboard/lineup", label: t("nav.lineup"), icon: "\u26bd" },
         { href: "/dashboard/settings", label: t("nav.settings"), icon: "\u2699\ufe0f" },
         { href: "/dashboard/account", label: t("nav.account"), icon: "\ud83d\udc64" },
@@ -101,7 +104,8 @@ export default function Sidebar({
             </nav>
 
             <div className="border-t border-gray-200 p-4">
-                <p className="mb-2 text-sm text-gray-500 truncate">{userName}</p>
+                <p className="mb-1 text-sm text-gray-500 truncate">{userName}</p>
+                <p className="text-xs text-gray-400">Squad HQ v{appVersion}</p>
             </div>
         </aside>
     );

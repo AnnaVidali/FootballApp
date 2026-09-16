@@ -15,6 +15,7 @@ export default function DashboardShell({
     isAdmin,
     role,
     isOwner,
+    appVersion,
 }: {
     children: React.ReactNode;
     teamLogo: string | null;
@@ -25,6 +26,7 @@ export default function DashboardShell({
     isAdmin: boolean;
     role: string;
     isOwner: boolean;
+    appVersion: string;
 }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const { t } = useLocaleContext();
@@ -104,6 +106,7 @@ export default function DashboardShell({
                     isAdmin={isAdmin}
                     role={role}
                     isOwner={isOwner}
+                    appVersion={appVersion}
                     onCloseAction={() => setIsOpen(false)}
                 />
                 <div className="border-t border-gray-200 p-4">

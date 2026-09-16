@@ -20,6 +20,7 @@
     "dashboard": "Dashboard",
     "roster": "Roster",
     "events": "Events",
+    "calendar": "Team Calendar",
     "lineup": "Lineup",
     "settings": "Settings",
     "account": "Account"
@@ -246,8 +247,16 @@
     "failedDelete": "Failed to delete account: "
   },
   "calendar": {
+    "title": "Team Calendar",
     "addToCalendar": "Add to calendar",
-    "googleCalendar": "Google Calendar"
+    "googleCalendar": "Google Calendar",
+    "today": "Today",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "hideDeclined": "Hide events I'm not attending after the deadline",
+    "legend": "Legend",
+    "yourRsvp": "Your RSVP",
+    "pending": "No response yet"
   },
   "availability": {
     "closed": "Availability closed",

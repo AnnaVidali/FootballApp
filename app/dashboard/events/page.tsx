@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import AvailabilityButton from "@/components/AvailabilityButton";
@@ -28,6 +29,19 @@ type AvailabilityRow = {
 };
 
 export default function EventsPage() {
+    return (
+        <Suspense fallback={<EventsFallback />}>
+            <EventsContent />
+        </Suspense>
+    );
+}
+
+function EventsFallback() {
+    const { t } = useLocaleContext();
+    return <p className="text-gray-500" aria-live="polite">{t("common.loading")}</p>;
+}
+
+function EventsContent() {
     const [events, setEvents] = useState<Event[]>([]);
     const [isAdmin, setIsAdmin] = useState(false);
     const [isCoach, setIsCoach] = useState(false);
@@ -48,6 +62,10 @@ export default function EventsPage() {
     const [confirmMsg, setConfirmMsg] = useState("");
     const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null);
     const { t } = useLocaleContext();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const targetEventId = searchParams.get("eventId");
+    const autoTarget = !loading && targetEventId ? targetEventId : null;
 
     useEffect(() => {
         async function load() {
@@ -113,6 +131,17 @@ export default function EventsPage() {
         }
         load();
     }, []);
+
+    useEffect(() => {
+        if (!targetEventId || loading) return;
+        const el = document.getElementById(`event-card-${targetEventId}`);
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        const timer = setTimeout(() => {
+            router.replace("/dashboard/events");
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [targetEventId, loading, router]);
 
     function getCounts(eventId: string) {
         const rows = availability.filter((a) => a.event_id === eventId);
@@ -242,11 +271,13 @@ export default function EventsPage() {
                             <div className="space-y-3">
                                 {upcoming.map((event) => {
                                     const counts = getCounts(event.id);
+                                    const openFor = expandedEvent ?? autoTarget;
                                     const isEditing = editingEvent === event.id;
                                     return (
                                         <div
                                             key={event.id}
-                                            className="rounded-lg bg-white p-4 shadow-sm"
+                                            id={`event-card-${event.id}`}
+                                            className={`rounded-lg bg-white p-4 shadow-sm ${autoTarget === event.id ? "ring-2 ring-[var(--primary)]" : ""}`}
                                         >
                                             {isEditing ? (
                                                 <div className="space-y-2">
@@ -349,14 +380,14 @@ export default function EventsPage() {
                                                         {counts.unavailable > 0 && <span className="text-red-500">{t("events.noCount", { count: counts.unavailable })}</span>}
                                                         {counts.total > 0 && (
                                                             <button
-                                                                onClick={() => setExpandedEvent(expandedEvent === event.id ? null : event.id)}
+                                                                onClick={() => { router.replace("/dashboard/events"); setExpandedEvent(expandedEvent === event.id ? null : event.id); }}
                                                                 className="underline hover:text-gray-600"
                                                             >
-                                                                {expandedEvent === event.id ? t("events.hide") : t("events.who")}
+                                                                {openFor === event.id ? t("events.hide") : t("events.who")}
                                                             </button>
                                                         )}
                                                     </div>
-                                                    {expandedEvent === event.id && (
+                                                    {openFor === event.id && (
                                                         <div className="mt-2 text-xs space-y-1">
                                                             {availability
                                                                 .filter((a) => a.event_id === event.id)
@@ -400,8 +431,9 @@ export default function EventsPage() {
                                     const isEditing = editingEvent === event.id;
                                     return (
                                         <div
-                                            key={event.id}
-                                            className="rounded-lg bg-white p-4 shadow-sm opacity-60"
+key={event.id}
+                                        id={`event-card-${event.id}`}
+                                        className={`rounded-lg bg-white p-4 shadow-sm opacity-60 ${autoTarget === event.id ? "ring-2 ring-[var(--primary)]" : ""}`}
                                         >
                                             {isEditing ? (
                                                 <div className="space-y-2">

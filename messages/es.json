@@ -20,6 +20,7 @@
     "dashboard": "Inicio",
     "roster": "Plantilla",
     "events": "Eventos",
+    "calendar": "Calendario del Equipo",
     "lineup": "Alineaci\u00f3n",
     "settings": "Configuraci\u00f3n",
     "account": "Cuenta"
@@ -246,8 +247,16 @@
     "failedDelete": "Error al eliminar la cuenta: "
   },
   "calendar": {
+    "title": "Calendario del Equipo",
     "addToCalendar": "Agregar al calendario",
-    "googleCalendar": "Google Calendar"
+    "googleCalendar": "Google Calendar",
+    "today": "Hoy",
+    "prevMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "hideDeclined": "Ocultar eventos a los que no asistir\u00e9 despu\u00e9s de la fecha l\u00edmite",
+    "legend": "Leyenda",
+    "yourRsvp": "Tu disponibilidad",
+    "pending": "Sin responder"
   },
   "availability": {
     "closed": "Disponibilidad cerrada",
