@@ -201,7 +201,7 @@ export default function CalendarPage() {
       </div>
 
       <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
-        <div className="grid grid-cols-7">
+        <div className="grid min-w-[56rem] grid-cols-7">
           <div className="contents">
             {weekdayLabels.map((label, i) => (
               <div
@@ -242,7 +242,7 @@ export default function CalendarPage() {
                     <Link
                       key={event.id}
                       href={`/dashboard/events?eventId=${event.id}`}
-                      className={`flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] leading-tight text-gray-700 hover:border-gray-400 hover:shadow-sm ${
+                      className={`flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs leading-tight text-gray-700 hover:border-gray-400 hover:shadow-sm ${
                         dimmed ? "opacity-40" : ""
                       }`}
                       style={{ borderLeft: `3px solid ${TYPE_COLORS[event.type]}` }}
@@ -262,7 +262,7 @@ export default function CalendarPage() {
                           minute: "2-digit",
                         })}
                       </span>
-                      <span className="hidden min-w-0 truncate sm:inline">
+                      <span className="min-w-0 truncate">
                         {event.title}
                       </span>
                     </Link>
