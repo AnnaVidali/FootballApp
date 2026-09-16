@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import AvailabilityStatus from "@/components/AvailabilityStatus";
-import { getServerT, getServerLocale } from "@/lib/server-i18n";
+import EventDate from "@/components/EventDate";
+import { getServerT } from "@/lib/server-i18n";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -11,8 +12,6 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
 
   const t = await getServerT();
-  const locale = await getServerLocale();
-  const dateFmt = locale === "es" ? "es-ES" : "en-GB";
 
   if (!user) {
     return (
@@ -184,13 +183,7 @@ export default async function DashboardPage() {
                   <p className="font-medium text-black">{event.title}</p>
                   <p className="text-sm text-gray-500">
                     {event.type === "match" ? t("dashboard.match") : t("dashboard.training")} · 
-                    {new Date(event.date).toLocaleDateString(dateFmt, {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    <EventDate date={event.date} />
                     {event.location && ` · ${event.location}`}
                   </p>
                    {!isCoach && (() => {

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import LineupEditor from "@/components/LineupEditor";
+import EventDate from "@/components/EventDate";
 
 const supabase = createClient();
 
@@ -48,8 +49,7 @@ export default function LineupPage() {
     const [setPieces, setSetPieces] = useState<SetPiece[]>([]);
     const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
-    const { t, locale } = useLocaleContext();
-    const dateFmt = locale === "es" ? "es-ES" : "en-GB";
+    const { t } = useLocaleContext();
 
     useEffect(() => {
         async function load() {
@@ -167,13 +167,7 @@ export default function LineupPage() {
                         >
                             <p className="font-medium truncate">{event.title}</p>
                             <p className="text-xs text-gray-400">
-                                {new Date(event.date).toLocaleDateString(dateFmt, {
-                                    weekday: "short",
-                                    day: "numeric",
-                                    month: "short",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                })}
+                                <EventDate date={event.date} />
                             </p>
                         </button>
                     ))}

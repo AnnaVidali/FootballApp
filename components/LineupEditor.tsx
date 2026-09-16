@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import AlertModal from "@/components/AlertModal";
+import EventDate from "@/components/EventDate";
 
 type Member = {
     id: string;
@@ -569,13 +570,7 @@ export default function LineupEditor({
                 <h1 className="text-2xl font-bold text-black">{t("lineup.lineupTitle", { title: event.title })}</h1>
                 <p className="text-sm text-gray-500">
                     {event.type === "match" ? t("events.match") : t("events.training")} · 
-                    {new Date(event.date).toLocaleDateString("en-GB", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    })}
+                    <EventDate date={event.date} />
                 </p>
             </div>
 

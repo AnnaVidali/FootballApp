@@ -7,6 +7,7 @@ import { useLocaleContext } from "@/lib/i18n-context";
 import AvailabilityButton from "@/components/AvailabilityButton";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
+import EventDate from "@/components/EventDate";
 
 const supabase = createClient();
 
@@ -47,8 +48,6 @@ export default function EventsPage() {
     const [confirmMsg, setConfirmMsg] = useState("");
     const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null);
     const { t } = useLocaleContext();
-    const locale = useLocaleContext().locale;
-    const dateFmt = locale === "es" ? "es-ES" : "en-GB";
 
     useEffect(() => {
         async function load() {
@@ -305,13 +304,7 @@ export default function EventsPage() {
                                                             <p className="font-medium text-black">{event.title}</p>
                                                             <p className="text-sm text-gray-500">
                                                                 {event.type === "match" ? t("events.match") : t("events.training")} · 
-                                                                {new Date(event.date).toLocaleDateString(dateFmt, {
-                                                                    weekday: "short",
-                                                                    day: "numeric",
-                                                                    month: "short",
-                                                                    hour: "2-digit",
-                                                                    minute: "2-digit",
-                                                                })}
+                                                                <EventDate date={event.date} />
                                                                 {event.location && ` · ${event.location}`}
                                                             </p>
                                                             {event.captain_id && captainNames[event.captain_id] && (
@@ -466,13 +459,7 @@ export default function EventsPage() {
                                                             <p className="font-medium text-black">{event.title}</p>
                                                             <p className="text-sm text-gray-500">
                                                                 {event.type === "match" ? t("events.match") : t("events.training")} · 
-                                                                {new Date(event.date).toLocaleDateString(dateFmt, {
-                                                                    weekday: "short",
-                                                                    day: "numeric",
-                                                                    month: "short",
-                                                                    hour: "2-digit",
-                                                                    minute: "2-digit",
-                                                                })}
+                                                                <EventDate date={event.date} />
                                                                 {event.location && ` · ${event.location}`}
                                                             </p>
                                                             {event.captain_id && captainNames[event.captain_id] && (
