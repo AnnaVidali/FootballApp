@@ -33,6 +33,7 @@ export default function Sidebar({
         { href: "/dashboard/events", label: t("nav.events"), icon: "\ud83d\udccb" },
         { href: "/dashboard/calendar", label: t("nav.calendar"), icon: "\ud83d\udcc5" },
         { href: "/dashboard/lineup", label: t("nav.lineup"), icon: "\u26bd" },
+        { href: "/dashboard/gallery", label: t("nav.gallery"), icon: "\ud83d\udcf7" },
         { href: "/dashboard/settings", label: t("nav.settings"), icon: "\u2699\ufe0f" },
         { href: "/dashboard/account", label: t("nav.account"), icon: "\ud83d\udc64" },
     ];
