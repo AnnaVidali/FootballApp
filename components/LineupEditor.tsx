@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import AlertModal from "@/components/AlertModal";
+import ConfirmModal from "@/components/ConfirmModal";
 import EventDate from "@/components/EventDate";
 
 type Member = {
@@ -29,6 +30,16 @@ type Assignment = {
     shirtNumber: number | null;
     x: number;
     y: number;
+};
+
+type DrawingStroke = {
+    color: string;
+    // Stroke width as a fraction of the pitch width, so it scales with the pitch size.
+    width: number;
+    // When true the stroke erases previously drawn strokes instead of painting.
+    erase?: boolean;
+    // Normalised points (0..1) relative to the pitch: [[x, y], ...].
+    points: number[][];
 };
 
 const FORMATIONS: Record<string, { labelKey: string; positions: { name: string; x: number; y: number }[] }> = {
@@ -93,6 +104,16 @@ const FORMATIONS: Record<string, { labelKey: string; positions: { name: string; 
         ],
     },
 };
+
+// Basic pen palette. Yellow/white/black all read well on the green pitch.
+const PEN_COLORS = ["#ffffff", "#facc15", "#ef4444", "#3b82f6", "#000000"];
+// Stroke width as a fraction of the pitch width, so drawings scale on every screen.
+const PEN_WIDTH = 0.008;
+const ERASER_WIDTH = 0.035;
+
+function clamp01(n: number) {
+    return Math.max(0, Math.min(1, n));
+}
 
 export default function LineupEditor({
     event,
@@ -546,6 +567,159 @@ export default function LineupEditor({
             ? assignments[draggingSlot]?.name ?? ""
             : "";
 
+    // ----- Freehand drawing (coach tactics) -----
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const strokesRef = useRef<DrawingStroke[]>([]);
+    const currentStrokeRef = useRef<DrawingStroke | null>(null);
+    const [drawMode, setDrawMode] = useState(false);
+    const [penColor, setPenColor] = useState(PEN_COLORS[0]);
+    const [erasing, setErasing] = useState(false);
+    const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+
+    const drawStroke = useCallback((ctx: CanvasRenderingContext2D, stroke: DrawingStroke, w: number, h: number) => {
+        if (stroke.points.length === 0) return;
+        const lineWidth = Math.max(1, stroke.width * w);
+        ctx.save();
+        ctx.globalCompositeOperation = stroke.erase ? "destination-out" : "source-over";
+        ctx.strokeStyle = stroke.color;
+        ctx.fillStyle = stroke.color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        if (stroke.points.length === 1) {
+            const [x, y] = stroke.points[0];
+            ctx.beginPath();
+            ctx.arc(x * w, y * h, lineWidth / 2, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.beginPath();
+            ctx.moveTo(stroke.points[0][0] * w, stroke.points[0][1] * h);
+            for (let i = 1; i < stroke.points.length; i++) {
+                ctx.lineTo(stroke.points[i][0] * w, stroke.points[i][1] * h);
+            }
+            ctx.stroke();
+        }
+        ctx.restore();
+    }, []);
+
+    const redraw = useCallback(() => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext("2d");
+        if (!canvas || !ctx) return;
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+        for (const stroke of strokesRef.current) drawStroke(ctx, stroke, w, h);
+    }, [drawStroke]);
+
+    const resizeCanvas = useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (w === 0 || h === 0) return;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        redraw();
+    }, [redraw]);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        resizeCanvas();
+        const observer = new ResizeObserver(() => resizeCanvas());
+        observer.observe(canvas);
+        return () => observer.disconnect();
+    }, [resizeCanvas]);
+
+    useEffect(() => {
+        // The drawing is session-only, so clear it when switching to a different event.
+        strokesRef.current.splice(0, strokesRef.current.length);
+        const frame = requestAnimationFrame(() => redraw());
+        return () => cancelAnimationFrame(frame);
+    }, [event.id, redraw]);
+
+    function getCanvasPoint(clientX: number, clientY: number) {
+        const canvas = canvasRef.current;
+        if (!canvas) return { x: 0, y: 0 };
+        const rect = canvas.getBoundingClientRect();
+        // Round to 0.1% of the pitch (well below a pixel) so the saved JSON stays compact.
+        const round = (n: number) => Math.round(clamp01(n) * 1000) / 1000;
+        return {
+            x: round((clientX - rect.left) / rect.width),
+            y: round((clientY - rect.top) / rect.height),
+        };
+    }
+
+    function handlePenDown(e: React.PointerEvent<HTMLCanvasElement>) {
+        if (!drawMode || !canEdit) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        e.preventDefault();
+        try {
+            canvas.setPointerCapture(e.pointerId);
+        } catch {
+            // Not all environments support pointer capture; drawing still works.
+        }
+        const { x, y } = getCanvasPoint(e.clientX, e.clientY);
+        const stroke: DrawingStroke = {
+            color: penColor,
+            width: erasing ? ERASER_WIDTH : PEN_WIDTH,
+            erase: erasing,
+            points: [[x, y]],
+        };
+        currentStrokeRef.current = stroke;
+        strokesRef.current.push(stroke);
+        const ctx = canvas.getContext("2d");
+        if (ctx) drawStroke(ctx, stroke, canvas.clientWidth, canvas.clientHeight);
+    }
+
+    function handlePenMove(e: React.PointerEvent<HTMLCanvasElement>) {
+        if (!drawMode || !currentStrokeRef.current) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        e.preventDefault();
+        const stroke = currentStrokeRef.current;
+        const { x, y } = getCanvasPoint(e.clientX, e.clientY);
+        const last = stroke.points[stroke.points.length - 1];
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        // Skip near-duplicate points to keep the saved stroke small.
+        if (Math.hypot((x - last[0]) * w, (y - last[1]) * h) < 1.5) return;
+        stroke.points.push([x, y]);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.save();
+        ctx.globalCompositeOperation = stroke.erase ? "destination-out" : "source-over";
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = Math.max(1, stroke.width * w);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        ctx.moveTo(last[0] * w, last[1] * h);
+        ctx.lineTo(x * w, y * h);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function handlePenUp() {
+        currentStrokeRef.current = null;
+    }
+
+    function undoStroke() {
+        strokesRef.current.pop();
+        redraw();
+    }
+
+    function clearDrawing() {
+        strokesRef.current.splice(0, strokesRef.current.length);
+        redraw();
+    }
+
     return (
         <div
             className="max-w-5xl mx-auto relative"
@@ -557,6 +731,15 @@ export default function LineupEditor({
             onTouchCancel={canEdit ? () => { if (isDragging) { setDraggingPlayer(null); setDraggingSlot(null); setDragTarget(null); setGhostPos(null); } } : undefined}
         >
             <AlertModal open={alertOpen} title={t("common.error")} message={alertMsg} onClose={() => setAlertOpen(false)} />
+            <ConfirmModal
+                open={clearConfirmOpen}
+                title={t("lineup.clearConfirmTitle")}
+                message={t("lineup.clearConfirmMessage")}
+                confirmLabel={t("lineup.clearDrawing")}
+                danger
+                onConfirm={() => { clearDrawing(); setClearConfirmOpen(false); }}
+                onCancel={() => setClearConfirmOpen(false)}
+            />
             {isDragging && ghostPos && (
                 <div
                     className="fixed pointer-events-none z-50 w-12 h-12 rounded-full bg-white text-black border-2 border-blue-500 flex items-center justify-center text-[10px] font-bold shadow-lg -translate-x-1/2 -translate-y-1/2"
@@ -616,6 +799,56 @@ export default function LineupEditor({
                         <p className="text-xs text-gray-400 mb-1">{t("lineup.captainDisplay", { name: members.find(m => m.id === captainId)?.name ?? "Unknown" })}</p>
                     )}
 
+                    {canEdit && (
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => { setDrawMode((v) => !v); setErasing(false); }}
+                                className={`rounded-md border px-3 py-1 text-sm font-medium ${drawMode ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"}`}
+                            >
+                                ✏️ {t("lineup.draw")}
+                            </button>
+                            {drawMode && (
+                                <>
+                                    {PEN_COLORS.map((c) => (
+                                        <button
+                                            key={c}
+                                            type="button"
+                                            onClick={() => { setPenColor(c); setErasing(false); }}
+                                            aria-label={t("lineup.color")}
+                                            className={`h-6 w-6 rounded-full border-2 ${!erasing && penColor === c ? "border-gray-900" : "border-gray-300"}`}
+                                            style={{ backgroundColor: c }}
+                                        />
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => setErasing((v) => !v)}
+                                        className={`rounded-md border px-2 py-1 text-sm ${erasing ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-700"}`}
+                                    >
+                                        {t("lineup.eraser")}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={undoStroke}
+                                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700"
+                                    >
+                                        {t("lineup.undo")}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setClearConfirmOpen(true)}
+                                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700"
+                                    >
+                                        {t("lineup.clearDrawing")}
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
+                    {canEdit && drawMode && (
+                        <p className="mb-1 text-xs text-gray-500">{t("lineup.drawHint")}</p>
+                    )}
+
                     <div
                         ref={pitchRef}
                         className={`relative w-full rounded-lg overflow-hidden border select-none ${dragTarget === "pitch" ? "border-blue-500 border-2" : "border-green-700"}`}
@@ -668,6 +901,20 @@ export default function LineupEditor({
                                 </div>
                             );
                         })}
+
+                        <canvas
+                            ref={canvasRef}
+                            className="absolute inset-0 h-full w-full"
+                            style={{
+                                touchAction: "none",
+                                pointerEvents: canEdit && drawMode ? "auto" : "none",
+                                cursor: drawMode ? "crosshair" : "default",
+                            }}
+                            onPointerDown={canEdit ? handlePenDown : undefined}
+                            onPointerMove={canEdit ? handlePenMove : undefined}
+                            onPointerUp={canEdit ? handlePenUp : undefined}
+                            onPointerCancel={canEdit ? handlePenUp : undefined}
+                        />
                     </div>
                 </div>
 

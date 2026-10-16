@@ -194,7 +194,15 @@
     "corners": "Corners",
     "penalties": "Penalties",
     "saveLineup": "Save Lineup",
-    "remove": "remove"
+    "remove": "remove",
+    "draw": "Draw",
+    "drawHint": "Draw on the pitch with your finger or mouse. Click Draw again to hide the pen.",
+    "color": "Color",
+    "eraser": "Eraser",
+    "undo": "Undo",
+    "clearDrawing": "Clear",
+    "clearConfirmTitle": "Clear drawing?",
+    "clearConfirmMessage": "This will remove everything you have drawn on the pitch. This cannot be undone."
   },
   "formations": {
     "7v7-standard": "7v7 Standard (3-2-1)",

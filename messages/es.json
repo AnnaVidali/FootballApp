@@ -194,7 +194,15 @@
     "corners": "C\u00f3rners",
     "penalties": "Penales",
     "saveLineup": "Guardar Alineaci\u00f3n",
-    "remove": "quitar"
+    "remove": "quitar",
+    "draw": "Dibujar",
+    "drawHint": "Dibuja en el campo con el dedo o el rat\u00f3n. Pulsa Dibujar de nuevo para ocultar el l\u00e1piz.",
+    "color": "Color",
+    "eraser": "Borrador",
+    "undo": "Deshacer",
+    "clearDrawing": "Borrar",
+    "clearConfirmTitle": "\u00bfBorrar el dibujo?",
+    "clearConfirmMessage": "Se eliminar\u00e1 todo lo que has dibujado en el campo. Esta acci\u00f3n no se puede deshacer."
   },
   "formations": {
     "7v7-standard": "7v7 Est\u00e1ndar (3-2-1)",
