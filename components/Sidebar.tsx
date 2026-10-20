@@ -31,6 +31,7 @@ export default function Sidebar({
         { href: "/dashboard", label: t("nav.dashboard"), icon: "\ud83c\udfe0" },
         { href: "/dashboard/roster", label: t("nav.roster"), icon: "\ud83d\udc65" },
         { href: "/dashboard/events", label: t("nav.events"), icon: "\ud83d\udccb" },
+        { href: "/dashboard/reservations", label: t("nav.reservations"), icon: "\ud83d\udcb6" },
         { href: "/dashboard/calendar", label: t("nav.calendar"), icon: "\ud83d\udcc5" },
         { href: "/dashboard/lineup", label: t("nav.lineup"), icon: "\u26bd" },
         { href: "/dashboard/gallery", label: t("nav.gallery"), icon: "\ud83d\udcf7" },

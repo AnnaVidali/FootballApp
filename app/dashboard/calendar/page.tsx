@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { getAvailabilityDeadline } from "@/lib/utils";
 
 const supabase = createClient();
 
@@ -92,19 +93,13 @@ export default function CalendarPage() {
     load();
   }, []);
 
-  function getDeadline(event: { date: string; type: string }) {
-    return event.type === "match"
-      ? new Date(new Date(event.date).setHours(0, 0, 0, 0))
-      : new Date(new Date(event.date).getTime() - 25 * 60 * 60 * 1000);
-  }
-
   const visibleEvents = useMemo(() => {
     const now = new Date();
     const map: Record<string, DayEvent[]> = {};
     events.forEach((e) => {
       const status = myStatus[e.id] ?? null;
       const declinedAfterDeadline =
-        status !== "available" && now > getDeadline(e);
+        status !== "available" && now > getAvailabilityDeadline(e);
       if (hideDeclined && declinedAfterDeadline) return;
       const dimmed =
         declinedAfterDeadline || now.getTime() > new Date(e.date).getTime();

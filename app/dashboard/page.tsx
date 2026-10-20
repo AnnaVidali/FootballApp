@@ -4,6 +4,7 @@ import AddToCalendarButton from "@/components/AddToCalendarButton";
 import AvailabilityStatus from "@/components/AvailabilityStatus";
 import EventDate from "@/components/EventDate";
 import { getServerT } from "@/lib/server-i18n";
+import { formatAmount, getAvailabilityDeadline } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -82,19 +83,38 @@ export default async function DashboardPage() {
     : { data: [] };
   const myStatusMap = new Map((myAvailability ?? []).map((a) => [a.event_id, a.status]));
 
-  const now = new Date();
+  const { data: reservationRows } = eventIds.length > 0
+    ? await supabase
+        .from("reservations")
+        .select("event_id, amount")
+        .in("event_id", eventIds)
+    : { data: [] };
+  const reservationAmounts = new Map(
+    (reservationRows ?? []).map((r) => [r.event_id, Number(r.amount)])
+  );
 
-  function getDeadline(event: { date: string; type: string }) {
-    return event.type === "match"
-      ? new Date(new Date(event.date).setHours(0, 0, 0, 0))
-      : new Date(new Date(event.date).getTime() - 25 * 60 * 60 * 1000);
-  }
+  const reservationBadge = (eventId: string) => {
+    const amount = reservationAmounts.get(eventId);
+    if (amount === undefined) return null;
+    return (
+      <p className="mt-0.5">
+        <Link
+          href="/dashboard/reservations"
+          className="text-xs text-gray-400 hover:text-gray-600"
+        >
+          🏟️ {t("reservations.pitchReserved", { amount: formatAmount(amount) })}
+        </Link>
+      </p>
+    );
+  };
+
+  const now = new Date();
 
   const visibleEvents = isCoach
     ? (upcomingEvents ?? [])
     : (upcomingEvents ?? []).filter((e) => {
         const status = myStatusMap.get(e.id);
-        const deadline = getDeadline(e);
+        const deadline = getAvailabilityDeadline(e);
         const closed = now > deadline;
 
         if (closed) {
@@ -186,8 +206,9 @@ export default async function DashboardPage() {
                     <EventDate date={event.date} />
                     {event.location && ` · ${event.location}`}
                   </p>
+                  {reservationBadge(event.id)}
                    {!isCoach && (() => {
-                    const deadline = getDeadline(event);
+                    const deadline = getAvailabilityDeadline(event);
                     const closed = now > deadline;
                     const status = myStatusMap.get(event.id);
                     if (closed) return null;

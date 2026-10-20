@@ -12,6 +12,7 @@ A full-stack web application for managing amateur and semi-professional football
 - **Set Pieces** — Assign players to free kicks, corners, and penalties
 - **Captain Assignment** — Designate a match captain displayed on the pitch
 - **Calendar Export** — Google Calendar links and .ics downloads for events
+- **Pitch Reservations** — Split the cost of training pitches and track Bizum repayments
 - **Internationalization** — English and Spanish language support
 - **Authentication** — Email/password auth with password reset and account management
 
@@ -55,7 +56,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ### Database Setup
 
-Apply the Supabase migrations in order from `supabase/migrations/001_initial.sql` through `016_transfer_ownership.sql`. Ensure the `team-logos` storage bucket exists for team logo uploads.
+Apply the Supabase migrations in order from `supabase/migrations/001_initial.sql` through `023_fix_reservation_policy_recursion.sql`. Ensure the `team-logos` storage bucket exists for team logo uploads.
 
 ### Scripts
 

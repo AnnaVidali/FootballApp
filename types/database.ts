@@ -71,3 +71,21 @@ export interface GalleryItem {
   caption: string | null;
   created_at: string;
 }
+
+export interface Reservation {
+  id: string;
+  event_id: string;
+  created_by: string;
+  amount: number;
+  created_at: string;
+}
+
+export interface ReservationPayment {
+  id: string;
+  reservation_id: string;
+  user_id: string;
+  amount: number;
+  paid: boolean;
+  paid_at: string | null;
+  created_at: string;
+}

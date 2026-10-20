@@ -6,3 +6,5 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+# Shared datasource definition - keep out of git so an inline password can never be committed
+/dataSources.xml

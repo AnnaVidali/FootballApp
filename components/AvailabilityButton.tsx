@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { formatTimeLeft } from "@/lib/utils";
+import { formatTimeLeft, getAvailabilityDeadline } from "@/lib/utils";
 import AlertModal from "@/components/AlertModal";
 import { useLocaleContext } from "@/lib/i18n-context";
 
@@ -41,11 +41,7 @@ export default function AvailabilityButton({
     const [loading, setLoading] = useState(false);
     const [alertOpen, setAlertOpen] = useState(false);
     const [alertMsg, setAlertMsg] = useState("");
-    const [deadline] = useState(() =>
-        eventType === "match"
-            ? new Date(new Date(eventDate).setHours(0, 0, 0, 0))
-            : new Date(new Date(eventDate).getTime() - 25 * 60 * 60 * 1000)
-    );
+    const [deadline] = useState(() => getAvailabilityDeadline({ date: eventDate, type: eventType }));
     const [timeLeft, setTimeLeft] = useState(deadline.getTime() - Date.now());
     const { t } = useLocaleContext();
 

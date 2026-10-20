@@ -9,6 +9,7 @@ import AvailabilityButton from "@/components/AvailabilityButton";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import EventDate from "@/components/EventDate";
+import { formatAmount } from "@/lib/utils";
 
 const supabase = createClient();
 
@@ -56,6 +57,7 @@ function EventsContent() {
     const [editLocation, setEditLocation] = useState("");
     const [saving, setSaving] = useState(false);
     const [captainNames, setCaptainNames] = useState<Record<string, string>>({});
+    const [reservationAmounts, setReservationAmounts] = useState<Record<string, number>>({});
     const [alertOpen, setAlertOpen] = useState(false);
     const [alertMsg, setAlertMsg] = useState("");
     const [confirmOpen, setConfirmOpen] = useState(false);
@@ -126,6 +128,16 @@ function EventsContent() {
                             name: profileMap.get(a.user_id)?.name ?? "Unknown",
                         }))
                 );
+            }
+
+            if (eventIds.length > 0) {
+                const { data: reservationRows } = await supabase
+                    .from("reservations")
+                    .select("event_id, amount")
+                    .in("event_id", eventIds);
+                const amounts: Record<string, number> = {};
+                (reservationRows ?? []).forEach((r) => { amounts[r.event_id] = Number(r.amount); });
+                setReservationAmounts(amounts);
             }
             setLoading(false);
         }
@@ -343,6 +355,14 @@ function EventsContent() {
                                                                     {t("events.captain", { name: captainNames[event.captain_id] })}
                                                                 </p>
                                                             )}
+                                                            {reservationAmounts[event.id] && (
+                                                                <Link
+                                                                    href="/dashboard/reservations"
+                                                                    className="mt-0.5 inline-block text-xs text-gray-400 hover:text-gray-600"
+                                                                >
+                                                                    🏟️ {t("reservations.pitchReserved", { amount: formatAmount(reservationAmounts[event.id]) })}
+                                                                </Link>
+                                                            )}
                                                         </div>
                                                         {isAdmin && (
                                                             <div className="flex gap-2 shrink-0 ml-2">
@@ -498,6 +518,14 @@ key={event.id}
                                                                 <p className="text-xs text-gray-400 mt-0.5">
                                                                     {t("events.captain", { name: captainNames[event.captain_id] })}
                                                                 </p>
+                                                            )}
+                                                            {reservationAmounts[event.id] && (
+                                                                <Link
+                                                                    href="/dashboard/reservations"
+                                                                    className="mt-0.5 inline-block text-xs text-gray-400 hover:text-gray-600"
+                                                                >
+                                                                    🏟️ {t("reservations.pitchReserved", { amount: formatAmount(reservationAmounts[event.id]) })}
+                                                                </Link>
                                                             )}
                                                         </div>
                                                         {isAdmin && (
