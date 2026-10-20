@@ -8,9 +8,15 @@ export function getAvailabilityDeadline(event: { date: string; type: string }): 
         : new Date(new Date(event.date).getTime() - 25 * 60 * 60 * 1000);
 }
 
-/** Euro amount with up to 2 decimals, comma as separator (€7,40 / €8,00). */
-export function formatAmount(value: number): string {
-    return `€${value.toFixed(2).replace(".", ",")}`;
+/**
+ * Amount with 2 decimals and comma as the decimal separator (7,40 / 8,00).
+ * Currency symbol defaults to the euro, which is what the app charges in;
+ * pass a different one if that ever changes.
+ */
+export const DEFAULT_CURRENCY = "€";
+
+export function formatAmount(value: number, currency = DEFAULT_CURRENCY): string {
+    return `${currency}${value.toFixed(2).replace(".", ",")}`;
 }
 
 export function formatTimeLeft(ms: number): string | null {

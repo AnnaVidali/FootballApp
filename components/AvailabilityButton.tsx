@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatTimeLeft, getAvailabilityDeadline } from "@/lib/utils";
 import AlertModal from "@/components/AlertModal";
@@ -66,7 +66,6 @@ export default function AvailabilityButton({
             { onConflict: "user_id,event_id" }
         );
         if (error) {
-            console.error("Availability save error:", error);
             setAlertMsg("Failed to save: " + error.message);
             setAlertOpen(true);
             setLoading(false);

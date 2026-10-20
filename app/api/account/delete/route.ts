@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 
-export async function POST(request: Request) {
+export async function POST() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -10,18 +10,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Server misconfigured." }, { status: 500 });
     }
 
-    const cookieHeader = request.headers.get("cookie") || "";
-    const supabase = createServerClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-        cookies: {
-            getAll() {
-                return cookieHeader.split(";").map((c) => {
-                    const [name, ...rest] = c.trim().split("=");
-                    return { name, value: rest.join("=") };
-                });
-            },
-            setAll() {},
-        },
-    });
+    const supabase = await createServerSupabaseClient();
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -57,7 +46,6 @@ export async function POST(request: Request) {
     // Delete the auth user
     const { error } = await adminClient.auth.admin.deleteUser(user.id);
     if (error) {
-        console.error("Failed to delete auth user:", error.message);
         return NextResponse.json({ error: error.message }, { status: 400 });
     }
 

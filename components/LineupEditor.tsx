@@ -509,7 +509,6 @@ export default function LineupEditor({
         setSaving(true);
         const { error: deleteError } = await supabase.from("lineups").delete().eq("event_id", event.id);
         if (deleteError) {
-            console.error("Lineup delete error:", deleteError);
             setAlertMsg("Failed to clear existing lineup: " + deleteError.message);
             setAlertOpen(true);
             setSaving(false);
@@ -538,7 +537,6 @@ export default function LineupEditor({
         if (rows.length > 0) {
             const { error } = await supabase.from("lineups").insert(rows);
             if (error) {
-                console.error("Lineup save error:", error);
                 setAlertMsg("Failed to save lineup: " + error.message);
                 setAlertOpen(true);
                 setSaving(false);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
     const { newEmail } = await request.json();
@@ -19,22 +19,9 @@ export async function POST(request: Request) {
         );
     }
 
-    // Use @supabase/ssr to read the session from cookies properly
-    const cookieHeader = request.headers.get("cookie") || "";
-    const origin = new URL(request.url).origin;
-
-    const res = new Response(null, { headers: { "set-cookie": "" } });
-    const supabase = createServerClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-        cookies: {
-            getAll() {
-                return cookieHeader.split(";").map((c) => {
-                    const [name, ...rest] = c.trim().split("=");
-                    return { name, value: rest.join("=") };
-                });
-            },
-            setAll() {},
-        },
-    });
+    // Read the session from cookies via the shared server client, which
+    // uses @supabase/ssr's own cookie handling.
+    const supabase = await createServerSupabaseClient();
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
