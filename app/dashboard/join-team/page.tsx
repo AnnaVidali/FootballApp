@@ -23,22 +23,11 @@ export default function JoinTeamPage() {
             setLoading(false);
             return;
         }
-        const { data: team } = await supabase
-            .from("teams")
-            .select("id")
-            .eq("invite_code", code.trim().toUpperCase())
-            .maybeSingle();
-        if (!team) {
+        const { data: teamId, error: joinError } = await supabase.rpc("join_team_with_code", {
+            p_code: code,
+        });
+        if (joinError || !teamId) {
             setError(t("joinTeam.invalidCode"));
-            setLoading(false);
-            return;
-        }
-        const { error: updateError } = await supabase
-            .from("profiles")
-            .update({ team_id: team.id })
-            .eq("user_id", user.id);
-        if (updateError) {
-            setError(updateError.message);
             setLoading(false);
             return;
         }
