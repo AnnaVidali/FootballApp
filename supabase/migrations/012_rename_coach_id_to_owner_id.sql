@@ -5,11 +5,14 @@ ALTER TABLE teams ADD CONSTRAINT teams_owner_id_fkey
   FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 -- Update RLS policies that referenced coach_id
-DROP POLICY "Coaches can update their team" ON teams;
+-- (IF EXISTS: migration 002 already dropped "Coaches can update their team",
+-- so without it a fresh `supabase db reset` fails here with
+-- "policy ... does not exist")
+DROP POLICY IF EXISTS "Coaches can update their team" ON teams;
 CREATE POLICY "Owners can update their team" ON teams
   FOR UPDATE USING (owner_id = auth.uid());
 
-DROP POLICY "Users can create teams" ON teams;
+DROP POLICY IF EXISTS "Users can create teams" ON teams;
 CREATE POLICY "Users can create teams" ON teams
   FOR INSERT WITH CHECK (owner_id = auth.uid());
 
