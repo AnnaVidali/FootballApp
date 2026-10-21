@@ -70,19 +70,35 @@ export default function RosterClient({
 
     async function saveEdit(memberId: string) {
         setLoading(true);
+        const shirt = editShirt.trim() === "" ? null : Number(editShirt);
+        if (shirt !== null && (!Number.isInteger(shirt) || shirt < 0 || shirt > 99)) {
+            setAlertMsg(t("roster.invalidShirtNumber"));
+            setAlertOpen(true);
+            setLoading(false);
+            return;
+        }
         const update: { name: string; position: string | null; shirt_number: number | null; is_admin?: boolean; role?: string } = {
             name: editName,
             position: editPosition || null,
-            shirt_number: editShirt ? parseInt(editShirt) : null,
+            shirt_number: shirt,
         };
         if (isAdmin) {
             update.is_admin = editAdmin;
             update.role = editCoach ? "coach" : "player";
         }
-        await supabase
+        const { error } = await supabase
             .from("profiles")
             .update(update)
             .eq("id", memberId);
+        if (error) {
+            // Keep the form open so the admin can retry. The database raises
+            // an exception for unauthorised privilege changes, so this is a
+            // realistic outcome rather than a theoretical one.
+            setAlertMsg(t("roster.saveFailed", { error: error.message }));
+            setAlertOpen(true);
+            setLoading(false);
+            return;
+        }
         setEditingId(null);
         setLoading(false);
         router.refresh();

@@ -7,6 +7,26 @@ import { useLocaleContext } from "@/lib/i18n-context";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
+/**
+ * Read a JSON body from a fetch response without ever throwing.
+ *
+ * A misrouted request (for example a proxy answering with an HTML redirect
+ * page) would make `res.json()` throw, which used to leave the form stuck
+ * in its loading state with no error shown. Anything that is not JSON is
+ * reported as an error instead.
+ */
+async function readJsonResponse(res: Response): Promise<{ error?: string }> {
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+        throw new Error(`Unexpected response (${res.status} ${res.statusText || "no status"}).`);
+    }
+    try {
+        return await res.json();
+    } catch {
+        throw new Error(`Unexpected response (${res.status}): the body was not valid JSON.`);
+    }
+}
+
 export default function AccountPage() {
     const router = useRouter();
     const supabase = createClient();
@@ -48,6 +68,9 @@ export default function AccountPage() {
             if (team?.owner_id === user.id) setIsOwner(true);
         }
         fetchOwnership();
+        // `supabase` is a module level singleton, so it does not belong in
+        // the dependency array.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     async function handleChangePassword(e: React.FormEvent) {
@@ -79,18 +102,23 @@ export default function AccountPage() {
             return;
         }
         setLoading(true);
-        const res = await fetch("/api/account/update-email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ newEmail }),
-        });
-        const data = await res.json();
-        setLoading(false);
-        if (!res.ok) {
-            showAlert(t("common.error"), data.error || t("common.error"));
-        } else {
+        try {
+            const res = await fetch("/api/account/update-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ newEmail }),
+            });
+            const data = await readJsonResponse(res);
+            if (!res.ok) {
+                showAlert(t("common.error"), data.error || t("common.error"));
+                return;
+            }
             setNewEmail("");
             showAlert(t("common.notice"), t("account.emailUpdated"));
+        } catch (err) {
+            showAlert(t("common.error"), err instanceof Error ? err.message : t("common.error"));
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -138,16 +166,21 @@ export default function AccountPage() {
             }
         }
 
-        const deleteRes = await fetch("/api/account/delete", { method: "POST" });
-        if (!deleteRes.ok) {
-            const data = await deleteRes.json();
-            showAlert(t("common.error"), t("account.failedDelete") + (data.error || "Unknown error"));
-            setLoading(false);
+        try {
+            const deleteRes = await fetch("/api/account/delete", { method: "POST" });
+            const data = await readJsonResponse(deleteRes);
+            if (!deleteRes.ok) {
+                showAlert(t("common.error"), t("account.failedDelete") + (data.error || "Unknown error"));
+                return;
+            }
+        } catch (err) {
+            showAlert(t("common.error"), t("account.failedDelete") + (err instanceof Error ? err.message : "Unknown error"));
             return;
+        } finally {
+            setLoading(false);
         }
 
         await supabase.auth.signOut();
-        setLoading(false);
         router.push("/");
         router.refresh();
     }

@@ -164,7 +164,9 @@
     "ownerWarning": "You\u0027re the team owner. Transfer ownership to another member before leaving.",
     "soleAdminWarning": "You\u0027re the only admin on this team. Promote another player to admin before leaving.",
     "transferConfirm": "Transfer ownership to {name}? You\u0027ll remain an admin.",
-    "removeConfirm": "Remove {name} from the team?"
+    "removeConfirm": "Remove {name} from the team?",
+    "saveFailed": "Could not save the changes: {error}",
+    "invalidShirtNumber": "Shirt number must be a whole number between 0 and 99."
   },
   "events": {
     "title": "Events",
@@ -277,7 +279,19 @@
     "undo": "Undo",
     "clearDrawing": "Clear",
     "clearConfirmTitle": "Clear drawing?",
-    "clearConfirmMessage": "This will remove everything you have drawn on the pitch. This cannot be undone."
+    "clearConfirmMessage": "This will remove everything you have drawn on the pitch. This cannot be undone.",
+    "saveFailed": "Could not save the lineup: {error}",
+    "pitchLabel": "Pitch lineup",
+    "poolLabel": "Players waiting to be placed",
+    "emptySlot": "{position} - empty",
+    "slotWithPlayer": "{position}: {name}",
+    "selectPlayer": "Select {name}",
+    "selectedPlayer": "{name} selected. Choose a position on the pitch.",
+    "deselectedPlayer": "{name} deselected",
+    "placedPlayer": "{name} placed in {position}",
+    "addedSubstitute": "{name} added to the substitutes",
+    "addToSubstitutes": "Add the selected player to the substitutes",
+    "removePlayerFrom": "Remove {name}"
   },
   "formations": {
     "7v7-standard": "7v7 Standard (3-2-1)",
@@ -343,6 +357,7 @@
   },
   "availability": {
     "closed": "Availability closed",
-    "closesIn": "Closes in {time}"
+    "closesIn": "Closes in {time}",
+    "saveFailed": "Could not save your response: {error}"
   }
 }

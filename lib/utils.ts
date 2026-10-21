@@ -1,11 +1,18 @@
 /**
  * RSVP deadline for an event. Matches close at midnight on the match day;
  * trainings close 25 hours before their start time.
+ *
+ * The deadline is computed in UTC so the server and the browser always agree.
+ * `setHours()` used the *runtime's* local timezone, which meant the cutoff
+ * depended on whichever device the player happened to be using (and the
+ * server-rendered list could disagree with the button next to it).
  */
 export function getAvailabilityDeadline(event: { date: string; type: string }): Date {
+    const start = new Date(event.date);
+    if (Number.isNaN(start.getTime())) return new Date(0);
     return event.type === "match"
-        ? new Date(new Date(event.date).setHours(0, 0, 0, 0))
-        : new Date(new Date(event.date).getTime() - 25 * 60 * 60 * 1000);
+        ? new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()))
+        : new Date(start.getTime() - 25 * 60 * 60 * 1000);
 }
 
 /**

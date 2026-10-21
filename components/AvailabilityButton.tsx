@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatTimeLeft, getAvailabilityDeadline } from "@/lib/utils";
 import AlertModal from "@/components/AlertModal";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { useNow } from "@/lib/use-now";
 
 type Status = "available" | "maybe" | "unavailable";
 
@@ -21,6 +22,18 @@ const statusStyles: Record<Status, { activeBg: string; inactiveBg: string }> = {
 };
 
 const supabase = createClient();
+
+/**
+ * Whether the RSVP deadline has already passed.
+ *
+ * Kept outside the component on purpose: reading the wall clock while
+ * rendering is not allowed, and this check has to happen against the real
+ * clock at the moment the player clicks, not against the value the last
+ * render happened to compute.
+ */
+function isPastDeadline(deadline: Date): boolean {
+    return deadline.getTime() - Date.now() <= 0;
+}
 
 export default function AvailabilityButton({
     eventId,
@@ -41,39 +54,48 @@ export default function AvailabilityButton({
     const [loading, setLoading] = useState(false);
     const [alertOpen, setAlertOpen] = useState(false);
     const [alertMsg, setAlertMsg] = useState("");
-    const [deadline] = useState(() => getAvailabilityDeadline({ date: eventDate, type: eventType }));
-    const [timeLeft, setTimeLeft] = useState(deadline.getTime() - Date.now());
     const { t } = useLocaleContext();
 
-    useEffect(() => {
+    // Adjust the selected status when the parent hands down a new value.
+    // Doing this during render (instead of in an effect) avoids the extra
+    // render pass and the cascading-render lint error.
+    const [prevInitialStatus, setPrevInitialStatus] = useState(initialStatus);
+    if (prevInitialStatus !== initialStatus) {
+        setPrevInitialStatus(initialStatus);
         setSelected(initialStatus);
-    }, [initialStatus]);
+    }
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setTimeLeft(deadline.getTime() - Date.now());
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [deadline]);
+    // Derived, not stored: the deadline has to follow the event when the admin
+    // moves it, otherwise the countdown keeps pointing at the old date.
+    const deadline = useMemo(
+        () => getAvailabilityDeadline({ date: eventDate, type: eventType }),
+        [eventDate, eventType]
+    );
 
-    const closed = timeLeft <= 0;
+    const now = useNow();
+    const timeLeft = now === null ? null : deadline.getTime() - now;
+    const closed = timeLeft !== null && timeLeft <= 0;
 
     async function respond(status: Status) {
-        if (closed) return;
+        // Check against the wall clock at click time rather than the
+        // render-time value, so a click that lands in the first moments
+        // after hydration still respects the deadline.
+        if (isPastDeadline(deadline)) return;
         setLoading(true);
-        const { error } = await supabase.from("availability").upsert(
-            { user_id: currentUserId, event_id: eventId, status },
-            { onConflict: "user_id,event_id" }
-        );
-        if (error) {
-            setAlertMsg("Failed to save: " + error.message);
+        try {
+            const { error } = await supabase.from("availability").upsert(
+                { user_id: currentUserId, event_id: eventId, status },
+                { onConflict: "user_id,event_id" }
+            );
+            if (error) throw new Error(error.message);
+            setSelected(status);
+            onUpdate(eventId, currentUserId, status);
+        } catch (e) {
+            setAlertMsg(t("availability.saveFailed", { error: (e as Error).message }));
             setAlertOpen(true);
+        } finally {
             setLoading(false);
-            return;
         }
-        setSelected(status);
-        onUpdate(eventId, currentUserId, status);
-        setLoading(false);
     }
 
     if (closed) {
@@ -89,6 +111,7 @@ export default function AvailabilityButton({
                     return (
                         <button
                             key={status}
+                            type="button"
                             onClick={() => respond(status)}
                             disabled={loading}
                             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
@@ -101,7 +124,7 @@ export default function AvailabilityButton({
                 })}
             </div>
             <p className="text-xs text-gray-400 mt-1">
-                {t("availability.closesIn", { time: formatTimeLeft(timeLeft) ?? "" })}
+                {timeLeft === null ? "" : t("availability.closesIn", { time: formatTimeLeft(timeLeft) ?? "" })}
             </p>
         </div>
     );

@@ -118,13 +118,16 @@ export default function LineupPage() {
         );
 
         setLoading(false);
-    }, [supabase, allMembers]);
+    }, [allMembers]);
 
     useEffect(() => {
-        if (selectedEventId) {
-            setLoading(true);
-            loadLineup(selectedEventId);
-        }
+        if (!selectedEventId) return;
+        // The load is started from a timer so the state updates it triggers
+        // are not a synchronous part of the effect body.
+        const timer = setTimeout(() => {
+            void loadLineup(selectedEventId);
+        }, 0);
+        return () => clearTimeout(timer);
     }, [selectedEventId, loadLineup]);
 
     const selectedEvent = events.find((e) => e.id === selectedEventId);

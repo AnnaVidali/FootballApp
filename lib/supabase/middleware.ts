@@ -39,13 +39,23 @@ export async function updateSession(request: NextRequest) {
     // Invalid/expired refresh token — treat as unauthenticated
   }
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/register") &&
-    !request.nextUrl.pathname.startsWith("/forgot-password") &&
-    !request.nextUrl.pathname.startsWith("/reset-password")
-  ) {
+  // Routes that are reachable without a session. The landing page has to be
+  // in this list, otherwise anonymous visitors never see the sign-in /
+  // register call to action.
+  const PUBLIC_PATHS = [
+    "/",
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+  ];
+  const isPublic = PUBLIC_PATHS.some((path) =>
+    path === "/"
+      ? request.nextUrl.pathname === "/"
+      : request.nextUrl.pathname.startsWith(path)
+  );
+
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

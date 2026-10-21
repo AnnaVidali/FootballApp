@@ -164,7 +164,9 @@
     "ownerWarning": "Eres el propietario del equipo. Transfiere la propiedad a otro miembro antes de salir.",
     "soleAdminWarning": "Eres el \u00fanico administrador de este equipo. Promueve a otro jugador a administrador antes de salir.",
     "transferConfirm": "\u00bfTransferir la propiedad a {name}? Permanecer\u00e1s como administrador.",
-    "removeConfirm": "\u00bfEliminar a {name} del equipo?"
+    "removeConfirm": "\u00bfEliminar a {name} del equipo?",
+    "saveFailed": "No se pudieron guardar los cambios: {error}",
+    "invalidShirtNumber": "El dorsal debe ser un n\u00famero entero entre 0 y 99."
   },
   "events": {
     "title": "Eventos",
@@ -277,7 +279,19 @@
     "undo": "Deshacer",
     "clearDrawing": "Borrar",
     "clearConfirmTitle": "\u00bfBorrar el dibujo?",
-    "clearConfirmMessage": "Se eliminar\u00e1 todo lo que has dibujado en el campo. Esta acci\u00f3n no se puede deshacer."
+    "clearConfirmMessage": "Se eliminar\u00e1 todo lo que has dibujado en el campo. Esta acci\u00f3n no se puede deshacer.",
+    "saveFailed": "No se pudo guardar la alineaci\u00f3n: {error}",
+    "pitchLabel": "Alineaci\u00f3n en el campo",
+    "poolLabel": "Jugadores por colocar",
+    "emptySlot": "{position} - vac\u00edo",
+    "slotWithPlayer": "{position}: {name}",
+    "selectPlayer": "Seleccionar a {name}",
+    "selectedPlayer": "{name} seleccionado. Elige una posici\u00f3n en el campo.",
+    "deselectedPlayer": "{name} deseleccionado",
+    "placedPlayer": "{name} colocado en {position}",
+    "addedSubstitute": "{name} a\u00f1adido a los suplentes",
+    "addToSubstitutes": "A\u00f1adir al jugador seleccionado a los suplentes",
+    "removePlayerFrom": "Quitar a {name}"
   },
   "formations": {
     "7v7-standard": "7v7 Est\u00e1ndar (3-2-1)",
@@ -343,6 +357,7 @@
   },
   "availability": {
     "closed": "Disponibilidad cerrada",
-    "closesIn": "Cierra en {time}"
+    "closesIn": "Cierra en {time}",
+    "saveFailed": "No se pudo guardar tu respuesta: {error}"
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
@@ -115,6 +115,55 @@ function clamp01(n: number) {
     return Math.max(0, Math.min(1, n));
 }
 
+/**
+ * The key a formation position is stored under: "GK", "CB", "CB3", "CB6", ...
+ *
+ * The index is appended so that repeated positions inside a formation (two
+ * centre backs, two strikers, ...) get distinct keys. The key is what gets
+ * written to `lineups.position`, which is why it must survive a save/load
+ * round trip untouched.
+ */
+function slotKeyFor(positions: { name: string }[], index: number): string {
+    return positions[index].name + (index > 0 ? index : "");
+}
+
+/** The base position name of a slot key: "CB3" -> "CB". */
+function slotBaseName(slot: string): string {
+    return slot.replace(/\d+$/, "");
+}
+
+/**
+ * Resolve the slot key a stored `position` belongs to.
+ *
+ * Rows saved by the current code store the full slot key ("CB3"). Rows saved
+ * before that fix stored only the base position ("CB"), so several players
+ * collapsed onto the same key and all but one were dropped on the next save.
+ * Those legacy rows are matched to the first free slot with that base name,
+ * in formation order.
+ */
+function resolveSlotKey(
+    stored: string,
+    positions: { name: string }[],
+    taken: Set<string>
+): string | null {
+    for (let i = 0; i < positions.length; i++) {
+        const key = slotKeyFor(positions, i);
+        if (key === stored && !taken.has(key)) return key;
+    }
+    for (let i = 0; i < positions.length; i++) {
+        const key = slotKeyFor(positions, i);
+        if (positions[i].name === stored && !taken.has(key)) return key;
+    }
+    return null;
+}
+
+/** The first free "POSn" key, used when players are placed freely. */
+function nextFreePosKey(taken: Set<string>): string {
+    let n = 0;
+    while (taken.has(`POS${n}`)) n++;
+    return `POS${n}`;
+}
+
 export default function LineupEditor({
     event,
     members,
@@ -141,10 +190,16 @@ export default function LineupEditor({
     const isLocked = new Date(event.date) <= new Date();
     const canEdit = isAdmin && !isLocked;
 
-    useEffect(() => {
+    // The event's own formation and captain are the source of truth, but only
+    // until the admin changes them locally. Reset them when a different
+    // event is loaded. This runs during render instead of in an effect so
+    // there is no extra render pass and no frame with stale values.
+    const [loadedEventId, setLoadedEventId] = useState(event.id);
+    if (loadedEventId !== event.id) {
+        setLoadedEventId(event.id);
         setFormation(event.formation ?? "");
         setCaptainId(event.captain_id ?? "");
-    }, [event.id]);
+    }
 
     const [assignments, setAssignments] = useState<Record<string, Assignment>>({});
     const [subs, setSubs] = useState<Assignment[]>([]);
@@ -152,19 +207,25 @@ export default function LineupEditor({
     const [setPieceCorner, setSetPieceCorner] = useState<string>("");
     const [setPiecePenalty, setSetPiecePenalty] = useState<string>("");
 
-    useEffect(() => {
-        const map: Record<string, string> = {};
-        for (const sp of existingSetPieces) {
-            map[sp.piece_type] = sp.player_id;
-        }
-        setSetPieceFoul(map["foul"] ?? "");
-        setSetPieceCorner(map["corner"] ?? "");
-        setSetPiecePenalty(map["penalty"] ?? "");
-    }, [existingSetPieces]);
+    // The persisted lineup and the roster are copied into local state so the
+    // admin can edit them. The key is derived from the *content* of the
+    // props, so a background refetch that returns the same data no longer
+    // throws away the edits in progress.
+    const lineupSourceKey =
+        (event.formation ?? "") +
+        "#" +
+        existingLineup.map((l) => `${l.player_id}:${l.position}`).join("|") +
+        "#" +
+        members.map((m) => `${m.id}:${m.name}:${m.shirt_number ?? ""}`).join("|");
 
-    useEffect(() => {
+    const [loadedLineupKey, setLoadedLineupKey] = useState<string | null>(null);
+    if (loadedLineupKey !== lineupSourceKey) {
+        setLoadedLineupKey(lineupSourceKey);
         const newAssignments: Record<string, Assignment> = {};
         const newSubs: Assignment[] = [];
+        const positions = FORMATIONS[event.formation ?? ""]?.positions ?? [];
+        const taken = new Set<string>();
+
         for (const entry of existingLineup) {
             const member = members.find((m) => m.id === entry.player_id);
             if (!member) continue;
@@ -177,28 +238,52 @@ export default function LineupEditor({
             };
             if (entry.position === "SUB") {
                 newSubs.push(a);
+                continue;
+            }
+            if (positions.length > 0) {
+                const key = resolveSlotKey(entry.position, positions, taken);
+                // No free slot left for this player. Skip them instead of
+                // overwriting somebody who is already in that slot.
+                if (!key) continue;
+                taken.add(key);
+                newAssignments[key] = a;
             } else {
-                newAssignments[entry.position] = a;
+                const key = nextFreePosKey(taken);
+                taken.add(key);
+                newAssignments[key] = a;
             }
         }
-        const f = FORMATIONS[event.formation ?? ""];
-        if (f) {
-            f.positions.forEach((pos, i) => {
-                const slotKey = pos.name + (i > 0 ? i : "");
-                if (!newAssignments[slotKey]) {
-                    newAssignments[slotKey] = {
-                        playerId: "",
-                        name: "",
-                        shirtNumber: null,
-                        x: pos.x,
-                        y: pos.y,
-                    };
-                }
-            });
-        }
+
+        // Show every position of the formation, including the empty ones.
+        positions.forEach((pos, i) => {
+            const key = slotKeyFor(positions, i);
+            if (!newAssignments[key]) {
+                newAssignments[key] = {
+                    playerId: "",
+                    name: "",
+                    shirtNumber: null,
+                    x: pos.x,
+                    y: pos.y,
+                };
+            }
+        });
+
         setAssignments(newAssignments);
         setSubs(newSubs);
-    }, [existingLineup, members, event.formation]);
+    }
+
+    const setPiecesKey = existingSetPieces.map((sp) => `${sp.piece_type}:${sp.player_id}`).join("|");
+    const [loadedSetPiecesKey, setLoadedSetPiecesKey] = useState<string | null>(null);
+    if (loadedSetPiecesKey !== setPiecesKey) {
+        setLoadedSetPiecesKey(setPiecesKey);
+        const map: Record<string, string> = {};
+        for (const sp of existingSetPieces) {
+            map[sp.piece_type] = sp.player_id;
+        }
+        setSetPieceFoul(map["foul"] ?? "");
+        setSetPieceCorner(map["corner"] ?? "");
+        setSetPiecePenalty(map["penalty"] ?? "");
+    }
 
     const allAssignedIds = new Set([
         ...Object.values(assignments).map((a) => a.playerId),
@@ -211,6 +296,23 @@ export default function LineupEditor({
     const [dragTarget, setDragTarget] = useState<"pitch" | "subs" | null>(null);
     const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null);
     const subsRef = useRef<HTMLDivElement>(null);
+
+    // Where the current drag started, and whether the pointer has actually
+    // moved. A press that never moves is a click, and clicks are handled by
+    // the keyboard-accessible buttons instead of the drag logic.
+    const dragOriginRef = useRef<{ x: number; y: number } | null>(null);
+    const dragMovedRef = useRef(false);
+    // Set while a drag has just finished, so that the click the browser
+    // fires straight afterwards is not treated as a separate action. It is
+    // cleared again by the click handler on the container.
+    const suppressClickRef = useRef(false);
+
+    // Player picked up with the keyboard (or clicked) and waiting to be put
+    // somewhere on the pitch.
+    const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+    const [announcement, setAnnouncement] = useState("");
+
+    const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
 
     function getPitchCoords(clientX: number, clientY: number) {
         if (!pitchRef.current) return { x: 50, y: 50 };
@@ -243,6 +345,8 @@ export default function LineupEditor({
         setDraggingPlayer(playerId);
         setDragTarget(null);
         setGhostPos({ x: pos.clientX, y: pos.clientY });
+        dragOriginRef.current = { x: pos.clientX, y: pos.clientY };
+        dragMovedRef.current = false;
     }
 
     function startDragSlot(e: React.MouseEvent | React.TouchEvent, slot: string) {
@@ -252,10 +356,22 @@ export default function LineupEditor({
         setDraggingSlot(slot);
         setDragTarget(null);
         setGhostPos({ x: pos.clientX, y: pos.clientY });
+        dragOriginRef.current = { x: pos.clientX, y: pos.clientY };
+        dragMovedRef.current = false;
+    }
+
+    /** Record whether the pointer has travelled far enough to count as a drag. */
+    function trackDragMovement(clientX: number, clientY: number) {
+        const origin = dragOriginRef.current;
+        if (!origin || dragMovedRef.current) return;
+        if (Math.hypot(clientX - origin.x, clientY - origin.y) > 5) {
+            dragMovedRef.current = true;
+        }
     }
 
     function handleMouseMove(e: React.MouseEvent) {
         if (!draggingPlayer && !draggingSlot) return;
+        trackDragMovement(e.clientX, e.clientY);
         setGhostPos({ x: e.clientX, y: e.clientY });
         setDragTarget(getDragTarget(e.clientX, e.clientY));
     }
@@ -264,6 +380,7 @@ export default function LineupEditor({
         if (!draggingPlayer && !draggingSlot) return;
         e.preventDefault();
         const touch = e.touches[0];
+        trackDragMovement(touch.clientX, touch.clientY);
         setGhostPos({ x: touch.clientX, y: touch.clientY });
         setDragTarget(getDragTarget(touch.clientX, touch.clientY));
     }
@@ -274,7 +391,7 @@ export default function LineupEditor({
         let bestKey: string | null = null;
         let bestDist = Infinity;
         f.positions.forEach((pos, i) => {
-            const slotKey = pos.name + (i > 0 ? i : "");
+            const slotKey = slotKeyFor(f.positions, i);
             if (currentAssignments[slotKey] && currentAssignments[slotKey].playerId) return;
             const dist = Math.hypot(pos.x - x, pos.y - y);
             if (dist < bestDist) {
@@ -288,8 +405,23 @@ export default function LineupEditor({
     function handleMouseUp(e: React.MouseEvent | React.TouchEvent) {
         if (!draggingPlayer && !draggingSlot) return;
         const pos = "changedTouches" in e ? e.changedTouches[0] : e;
-        const target = getDragTarget(pos.clientX, pos.clientY);
 
+        // A press that never moved is a click, not a drag. Let the click
+        // handlers deal with it so the same actions are reachable without a
+        // mouse.
+        const wasDrag = dragMovedRef.current;
+        dragMovedRef.current = false;
+        dragOriginRef.current = null;
+        if (!wasDrag) {
+            setDraggingPlayer(null);
+            setDraggingSlot(null);
+            setDragTarget(null);
+            setGhostPos(null);
+            return;
+        }
+        suppressClickRef.current = true;
+
+        const target = getDragTarget(pos.clientX, pos.clientY);
         if (draggingPlayer) {
             const member = members.find((m) => m.id === draggingPlayer);
             if (member && target === "pitch") {
@@ -310,7 +442,7 @@ export default function LineupEditor({
                         const slotKey = findNearestEmptySlot(x, y, next);
                         if (slotKey) {
                             const f = FORMATIONS[formation];
-                            const slotPos = f.positions.find((p, i) => p.name + (i > 0 ? i : "") === slotKey)!;
+                            const slotPos = f.positions.find((p, i) => slotKeyFor(f.positions, i) === slotKey)!;
                             next[slotKey] = {
                                 playerId: member.id,
                                 name: member.name,
@@ -322,7 +454,11 @@ export default function LineupEditor({
                         }
                         return next;
                     }
-                    const slotKey = `POS${Object.keys(next).length}`;
+                    // The key has to be the first free "POSn" slot. Deriving it
+                    // from the number of entries produced a key that already
+                    // existed whenever a player had been removed before.
+                    const taken = new Set(Object.keys(next));
+                    const slotKey = nextFreePosKey(taken);
                     next[slotKey] = {
                         playerId: member.id,
                         name: member.name,
@@ -392,7 +528,7 @@ export default function LineupEditor({
                         let bestDist = Infinity;
                         const f = FORMATIONS[formation];
                         f.positions.forEach((pos, i) => {
-                            const slotKey = pos.name + (i > 0 ? i : "");
+                            const slotKey = slotKeyFor(f.positions, i);
                             if (slotKey === draggingSlot) return;
                             const dist = Math.hypot(pos.x - x, pos.y - y);
                             if (dist < bestDist) {
@@ -405,10 +541,10 @@ export default function LineupEditor({
                             const targetSlot = next[bestKey];
                             if (targetSlot && targetSlot.playerId) {
                                 next[draggingSlot] = { ...targetSlot, x: moving.x, y: moving.y };
-                                const targetPos = f.positions.find((p, i) => p.name + (i > 0 ? i : "") === bestKey)!;
+                                const targetPos = f.positions.find((p, i) => slotKeyFor(f.positions, i) === bestKey)!;
                                 next[bestKey] = { ...moving, x: targetPos.x, y: targetPos.y };
                             } else {
-                                const targetPos = f.positions.find((p, i) => p.name + (i > 0 ? i : "") === bestKey)!;
+                                const targetPos = f.positions.find((p, i) => slotKeyFor(f.positions, i) === bestKey)!;
                                 next[draggingSlot] = { ...moving, playerId: "", name: "", shirtNumber: null };
                                 next[bestKey] = { ...moving, x: targetPos.x, y: targetPos.y };
                             }
@@ -442,6 +578,119 @@ export default function LineupEditor({
 
     function handleRemoveSub(playerId: string) {
         setSubs((prev) => prev.filter((a) => a.playerId !== playerId));
+        setSelectedPlayerId((prev) => (prev === playerId ? null : prev));
+    }
+
+    /** The on-pitch coordinates of a slot, if it belongs to the formation. */
+    function slotPosition(slot: string): { x: number; y: number } | null {
+        const f = FORMATIONS[formation];
+        if (!f) return null;
+        for (let i = 0; i < f.positions.length; i++) {
+            if (slotKeyFor(f.positions, i) === slot) return f.positions[i];
+        }
+        return null;
+    }
+
+    /** The human readable name of the position a slot stands for. */
+    function slotLabel(slot: string): string {
+        const base = slotBaseName(slot);
+        const name = t(`positions.${base}`);
+        return name.startsWith("positions.") ? base : name;
+    }
+
+    /**
+     * Put the selected player into a slot, or pick up the player that is
+     * already there. This is the click and keyboard equivalent of dragging a
+     * player onto the pitch.
+     */
+    function placePlayerInSlot(slot: string) {
+        if (!canEdit) return;
+        // Ignore the click the browser fires right after a drag ended.
+        if (suppressClickRef.current) return;
+
+        const playerId = selectedPlayerId;
+        if (!playerId) {
+            // Nothing selected: pick up the player in this slot so it can be
+            // moved somewhere else.
+            const occupant = assignments[slot];
+            if (occupant?.playerId) {
+                setSelectedPlayerId(occupant.playerId);
+                setAnnouncement(t("lineup.selectedPlayer", { name: occupant.name }));
+            }
+            return;
+        }
+
+        const member = memberById.get(playerId);
+        if (!member) return;
+
+        const displaced = assignments[slot]?.playerId;
+        const nextAssignments: Record<string, Assignment> = { ...assignments };
+        // Take the player out of the slot they were in.
+        for (const [key, val] of Object.entries(nextAssignments)) {
+            if (val.playerId === playerId) delete nextAssignments[key];
+        }
+        const pos = slotPosition(slot);
+        nextAssignments[slot] = {
+            playerId: member.id,
+            name: member.name,
+            shirtNumber: member.shirt_number,
+            x: pos?.x ?? assignments[slot]?.x ?? 50,
+            y: pos?.y ?? assignments[slot]?.y ?? 50,
+        };
+
+        setAssignments(nextAssignments);
+        // The player comes off the bench, and whoever was in the slot goes
+        // back to the pool of unassigned players.
+        setSubs((prev) => prev.filter((a) => a.playerId !== playerId && a.playerId !== displaced));
+        setSelectedPlayerId(null);
+        setAnnouncement(
+            t("lineup.placedPlayer", { name: member.name, position: slotLabel(slot) })
+        );
+    }
+
+    /** Move the selected player to the bench. */
+    function placeSelectedAsSub() {
+        if (!canEdit || !selectedPlayerId) return;
+        const member = memberById.get(selectedPlayerId);
+        if (!member) return;
+
+        const nextAssignments: Record<string, Assignment> = { ...assignments };
+        for (const [key, val] of Object.entries(nextAssignments)) {
+            if (val.playerId === member.id) delete nextAssignments[key];
+        }
+        setAssignments(nextAssignments);
+        setSubs((prev) =>
+            prev.some((a) => a.playerId === member.id)
+                ? prev
+                : [
+                      ...prev,
+                      {
+                          playerId: member.id,
+                          name: member.name,
+                          shirtNumber: member.shirt_number,
+                          x: 50,
+                          y: 50,
+                      },
+                  ]
+        );
+        setSelectedPlayerId(null);
+        setAnnouncement(t("lineup.addedSubstitute", { name: member.name }));
+    }
+
+    /** Select a player so it can be placed on the pitch or on the bench. */
+    function togglePlayerSelection(playerId: string) {
+        if (!canEdit) return;
+        // Ignore the click the browser fires right after a drag ended.
+        if (suppressClickRef.current) return;
+        const member = memberById.get(playerId);
+        setSelectedPlayerId((prev) => (prev === playerId ? null : playerId));
+        if (member) {
+            setAnnouncement(
+                selectedPlayerId === playerId
+                    ? t("lineup.deselectedPlayer", { name: member.name })
+                    : t("lineup.selectedPlayer", { name: member.name })
+            );
+        }
     }
 
     function applyFormation(key: string) {
@@ -461,7 +710,7 @@ export default function LineupEditor({
 
         const currentPlayers = Object.values(assignments).filter(a => a.playerId);
         const slotKeys = f.positions.map((pos, i) => ({
-            key: pos.name + (i > 0 ? i : ""),
+            key: slotKeyFor(f.positions, i),
             pos,
         }));
 
@@ -507,55 +756,102 @@ export default function LineupEditor({
 
     async function save() {
         setSaving(true);
-        const { error: deleteError } = await supabase.from("lineups").delete().eq("event_id", event.id);
-        if (deleteError) {
-            setAlertMsg("Failed to clear existing lineup: " + deleteError.message);
-            setAlertOpen(true);
-            setSaving(false);
-            return;
-        }
-        const rows = [
-            ...Object.entries(assignments)
-                .filter(([, a]) => a.playerId)
-                .map(([slot, a]) => ({
+        try {
+            const rows = [
+                ...Object.entries(assignments)
+                    .filter(([, a]) => a.playerId)
+                    .map(([slot, a]) => ({
+                        event_id: event.id,
+                        player_id: a.playerId,
+                        // The full slot key ("CB3") is stored verbatim. Stripping
+                        // the index here collapsed several players onto the same
+                        // position and silently dropped them on the next save.
+                        position: slot,
+                        shirt_number: a.shirtNumber,
+                        pos_x: a.x,
+                        pos_y: a.y,
+                    })),
+                ...subs.map((a) => ({
                     event_id: event.id,
                     player_id: a.playerId,
-                    position: slot.replace(/\d+$/, ""),
+                    position: "SUB",
                     shirt_number: a.shirtNumber,
-                    pos_x: a.x,
-                    pos_y: a.y,
+                    pos_x: null as number | null,
+                    pos_y: null as number | null,
                 })),
-            ...subs.map((a) => ({
-                event_id: event.id,
-                player_id: a.playerId,
-                position: "SUB",
-                shirt_number: a.shirtNumber,
-                pos_x: null as number | null,
-                pos_y: null as number | null,
-            })),
-        ];
-        if (rows.length > 0) {
-            const { error } = await supabase.from("lineups").insert(rows);
-            if (error) {
-                setAlertMsg("Failed to save lineup: " + error.message);
-                setAlertOpen(true);
-                setSaving(false);
-                return;
+            ];
+
+            // Write first, prune afterwards. Deleting the old rows up front
+            // meant a failed insert left the saved lineup empty in the
+            // database.
+            if (rows.length > 0) {
+                const { error: upsertError } = await supabase
+                    .from("lineups")
+                    .upsert(rows, { onConflict: "event_id,player_id" });
+                if (upsertError) throw new Error(upsertError.message);
             }
-        }
-        await supabase.from("events").update({ formation: formation || null, captain_id: captainId || null }).eq("id", event.id);
 
-        const { error: spDeleteError } = await supabase.from("set_pieces").delete().eq("event_id", event.id);
-        const spRows: { event_id: string; piece_type: string; player_id: string }[] = [];
-        if (setPieceFoul) spRows.push({ event_id: event.id, piece_type: "foul", player_id: setPieceFoul });
-        if (setPieceCorner) spRows.push({ event_id: event.id, piece_type: "corner", player_id: setPieceCorner });
-        if (setPiecePenalty) spRows.push({ event_id: event.id, piece_type: "penalty", player_id: setPiecePenalty });
-        if (spRows.length > 0 && !spDeleteError) {
-            await supabase.from("set_pieces").insert(spRows);
-        }
+            const keepIds = rows.map((r) => r.player_id);
+            const { data: currentRows, error: readError } = await supabase
+                .from("lineups")
+                .select("player_id")
+                .eq("event_id", event.id);
+            if (readError) throw new Error(readError.message);
+            const staleIds = (currentRows ?? [])
+                .map((r) => r.player_id as string)
+                .filter((id) => !keepIds.includes(id));
+            for (const staleId of staleIds) {
+                const { error: deleteError } = await supabase
+                    .from("lineups")
+                    .delete()
+                    .eq("event_id", event.id)
+                    .eq("player_id", staleId);
+                if (deleteError) throw new Error(deleteError.message);
+            }
 
-        setSaving(false);
-        router.refresh();
+            const { error: eventError } = await supabase
+                .from("events")
+                .update({ formation: formation || null, captain_id: captainId || null })
+                .eq("id", event.id);
+            if (eventError) throw new Error(eventError.message);
+
+            const spRows: { event_id: string; piece_type: string; player_id: string }[] = [];
+            if (setPieceFoul) spRows.push({ event_id: event.id, piece_type: "foul", player_id: setPieceFoul });
+            if (setPieceCorner) spRows.push({ event_id: event.id, piece_type: "corner", player_id: setPieceCorner });
+            if (setPiecePenalty) spRows.push({ event_id: event.id, piece_type: "penalty", player_id: setPiecePenalty });
+            if (spRows.length > 0) {
+                const { error: spUpsertError } = await supabase
+                    .from("set_pieces")
+                    .upsert(spRows, { onConflict: "event_id,piece_type" });
+                if (spUpsertError) throw new Error(spUpsertError.message);
+            }
+            const { data: currentPieces, error: spReadError } = await supabase
+                .from("set_pieces")
+                .select("piece_type")
+                .eq("event_id", event.id);
+            if (spReadError) throw new Error(spReadError.message);
+            const keepPieces = spRows.map((r) => r.piece_type);
+            for (const piece of currentPieces ?? []) {
+                if (keepPieces.includes(piece.piece_type)) continue;
+                const { error: spDeleteError } = await supabase
+                    .from("set_pieces")
+                    .delete()
+                    .eq("event_id", event.id)
+                    .eq("piece_type", piece.piece_type);
+                if (spDeleteError) throw new Error(spDeleteError.message);
+            }
+
+            router.refresh();
+        } catch (err) {
+            setAlertMsg(
+                t("lineup.saveFailed", {
+                    error: err instanceof Error ? err.message : String(err),
+                })
+            );
+            setAlertOpen(true);
+        } finally {
+            setSaving(false);
+        }
     }
 
     const isDragging = draggingPlayer !== null || draggingSlot !== null;
@@ -727,8 +1023,11 @@ export default function LineupEditor({
             onTouchMove={canEdit ? handleTouchMove : undefined}
             onTouchEnd={canEdit ? handleMouseUp : undefined}
             onTouchCancel={canEdit ? () => { if (isDragging) { setDraggingPlayer(null); setDraggingSlot(null); setDragTarget(null); setGhostPos(null); } } : undefined}
+            onClick={() => { suppressClickRef.current = false; }}
         >
             <AlertModal open={alertOpen} title={t("common.error")} message={alertMsg} onClose={() => setAlertOpen(false)} />
+            {/* Announces the outcome of every action for screen readers. */}
+            <p aria-live="polite" className="sr-only">{announcement}</p>
             <ConfirmModal
                 open={clearConfirmOpen}
                 title={t("lineup.clearConfirmTitle")}
@@ -849,6 +1148,8 @@ export default function LineupEditor({
 
                     <div
                         ref={pitchRef}
+                        role="group"
+                        aria-label={t("lineup.pitchLabel")}
                         className={`relative w-full rounded-lg overflow-hidden border select-none ${dragTarget === "pitch" ? "border-blue-500 border-2" : "border-green-700"}`}
                         style={{ paddingBottom: "130%", backgroundColor: "#15803d" }}
                     >
@@ -862,35 +1163,57 @@ export default function LineupEditor({
                                 return (
                                     <div
                                         key={slot}
-                                        className="absolute -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full border-2 border-dashed border-white/40 flex items-center justify-center"
+                                        className="absolute -translate-x-1/2 -translate-y-1/2"
                                         style={{ left: `${a.x}%`, top: `${a.y}%` }}
                                     >
-                                        <span className="text-[10px] text-white/60 font-bold">{slot.replace(/\d+$/, "")}</span>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.currentTarget.focus();
+                                                placePlayerInSlot(slot);
+                                            }}
+                                            aria-label={t("lineup.emptySlot", { position: slotLabel(slot) })}
+                                            className="w-12 h-12 rounded-full border-2 border-dashed border-white/40 flex items-center justify-center hover:border-white/70"
+                                        >
+                                            <span className="text-[10px] text-white/60 font-bold">{slotBaseName(slot)}</span>
+                                        </button>
                                     </div>
                                 );
                             }
                             return (
                                 <div
                                     key={slot}
-                                    onMouseDown={canEdit ? (e) => startDragSlot(e, slot) : undefined}
-                                    onTouchStart={canEdit ? (e) => startDragSlot(e, slot) : undefined}
                                     className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
                                     style={{ left: `${a.x}%`, top: `${a.y}%` }}
                                 >
-                                    <div className={`w-12 h-12 rounded-full bg-white text-black border-2 ${a.playerId === captainId ? "border-yellow-500" : "border-white"} flex items-center justify-center font-bold ${canEdit ? "cursor-grab active:cursor-grabbing" : ""} ${draggingSlot === slot ? "opacity-40" : ""}`}
+                                    <button
+                                        type="button"
+                                        onMouseDown={canEdit ? (e) => startDragSlot(e, slot) : undefined}
+                                        onTouchStart={canEdit ? (e) => startDragSlot(e, slot) : undefined}
+                                        onClick={(e) => {
+                                            e.currentTarget.focus();
+                                            placePlayerInSlot(slot);
+                                        }}
+                                        aria-label={t("lineup.slotWithPlayer", {
+                                            position: slotLabel(slot),
+                                            name: a.name,
+                                        })}
+                                        className={`relative w-12 h-12 rounded-full bg-white text-black border-2 ${a.playerId === captainId ? "border-yellow-500" : "border-white"} flex items-center justify-center font-bold ${canEdit ? "cursor-grab active:cursor-grabbing" : ""} ${draggingSlot === slot ? "opacity-40" : ""}`}
                                         style={{ touchAction: "none" }}
                                     >
                                         {a.playerId === captainId && (
                                             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-yellow-400 text-black text-[8px] font-bold flex items-center justify-center border border-yellow-600">C</span>
                                         )}
                                         <span className="text-sm leading-tight">{a.shirtNumber ? `#${a.shirtNumber}` : "?"}</span>
-                                    </div>
+                                    </button>
                                     <span className="mt-0.5 text-[10px] leading-tight text-white text-center max-w-[5rem] truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">{a.name}</span>
                                     {canEdit && (
                                         <button
+                                            type="button"
                                             onMouseDown={(e) => e.stopPropagation()}
                                             onTouchStart={(e) => e.stopPropagation()}
                                             onClick={() => handleRemove(slot)}
+                                            aria-label={t("lineup.removePlayerFrom", { name: a.name })}
                                             className="text-[10px] text-white/60 hover:text-white"
                                         >
                                             {t("lineup.remove")}
@@ -920,28 +1243,39 @@ export default function LineupEditor({
                     <h2 className="font-bold text-black mb-3">
                         {t("lineup.players", { count: pool.length })}
                     </h2>
-                    <div className="space-y-2">
+                    <div className="space-y-2" role="group" aria-label={t("lineup.poolLabel")}>
                         {pool.length === 0 ? (
                             <p className="text-sm text-gray-400">{t("lineup.allAssigned")}</p>
                         ) : (
                             pool.map((player) => (
-                                <div
+                                <button
                                     key={player.id}
+                                    type="button"
                                     onMouseDown={canEdit ? (e) => startDragPlayer(e, player.id) : undefined}
                                     onTouchStart={canEdit ? (e) => startDragPlayer(e, player.id) : undefined}
-                                    className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm ${
+                                    onClick={(e) => {
+                                        e.currentTarget.focus();
+                                        togglePlayerSelection(player.id);
+                                    }}
+                                    aria-pressed={selectedPlayerId === player.id}
+                                    aria-label={t("lineup.selectPlayer", { name: player.name })}
+                                    className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-sm ${
                                         canEdit
-                                            ? "cursor-grab border-gray-200 bg-white hover:border-gray-400 active:cursor-grabbing"
+                                            ? `cursor-grab border-gray-200 bg-white hover:border-gray-400 active:cursor-grabbing ${
+                                                  selectedPlayerId === player.id
+                                                      ? "border-blue-500 ring-2 ring-blue-500"
+                                                      : ""
+                                              }`
                                             : "border-gray-100 bg-gray-50"
                                     } ${draggingPlayer === player.id ? "opacity-40" : ""}`}
                                     style={{ touchAction: "none" }}
                                 >
                                     <span className="text-black font-medium">{player.name}</span>
-                                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                                    <span className="flex items-center gap-2 text-xs text-gray-400">
                                         {player.position && <span>{player.position} - {t(`positions.${player.position}`)}</span>}
                                         {player.shirt_number && <span>#{player.shirt_number}</span>}
-                                    </div>
-                                </div>
+                                    </span>
+                                </button>
                             ))
                         )}
                     </div>
@@ -955,30 +1289,53 @@ export default function LineupEditor({
                                 <h3 className="text-sm font-bold text-black mb-2">
                                     {t("lineup.substitutes", { count: subs.length })}
                                 </h3>
+                                {canEdit && selectedPlayerId && (
+                                    <button
+                                        type="button"
+                                        onClick={placeSelectedAsSub}
+                                        className="mb-2 rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
+                                    >
+                                        {t("lineup.addToSubstitutes")}
+                                    </button>
+                                )}
                                 {subs.length === 0 ? (
                                     <p className="text-xs text-gray-400">{t("lineup.dragHere")}</p>
                                 ) : (
-                                    <div className="space-y-2">
+                                    <div className="space-y-2" role="group" aria-label={t("lineup.substitutes", { count: subs.length })}>
                                         {subs.map((sub) => (
                                             <div
                                                 key={sub.playerId}
-                                                onMouseDown={canEdit ? (e) => startDragPlayer(e, sub.playerId) : undefined}
-                                                onTouchStart={canEdit ? (e) => startDragPlayer(e, sub.playerId) : undefined}
-                                                className={`flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm ${canEdit ? "cursor-grab active:cursor-grabbing" : ""} ${draggingPlayer === sub.playerId ? "opacity-40" : ""}`}
-                                                style={{ touchAction: "none" }}
+                                                className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm"
                                             >
-                                                <span className="text-black font-medium">{sub.name}{sub.playerId === captainId && <span className="ml-1 inline-block w-4 h-4 rounded-full bg-yellow-400 text-black text-[8px] font-bold text-center leading-4 border border-yellow-600">C</span>}</span>
+                                                <button
+                                                    type="button"
+                                                    onMouseDown={canEdit ? (e) => startDragPlayer(e, sub.playerId) : undefined}
+                                                    onTouchStart={canEdit ? (e) => startDragPlayer(e, sub.playerId) : undefined}
+                                                    onClick={(e) => {
+                                                        e.currentTarget.focus();
+                                                        togglePlayerSelection(sub.playerId);
+                                                    }}
+                                                    aria-pressed={selectedPlayerId === sub.playerId}
+                                                    aria-label={t("lineup.selectPlayer", { name: sub.name })}
+                                                    className={`flex-1 text-left ${canEdit ? "cursor-grab active:cursor-grabbing" : ""} ${draggingPlayer === sub.playerId ? "opacity-40" : ""} ${selectedPlayerId === sub.playerId ? "text-blue-700" : "text-black"}`}
+                                                    style={{ touchAction: "none" }}
+                                                >
+                                                    <span className="font-medium">{sub.name}</span>
+                                                    {sub.playerId === captainId && <span className="ml-1 inline-block w-4 h-4 rounded-full bg-yellow-400 text-black text-[8px] font-bold text-center leading-4 border border-yellow-600">C</span>}
+                                                </button>
                                                 <div className="flex items-center gap-2">
                                                     {sub.shirtNumber && (
                                                         <span className="text-gray-400 text-xs">#{sub.shirtNumber}</span>
                                                     )}
                                                     {canEdit && (
-                                                    <button
-                                                        onClick={() => handleRemoveSub(sub.playerId)}
-                                                        className="text-gray-400 hover:text-red-500 text-xs"
-                                                    >
-                                                        ✕
-                                                    </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveSub(sub.playerId)}
+                                                            aria-label={t("lineup.removePlayerFrom", { name: sub.name })}
+                                                            className="text-gray-400 hover:text-red-500 text-xs"
+                                                        >
+                                                            ✕
+                                                        </button>
                                                     )}
                                                 </div>
                                             </div>
