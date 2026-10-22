@@ -9,7 +9,7 @@ import AvailabilityButton from "@/components/AvailabilityButton";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import EventDate from "@/components/EventDate";
-import { formatAmount } from "@/lib/utils";
+import { formatAmount, fromDateTimeLocalValue, toDateTimeLocalValue } from "@/lib/utils";
 
 const supabase = createClient();
 
@@ -188,33 +188,72 @@ function EventsContent() {
         setEditingEvent(event.id);
         setEditTitle(event.title);
         setEditType(event.type);
-        setEditDate(event.date.slice(0, 16));
+        // The field is a local wall clock, so it has to be filled with the
+        // local time of the event -- the same time the list shows. The raw
+        // ISO string holds UTC and would put a different hour in the field.
+        setEditDate(toDateTimeLocalValue(event.date));
         setEditLocation(event.location ?? "");
     }
 
     async function saveEdit(eventId: string) {
+        const current = events.find((e) => e.id === eventId);
+        if (!current) return;
+
+        const isoDate = fromDateTimeLocalValue(editDate);
+        if (!isoDate) {
+            setAlertMsg(t("events.invalidDate"));
+            setAlertOpen(true);
+            return;
+        }
+
+        // The database refuses to turn a training that has a pitch
+        // reservation into a match. Say it before the request, so the
+        // admin does not lose the whole edit to a database error.
+        if (current.type === "training" && editType === "match" && reservationAmounts[eventId]) {
+            setAlertMsg(t("events.reservedCannotBeMatch"));
+            setAlertOpen(true);
+            return;
+        }
+
+        // Only send what actually changed. The database has a trigger on
+        // `type`, and a payload that mentions the column makes it fire
+        // even when the type did not change.
+        const patch: { title?: string; type?: "match" | "training"; date?: string; location?: string | null } = {};
+        if (editTitle !== current.title) patch.title = editTitle;
+        if (editType !== current.type) patch.type = editType;
+        if (new Date(isoDate).getTime() !== new Date(current.date).getTime()) patch.date = isoDate;
+        const location = editLocation || null;
+        if (location !== current.location) patch.location = location;
+
+        if (Object.keys(patch).length === 0) {
+            setEditingEvent(null);
+            return;
+        }
+
         setSaving(true);
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from("events")
-            .update({
-                title: editTitle,
-                type: editType,
-                date: new Date(editDate).toISOString(),
-                location: editLocation || null,
-            })
-            .eq("id", eventId);
+            .update(patch)
+            .eq("id", eventId)
+            .select("id, title, type, date, location")
+            .maybeSingle();
         if (error) {
             setAlertMsg(t("events.failedSave") + error.message);
             setAlertOpen(true);
             setSaving(false);
             return;
         }
+        if (!data) {
+            // No error and no row: the update was filtered out, so nothing
+            // was written. Reporting success here is what made a lost edit
+            // look like a save that worked.
+            setAlertMsg(t("events.notSaved"));
+            setAlertOpen(true);
+            setSaving(false);
+            return;
+        }
         setEvents((prev) =>
-            prev.map((e) =>
-                e.id === eventId
-                    ? { ...e, title: editTitle, type: editType, date: new Date(editDate).toISOString(), location: editLocation || null }
-                    : e
-            )
+            prev.map((e) => (e.id === eventId ? { ...e, ...data } : e))
         );
         setEditingEvent(null);
         setSaving(false);
@@ -234,10 +273,16 @@ function EventsContent() {
             setAlertMsg(t("events.failedDelete") + error.message);
             setAlertOpen(true);
             setSaving(false);
+            setPendingDeleteEventId(null);
             return;
         }
         setEvents((prev) => prev.filter((e) => e.id !== pendingDeleteEventId));
         setAvailability((prev) => prev.filter((a) => a.event_id !== pendingDeleteEventId));
+        setReservationAmounts((prev) => {
+            const next = { ...prev };
+            delete next[pendingDeleteEventId];
+            return next;
+        });
         setPendingDeleteEventId(null);
         setSaving(false);
     }

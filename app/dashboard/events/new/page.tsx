@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { fromDateTimeLocalValue } from "@/lib/utils";
 
 export default function NewEventPage() {
     const [type, setType] = useState<"match" | "training">("training");
@@ -36,11 +37,18 @@ export default function NewEventPage() {
             setLoading(false);
             return;
         }
+        // The field holds the local wall clock; the database stores UTC.
+        const isoDate = fromDateTimeLocalValue(date);
+        if (!isoDate) {
+            setError(t("events.invalidDate"));
+            setLoading(false);
+            return;
+        }
         const { error: insertError } = await supabase.from("events").insert({
             team_id: profile.team_id,
             type,
             title,
-            date: new Date(date).toISOString(),
+            date: isoDate,
             location: location || null,
         });
         if (insertError) {
