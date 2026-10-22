@@ -2,16 +2,23 @@
  * RSVP deadline for an event. Matches close at midnight on the match day;
  * trainings close 25 hours before their start time.
  *
- * The deadline is computed in UTC so the server and the browser always agree.
- * `setHours()` used the *runtime's* local timezone, which meant the cutoff
- * depended on whichever device the player happened to be using (and the
- * server-rendered list could disagree with the button next to it).
+ * "Midnight" is midnight in the viewer's own timezone, which follows the day
+ * boundary the calendar and the event list use. The previous UTC version took
+ * midnight on the *UTC* day, so for a kickoff late enough to land on the next
+ * local day the deadline fell almost 24 hours early, and for ordinary evening
+ * kickoffs it drifted by the DST offset.
+ *
+ * The browser is the authority: RSVPs are written from the client and checked
+ * against this same value at click time. `app/dashboard/page.tsx` is a server
+ * component, so it computes this with the process timezone (UTC on Vercel)
+ * rather than the viewer's; during the offset window after local midnight its
+ * list can briefly hide an event the RSVP button would still accept.
  */
 export function getAvailabilityDeadline(event: { date: string; type: string }): Date {
     const start = new Date(event.date);
     if (Number.isNaN(start.getTime())) return new Date(0);
     return event.type === "match"
-        ? new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()))
+        ? new Date(start.getFullYear(), start.getMonth(), start.getDate())
         : new Date(start.getTime() - 25 * 60 * 60 * 1000);
 }
 

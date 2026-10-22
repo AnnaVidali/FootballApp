@@ -110,6 +110,10 @@ export default async function DashboardPage() {
 
   const now = new Date();
 
+  // The deadline is midnight in the *viewer's* timezone, but this runs on the
+  // server, so it is evaluated with the process timezone (UTC on Vercel) and
+  // can disagree with the RSVP button by the viewer's offset. The button is the
+  // authority; this list only decides what is worth showing after closing.
   const visibleEvents = isCoach
     ? (upcomingEvents ?? [])
     : (upcomingEvents ?? []).filter((e) => {
