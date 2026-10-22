@@ -8,11 +8,11 @@
  * local day the deadline fell almost 24 hours early, and for ordinary evening
  * kickoffs it drifted by the DST offset.
  *
- * The browser is the authority: RSVPs are written from the client and checked
- * against this same value at click time. `app/dashboard/page.tsx` is a server
- * component, so it computes this with the process timezone (UTC on Vercel)
- * rather than the viewer's; during the offset window after local midnight its
- * list can briefly hide an event the RSVP button would still accept.
+ * The browser is the authority: every caller is a client component, so this
+ * is evaluated in the viewer's timezone and matches the RSVP button. Keep it
+ * that way -- a server render would use the process timezone (UTC on Vercel)
+ * and could hide an event that is still open, or keep one around after it
+ * closed.
  */
 export function getAvailabilityDeadline(event: { date: string; type: string }): Date {
     const start = new Date(event.date);

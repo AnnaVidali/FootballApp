@@ -1,10 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import AddToCalendarButton from "@/components/AddToCalendarButton";
-import AvailabilityStatus from "@/components/AvailabilityStatus";
-import EventDate from "@/components/EventDate";
+import DashboardEventList from "@/components/DashboardEventList";
 import { getServerT } from "@/lib/server-i18n";
-import { formatAmount, getAvailabilityDeadline } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -81,7 +78,9 @@ export default async function DashboardPage() {
         .eq("user_id", user.id)
         .in("event_id", eventIds)
     : { data: [] };
-  const myStatusMap = new Map((myAvailability ?? []).map((a) => [a.event_id, a.status]));
+  const statuses: Record<string, string> = Object.fromEntries(
+    (myAvailability ?? []).map((a) => [a.event_id, a.status])
+  );
 
   const { data: reservationRows } = eventIds.length > 0
     ? await supabase
@@ -89,46 +88,9 @@ export default async function DashboardPage() {
         .select("event_id, amount")
         .in("event_id", eventIds)
     : { data: [] };
-  const reservationAmounts = new Map(
+  const reservationAmounts: Record<string, number> = Object.fromEntries(
     (reservationRows ?? []).map((r) => [r.event_id, Number(r.amount)])
   );
-
-  const reservationBadge = (eventId: string) => {
-    const amount = reservationAmounts.get(eventId);
-    if (amount === undefined) return null;
-    return (
-      <p className="mt-0.5">
-        <Link
-          href="/dashboard/reservations"
-          className="text-xs text-gray-400 hover:text-gray-600"
-        >
-          🏟️ {t("reservations.pitchReserved", { amount: formatAmount(amount) })}
-        </Link>
-      </p>
-    );
-  };
-
-  const now = new Date();
-
-  // The deadline is midnight in the *viewer's* timezone, but this runs on the
-  // server, so it is evaluated with the process timezone (UTC on Vercel) and
-  // can disagree with the RSVP button by the viewer's offset. The button is the
-  // authority; this list only decides what is worth showing after closing.
-  const visibleEvents = isCoach
-    ? (upcomingEvents ?? [])
-    : (upcomingEvents ?? []).filter((e) => {
-        const status = myStatusMap.get(e.id);
-        const deadline = getAvailabilityDeadline(e);
-        const closed = now > deadline;
-
-        if (closed) {
-          if (status === "unavailable" || status === "maybe") return false;
-          if (!status) return false;
-          return true;
-        }
-
-        return true;
-      });
 
   const { count: rosterCount } = await supabase
     .from("profiles")
@@ -196,58 +158,12 @@ export default async function DashboardPage() {
 
       <div>
         <h2 className="text-lg font-bold text-black mb-3">{t("dashboard.upcomingEvents")}</h2>
-        {visibleEvents.length > 0 ? (
-          <div className="space-y-3">
-            {visibleEvents.map((event) => (
-              <div
-                key={event.id}
-                className="rounded-lg bg-white p-4 shadow-sm"
-              >
-                <div>
-                  <p className="font-medium text-black">{event.title}</p>
-                  <p className="text-sm text-gray-500">
-                    {event.type === "match" ? t("dashboard.match") : t("dashboard.training")} · 
-                    <EventDate date={event.date} />
-                    {event.location && ` · ${event.location}`}
-                  </p>
-                  {reservationBadge(event.id)}
-                   {!isCoach && (() => {
-                    const deadline = getAvailabilityDeadline(event);
-                    const closed = now > deadline;
-                    const status = myStatusMap.get(event.id);
-                    if (closed) return null;
-                    if (status === "maybe") {
-                      return (
-                        <p className="text-xs text-yellow-600 mt-1">
-                          {t("dashboard.maybeAnswer")}
-                        </p>
-                      );
-                    }
-                    if (!status) {
-                      return (
-                        <p className="text-xs text-gray-400 mt-1">
-                          {t("dashboard.markAvailability")}
-                        </p>
-                      );
-                    }
-                    return null;
-                  })()}
-                   {!isCoach && <AvailabilityStatus eventDate={event.date} eventType={event.type} />}
-                  <div className="mt-2">
-                    <AddToCalendarButton
-                      title={event.title}
-                      date={event.date}
-                      location={event.location}
-                      type={event.type}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500">{t("dashboard.noUpcomingEvents")}</p>
-        )}
+        <DashboardEventList
+          events={upcomingEvents ?? []}
+          statuses={statuses}
+          reservationAmounts={reservationAmounts}
+          isCoach={isCoach}
+        />
       </div>
     </div>
   );
