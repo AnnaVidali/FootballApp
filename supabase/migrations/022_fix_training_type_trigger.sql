@@ -14,39 +14,34 @@
 --       CREATE FUNCTION prevent_reserved_training_type_change() ...
 --       $$ LANGUAGE plpgsql SET search_path = '';
 --
---   That empty search_path is inherited by the whole UPDATE statement
---   when PostgREST prepares and executes it. Referential-integrity
---   checks (events.captain_id -> profiles(id) is re-checked on every
---   update) and other internal name lookups are then resolved with
---   `public` no longer visible, so Postgres raises 42P01 for the bare
---   name `profiles`.
+--   The 42P01 for the bare name `profiles` came from an *unqualified*
+--   table reference in a trigger body that ran on the same statement,
+--   resolved against the empty path. An empty search_path set on a
+--   function is scoped to that function's execution; it does NOT leak
+--   into the calling UPDATE statement. (Corrected after the audit, see
+--   AUDIT_FINDINGS.md M-8.)
+--
+--   The original explanation below was wrong, and the "fix" it led to
+--   removed a hardening measure for no reason. The body still has to
+--   reference everything qualified, and migration 036 re-pins its
+--   search_path.
 --
 --     * Editing a training  -> trigger skips (NEW.type = 'training'),
 --                              so it worked.
---     * Editing a match     -> trigger body runs, the empty
---                              search_path leaks into the statement,
---                              and internal `profiles` lookups fail.
+--     * Editing a match     -> trigger body ran and hit an unqualified
+--                              `profiles` lookup, which failed.
 --     * Disabling this one trigger made matches save fine, which
 --       pinned the cause to this function.
 --
---   Other trigger functions share the same `SET search_path = ''`
---   style (stamp_reservation_payment_paid_at, protect_reservation_columns,
---   protect_reservation_payment_amount, cleanup_availability_on_team_change,
---   generate_invite_code, handle_team_created). They were NOT touched
---   here: they are on write paths that do not revalidate a profiles
---   foreign key, so they do not exhibit the failure and changing them
---   would be risk without evidence. Revisit only if they ever throw
---   42P01.
+--   Other trigger functions shared the same `SET search_path = ''`
+--   style and were left alone. That part is fine: their bodies are
+--   fully qualified.
 --
 -- Fix:
---   Re-create the trigger function WITHOUT the pinned empty
---   search_path. It is a plain (non-SECURITY-DEFINER) trigger
---   function: it runs with the caller's privileges, so the
---   migration-020 search_path hardening is not required for it, and
---   removing it restores normal name resolution for the statement.
---
---   The table reference inside the body stays fully qualified
---   (public.reservations), so the function itself remains unambiguous.
+--   Re-create the trigger function with its body fully qualified.
+--   Migration 033 later corrected the condition so an edit that leaves
+--   the type unchanged is not rejected, and migration 036 restored the
+--   search_path pin.
 --
 -- Behaviour is unchanged: a training that has a pitch reservation
 -- still cannot be changed into a match.
