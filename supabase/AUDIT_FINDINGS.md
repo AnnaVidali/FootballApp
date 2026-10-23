@@ -774,14 +774,12 @@ last row of `unnest(...) WITH ORDINALITY`. Two consequences:
   can differ from the stored amount by a cent — and the *last* participant's row differs from
   the preview.
 
-The DB total is correct (verified: 30.50 → 15.25 + 15.25, total 30.50). Suggested fix: reject
-splits that would round to zero, and have the client display the actual per-row amounts rather
-than a computed even share.
-```sql
-IF v_share < 0.01 THEN
-  RAISE EXCEPTION 'The amount is too small to split between % players', v_count;
-END IF;
-```
+The DB total is correct (verified: 30.50 → 15.25 + 15.25, total 30.50).
+
+**Resolved in 034.** Every participant now gets the same share, rounded to the nearest cent
+with standard rounding (`round((v_amount * 100) / v_count) / 100`). The client preview uses
+the same rule (`equalShare` in `lib/utils.ts`). The migration rewrites any differing unpaid
+rows for existing splits to the equal amount.
 
 ### L-5 · Unbounded user-supplied text
 `handle_new_user` copies `raw_user_meta_data->>'name'` with no length limit (`001:121`);

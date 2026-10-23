@@ -65,6 +65,16 @@ export function formatAmount(value: number, currency = DEFAULT_CURRENCY): string
     return `${currency}${value.toFixed(2).replace(".", ",")}`;
 }
 
+/**
+ * What each participant owes in a reservation split, rounded to the nearest
+ * cent with standard rounding so everyone pays the same amount.
+ * Mirrors `finalize_reservation_split` (migration 034).
+ */
+export function equalShare(total: number, count: number): number {
+    if (count <= 0) return 0;
+    return Math.round((total * 100) / count) / 100;
+}
+
 export function formatTimeLeft(ms: number): string | null {
     if (ms <= 0) return null;
     const totalSeconds = Math.floor(ms / 1000);

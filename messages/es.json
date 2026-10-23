@@ -249,6 +249,7 @@
     "splitTitle": "¿Quién estuvo?",
     "splitHint": "Marca a quienes repartirán el coste del campo.",
     "splitPreview": "{count} personas · {amount} por persona",
+    "splitRounding": "Las partes se redondean al céntimo más cercano para que todos paguen lo mismo.",
     "splitMinOne": "Marca al menos a una persona.",
     "confirmSplit": "Confirmar reparto",
     "waitingForSplit": "Esperando a que {name} fije el reparto.",

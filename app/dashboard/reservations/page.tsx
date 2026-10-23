@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
-import { formatAmount, getAvailabilityDeadline } from "@/lib/utils";
+import { equalShare, formatAmount, getAvailabilityDeadline } from "@/lib/utils";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import EventDate from "@/components/EventDate";
@@ -480,11 +480,9 @@ export default function ReservationsPage() {
                                 const total = rows.reduce((sum, p) => sum + Number(p.amount), 0);
                                 const paidRows = rows.filter((p) => p.paid);
                                 const paidTotal = paidRows.reduce((sum, p) => sum + Number(p.amount), 0);
-                                // The standard share: rows may differ by a cent where
-                                // the last row absorbed the rounding remainder.
-                                const share = rows.length > 0
-                                    ? Math.round((Number(reservation.amount) / rows.length) * 100) / 100
-                                    : 0;
+                                // Every row holds the same share, rounded to the nearest
+                                // cent (standard rounding).
+                                const share = equalShare(Number(reservation.amount), rows.length);
 
                                 if (rows.length === 0) {
                                     if (!canManage) {
@@ -502,12 +500,10 @@ export default function ReservationsPage() {
                                     const roster = members
                                         .filter((m) => m.role !== "coach")
                                         .sort((a, b) => a.name.localeCompare(b.name));
-                                    const previewShare =
-                                        ticked.length > 0
-                                            ? Math.round(
-                                                  (Number(reservation.amount) / ticked.length) * 100
-                                              ) / 100
-                                            : 0;
+                                    const previewShare = equalShare(
+                                        Number(reservation.amount),
+                                        ticked.length
+                                    );
 
                                     if (splitFor !== reservation.id) {
                                         return (
@@ -564,14 +560,21 @@ export default function ReservationsPage() {
                                                 })}
                                             </div>
                                             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                                                <p className="text-xs text-gray-600">
-                                                    {ticked.length > 0
-                                                        ? t("reservations.splitPreview", {
-                                                              count: ticked.length,
-                                                              amount: formatAmount(previewShare),
-                                                          })
-                                                        : t("reservations.splitMinOne")}
-                                                </p>
+                                                <div className="text-xs text-gray-600">
+                                                    <p>
+                                                        {ticked.length > 0
+                                                            ? t("reservations.splitPreview", {
+                                                                  count: ticked.length,
+                                                                  amount: formatAmount(previewShare),
+                                                              })
+                                                            : t("reservations.splitMinOne")}
+                                                    </p>
+                                                    {ticked.length > 0 && (
+                                                        <p className="mt-0.5 text-gray-400">
+                                                            {t("reservations.splitRounding")}
+                                                        </p>
+                                                    )}
+                                                </div>
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => confirmSplit(reservation)}

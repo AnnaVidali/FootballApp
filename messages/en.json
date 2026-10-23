@@ -249,6 +249,7 @@
     "splitTitle": "Who was there?",
     "splitHint": "Tick everyone who should split the cost of the pitch.",
     "splitPreview": "{count} people · {amount} each",
+    "splitRounding": "Shares are rounded to the nearest cent so everyone pays the same.",
     "splitMinOne": "Tick at least one person.",
     "confirmSplit": "Confirm split",
     "waitingForSplit": "Waiting for {name} to set the split.",
