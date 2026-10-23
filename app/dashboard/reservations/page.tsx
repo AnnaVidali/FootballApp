@@ -48,7 +48,6 @@ export default function ReservationsPage() {
     const [editingEvent, setEditingEvent] = useState<string | null>(null);
     const [editAmount, setEditAmount] = useState("");
     const [confirmCancel, setConfirmCancel] = useState<Reservation | null>(null);
-    const [copiedId, setCopiedId] = useState<string | null>(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const [busyId, setBusyId] = useState<string | null>(null);
     const [splitFor, setSplitFor] = useState<string | null>(null);
@@ -115,7 +114,7 @@ export default function ReservationsPage() {
 
             const { data: reservationRows } = await supabase
                 .from("reservations")
-                .select("id, event_id, created_by, amount, created_at")
+                .select("id, event_id, created_by, amount, closed_at, created_at")
                 .in("event_id", eventIds);
             const loadedReservations = (reservationRows ?? []) as Reservation[];
             setReservations(loadedReservations);
@@ -249,30 +248,78 @@ export default function ReservationsPage() {
         setReloadKey((key) => key + 1);
     }
 
-    async function confirmSplit(reservation: Reservation) {
+    async function refreshPayments(reservationId: string) {
+        const { data: refreshed } = await supabase
+            .from("reservation_payments")
+            .select(PAYMENT_COLUMNS)
+            .eq("reservation_id", reservationId);
+        const rows = (refreshed ?? []) as ReservationPayment[];
+        setPayments((prev) => [
+            ...prev.filter((p) => p.reservation_id !== reservationId),
+            ...rows,
+        ]);
+    }
+
+    async function saveSplit(reservation: Reservation, editing: boolean) {
         if (ticked.length === 0) return;
         setBusyId(reservation.id);
-        const { error } = await supabase.rpc("finalize_reservation_split", {
-            p_reservation_id: reservation.id,
-            p_participants: ticked,
-        });
+        const { error } = editing
+            ? await supabase.rpc("update_reservation_split", {
+                  p_reservation_id: reservation.id,
+                  p_participants: ticked,
+              })
+            : await supabase.rpc("finalize_reservation_split", {
+                  p_reservation_id: reservation.id,
+                  p_participants: ticked,
+              });
         if (error) {
-            setAlertMsg(t("reservations.finalizeFailed") + error.message);
+            setAlertMsg(
+                (editing
+                    ? t("reservations.updateSplitFailed")
+                    : t("reservations.finalizeFailed")) + error.message
+            );
             setAlertOpen(true);
             setBusyId(null);
             return;
         }
-        const { data: refreshed } = await supabase
-            .from("reservation_payments")
-            .select(PAYMENT_COLUMNS)
-            .eq("reservation_id", reservation.id);
-        const created = (refreshed ?? []) as ReservationPayment[];
-        setPayments((prev) => [
-            ...prev.filter((p) => p.reservation_id !== reservation.id),
-            ...created,
-        ]);
+        await refreshPayments(reservation.id);
         setSplitFor(null);
         setTicked([]);
+        setBusyId(null);
+    }
+
+    async function closeReservation(reservation: Reservation) {
+        setBusyId(reservation.id);
+        const { error } = await supabase.rpc("close_reservation", {
+            p_reservation_id: reservation.id,
+        });
+        if (error) {
+            setAlertMsg(t("reservations.closeFailed") + error.message);
+            setAlertOpen(true);
+            setBusyId(null);
+            return;
+        }
+        const closedAt = new Date().toISOString();
+        setReservations((prev) =>
+            prev.map((r) => (r.id === reservation.id ? { ...r, closed_at: closedAt } : r))
+        );
+        setBusyId(null);
+    }
+
+    async function reopenReservation(reservation: Reservation) {
+        setBusyId(reservation.id);
+        const { error } = await supabase.rpc("reopen_reservation", {
+            p_reservation_id: reservation.id,
+        });
+        if (error) {
+            setAlertMsg(t("reservations.reopenFailed") + error.message);
+            setAlertOpen(true);
+            setBusyId(null);
+            return;
+        }
+        setReservations((prev) =>
+            prev.map((r) => (r.id === reservation.id ? { ...r, closed_at: null } : r))
+        );
         setBusyId(null);
     }
 
@@ -294,17 +341,89 @@ export default function ReservationsPage() {
         setBusyId(null);
     }
 
-    function copySummary(event: TrainingEvent, reservation: Reservation, rows: ReservationPayment[]) {
-        if (!navigator.clipboard) return;
-        const lines = [`${event.title} · ${formatAmount(Number(reservation.amount))}`];
-        rows.forEach((p) => {
-            const name = memberById.get(p.user_id)?.name ?? t("common.none");
-            lines.push(`${name}: ${formatAmount(Number(p.amount))}${p.paid ? " ✓" : ""}`);
-        });
-        navigator.clipboard.writeText(lines.join("\n")).then(() => {
-            setCopiedId(reservation.id);
-            setTimeout(() => setCopiedId(null), 2000);
-        });
+    function renderSplitPicker(reservation: Reservation, editing: boolean) {
+        const roster = members
+            .filter((m) => m.role !== "coach")
+            .sort((a, b) => a.name.localeCompare(b.name));
+        const previewShare = equalShare(Number(reservation.amount), ticked.length);
+
+        return (
+            <div className="mt-3 rounded-md border border-gray-200 bg-white p-3">
+                <p className="text-sm font-medium text-black">
+                    {t("reservations.splitTitle")}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                    {t("reservations.splitHint")}
+                </p>
+                <div className="mt-2 flex flex-col gap-1">
+                    {roster.map((m) => {
+                        const on = ticked.includes(m.id);
+                        return (
+                            <button
+                                key={m.id}
+                                type="button"
+                                onClick={() =>
+                                    setTicked((prev) =>
+                                        on
+                                            ? prev.filter((id) => id !== m.id)
+                                            : [...prev, m.id]
+                                    )
+                                }
+                                className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                                    on
+                                        ? "bg-green-50 text-green-800"
+                                        : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                                }`}
+                            >
+                                <span aria-hidden="true">{on ? "✓" : "○"}</span>
+                                <span className="truncate">{m.name}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-xs text-gray-600">
+                        <p>
+                            {ticked.length > 0
+                                ? t("reservations.splitPreview", {
+                                      count: ticked.length,
+                                      amount: formatAmount(previewShare),
+                                  })
+                                : t("reservations.splitMinOne")}
+                        </p>
+                        {ticked.length > 0 && (
+                            <p className="mt-0.5 text-gray-400">
+                                {t("reservations.splitRounding")}
+                            </p>
+                        )}
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => saveSplit(reservation, editing)}
+                            disabled={busyId === reservation.id || ticked.length === 0}
+                            className="rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+                            style={{
+                                backgroundColor: "var(--primary)",
+                                color: "var(--primary-text)",
+                            }}
+                        >
+                            {editing
+                                ? t("reservations.saveSplit")
+                                : t("reservations.confirmSplit")}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setSplitFor(null);
+                                setTicked([]);
+                            }}
+                            className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+                        >
+                            {t("common.cancel")}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     function renderTraining(event: TrainingEvent) {
@@ -312,6 +431,9 @@ export default function ReservationsPage() {
         const deadline = getAvailabilityDeadline(event);
         const closed = new Date() > deadline;
         const yesCount = yesProfileIds(event.id).length;
+        const isCreatorOrAdmin =
+            reservation !== undefined &&
+            (reservation.created_by === myProfileId || isAdmin);
         const canManage =
             reservation !== undefined &&
             (reservation.created_by === myProfileId || isAdmin) &&
@@ -497,14 +619,6 @@ export default function ReservationsPage() {
                                         );
                                     }
 
-                                    const roster = members
-                                        .filter((m) => m.role !== "coach")
-                                        .sort((a, b) => a.name.localeCompare(b.name));
-                                    const previewShare = equalShare(
-                                        Number(reservation.amount),
-                                        ticked.length
-                                    );
-
                                     if (splitFor !== reservation.id) {
                                         return (
                                             <div className="mt-3">
@@ -525,80 +639,19 @@ export default function ReservationsPage() {
                                         );
                                     }
 
-                                    return (
-                                        <div className="mt-3 rounded-md border border-gray-200 bg-white p-3">
-                                            <p className="text-sm font-medium text-black">
-                                                {t("reservations.splitTitle")}
-                                            </p>
-                                            <p className="text-xs text-gray-500 mt-0.5">
-                                                {t("reservations.splitHint")}
-                                            </p>
-                                            <div className="mt-2 flex flex-col gap-1">
-                                                {roster.map((m) => {
-                                                    const on = ticked.includes(m.id);
-                                                    return (
-                                                        <button
-                                                            key={m.id}
-                                                            type="button"
-                                                            onClick={() =>
-                                                                setTicked((prev) =>
-                                                                    on
-                                                                        ? prev.filter((id) => id !== m.id)
-                                                                        : [...prev, m.id]
-                                                                )
-                                                            }
-                                                            className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-                                                                on
-                                                                    ? "bg-green-50 text-green-800"
-                                                                    : "bg-gray-50 text-gray-500 hover:bg-gray-100"
-                                                            }`}
-                                                        >
-                                                            <span aria-hidden="true">{on ? "✓" : "○"}</span>
-                                                            <span className="truncate">{m.name}</span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                                                <div className="text-xs text-gray-600">
-                                                    <p>
-                                                        {ticked.length > 0
-                                                            ? t("reservations.splitPreview", {
-                                                                  count: ticked.length,
-                                                                  amount: formatAmount(previewShare),
-                                                              })
-                                                            : t("reservations.splitMinOne")}
-                                                    </p>
-                                                    {ticked.length > 0 && (
-                                                        <p className="mt-0.5 text-gray-400">
-                                                            {t("reservations.splitRounding")}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => confirmSplit(reservation)}
-                                                        disabled={
-                                                            busyId === reservation.id || ticked.length === 0
-                                                        }
-                                                        className="rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-                                                        style={{
-                                                            backgroundColor: "var(--primary)",
-                                                            color: "var(--primary-text)",
-                                                        }}
-                                                    >
-                                                        {t("reservations.confirmSplit")}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setSplitFor(null)}
-                                                        className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
-                                                    >
-                                                        {t("common.cancel")}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
+                                    return renderSplitPicker(reservation, false);
+                                }
+
+                                const hasOtherPaid = rows.some(
+                                    (p) => p.paid && p.user_id !== reservation.created_by
+                                );
+                                // The creator's own row is paid automatically (they
+                                // fronted the pitch). Once anyone else has paid, the
+                                // shares are real money and can no longer be rewritten.
+                                const canEditSplit = isCreatorOrAdmin && !hasOtherPaid;
+
+                                if (splitFor === reservation.id && canEditSplit) {
+                                    return renderSplitPicker(reservation, true);
                                 }
 
                                 return (
@@ -634,15 +687,24 @@ export default function ReservationsPage() {
                                                             })}
                                                         </span>
                                                     ))}
-                                            <button
-                                                onClick={() => copySummary(event, reservation, rows)}
-                                                className="text-gray-400 underline hover:text-gray-600"
-                                            >
-                                                {copiedId === reservation.id
-                                                    ? t("reservations.copied")
-                                                    : t("reservations.copyForBizum")}
-                                            </button>
+                                            {canEditSplit && (
+                                                <button
+                                                    onClick={() => {
+                                                        setTicked(rows.map((p) => p.user_id));
+                                                        setSplitFor(reservation.id);
+                                                    }}
+                                                    className="text-gray-400 underline hover:text-gray-600"
+                                                >
+                                                    {t("reservations.editSplit")}
+                                                </button>
+                                            )}
                                         </div>
+
+                                        {isCreatorOrAdmin && !canEditSplit && (
+                                            <p className="mt-1 text-xs text-gray-400">
+                                                {t("reservations.splitLocked")}
+                                            </p>
+                                        )}
 
                                         <div className="mt-2 divide-y divide-gray-100">
                                             {rows.map((payment) => {
@@ -706,12 +768,66 @@ export default function ReservationsPage() {
                                                 );
                                             })}
                                         </div>
+
+                                        {paidRows.length === rows.length && isCreatorOrAdmin && (
+                                            <div className="mt-3 flex justify-end border-t border-gray-200 pt-3">
+                                                <button
+                                                    onClick={() => closeReservation(reservation)}
+                                                    disabled={busyId === reservation.id}
+                                                    className="rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+                                                    style={{
+                                                        backgroundColor: "var(--primary)",
+                                                        color: "var(--primary-text)",
+                                                    }}
+                                                >
+                                                    {busyId === reservation.id
+                                                        ? t("reservations.closing")
+                                                        : t("reservations.close")}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })()
                         )}
                     </div>
                 )}
+            </div>
+        );
+    }
+
+    function renderClosed(event: TrainingEvent) {
+        const reservation = reservationByEvent.get(event.id);
+        if (!reservation) return null;
+        const canManage = reservation.created_by === myProfileId || isAdmin;
+
+        return (
+            <div
+                key={event.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white px-4 py-3 shadow-sm"
+            >
+                <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-black">{event.title}</p>
+                    <p className="text-xs text-gray-500">
+                        <EventDate date={event.date} />
+                        {event.location && ` · ${event.location}`}
+                        {` · ${formatAmount(Number(reservation.amount))}`}
+                    </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                    <span className="text-xs text-gray-400">{t("reservations.closed")}</span>
+                    {canManage && (
+                        <button
+                            onClick={() => reopenReservation(reservation)}
+                            disabled={busyId === reservation.id}
+                            className="text-xs text-gray-500 underline hover:text-gray-700 disabled:opacity-50"
+                        >
+                            {busyId === reservation.id
+                                ? t("reservations.reopening")
+                                : t("reservations.reopen")}
+                        </button>
+                    )}
+                </div>
             </div>
         );
     }
@@ -730,9 +846,16 @@ export default function ReservationsPage() {
     }
 
     const now = new Date();
-    const upcoming = events.filter((e) => new Date(e.date) >= now);
+    const isClosed = (event: TrainingEvent) =>
+        Boolean(reservationByEvent.get(event.id)?.closed_at);
+    const upcoming = events.filter((e) => new Date(e.date) >= now && !isClosed(e));
     const past = events
-        .filter((e) => new Date(e.date) < now && reservationByEvent.has(e.id))
+        .filter(
+            (e) => new Date(e.date) < now && reservationByEvent.has(e.id) && !isClosed(e)
+        )
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const closedEvents = events
+        .filter(isClosed)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return (
@@ -772,6 +895,15 @@ export default function ReservationsPage() {
                     <h2 className="text-lg font-bold text-black mb-3">{t("reservations.past")}</h2>
                     <div className="space-y-3">{past.map(renderTraining)}</div>
                 </div>
+            )}
+
+            {closedEvents.length > 0 && (
+                <details className="mt-8">
+                    <summary className="cursor-pointer text-sm font-medium text-gray-500 hover:text-gray-700">
+                        {t("reservations.closedCount", { count: closedEvents.length })}
+                    </summary>
+                    <div className="mt-3 space-y-2">{closedEvents.map(renderClosed)}</div>
+                </details>
             )}
         </div>
     );

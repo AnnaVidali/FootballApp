@@ -77,6 +77,7 @@ export interface Reservation {
   event_id: string;
   created_by: string;
   amount: number;
+  closed_at: string | null;
   created_at: string;
 }
 
