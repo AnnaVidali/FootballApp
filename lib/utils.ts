@@ -67,6 +67,11 @@ export function formatAmount(value: number, currency = DEFAULT_CURRENCY): string
  * What each participant owes in a reservation split, rounded to the nearest
  * cent with standard rounding so everyone pays the same amount.
  * Mirrors `finalize_reservation_split` (migration 034).
+ *
+ * A share can round to 0.00 only when there is less than half a cent per
+ * participant (0.04 split 13 ways). That is not clamped on purpose: a 0.01
+ * minimum would collect several times the reservation amount. Real pitch
+ * prices never get near it.
  */
 export function equalShare(total: number, count: number): number {
     if (count <= 0) return 0;

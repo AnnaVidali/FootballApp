@@ -862,7 +862,7 @@ Re-run the audit after each step; the probes above are re-runnable as-is against
 
 ---
 
-## Resolution status (2026-10-23)
+## Resolution status (2026-10-29)
 
 Every finding below was re-checked against the live project after the fix. The verification probes were
 run inside `BEGIN … ROLLBACK`, so no live row was modified.
@@ -882,7 +882,7 @@ run inside `BEGIN … ROLLBACK`, so no live row was modified.
 | H-8 | Fixed | **027** revokes PUBLIC EXECUTE on the split helpers. |
 | H-9 | Fixed | **028** drops the live-only `profiles."Update profiles"` policy. |
 | M-1 | Fixed | **036** stamps `paid_at` on the false→true transition and freezes it afterwards. The audit's proposed `ELSE` only covered the transition; a later update could still rewrite an already-paid timestamp, so that case is covered too. |
-| M-2 | Mitigated | **036** takes `FOR UPDATE` on the reservation before the split reads it, which serialises a split against a concurrent edit or delete. The UPDATE/DELETE policies still rely on the row lock rather than their own locking check; a two-session race test is still outstanding. |
+| M-2 | Fixed | **036** takes `FOR UPDATE` on the reservation before the split reads it; **040** adds a `BEFORE UPDATE OR DELETE` trigger that takes the same lock *before* checking for payment rows. A two-session test confirms the change waits behind the split lock and is then rejected. |
 | M-3 | Fixed | **035** demotes the outgoing owner and locks the team row during the transfer. |
 | M-4 | Fixed | **036** renames the cleanup trigger to `cleanup_on_team_change()` and removes lineups, set pieces and captaincies as well as availability. Storage objects on disband are still not deleted (see L-7). |
 | M-5 | Fixed | **035** pins the profile guard; **036** pins `prevent_reserved_training_type_change()` and `protect_team_owner_id()`. No public function is unpinned now. |
@@ -893,7 +893,7 @@ run inside `BEGIN … ROLLBACK`, so no live row was modified.
 | L-1 | Fixed | **036** adds `events_team_id_date_idx`. |
 | L-2 | Fixed | **036** back-fills, defaults and marks `profiles.is_admin NOT NULL`. |
 | L-3 | Fixed | **036** adds `reservation_payments_amount_nonneg`. |
-| L-4 | Fixed | **034** (equal shares, client preview matches). |
+| L-4 | Fixed | **034** uses the same nearest-cent rule on the server and in `equalShare()`. The header now describes nearest-cent rounding, including the (theoretical) 0.00 share below half a cent per participant; clamping it was rejected because it would over-collect more than the reservation itself. |
 | L-5 | Fixed | **036** bounds name, position, title, location and caption. |
 | L-6 | Fixed | **036** generates new codes from `gen_random_uuid()` (CSPRNG, built in on PG 13+). Existing codes are unchanged; rotate them by clearing `teams.invite_code` if that matters. |
 | L-7 | Open, documented | Direct deletes from `storage.objects` are still rejected by `storage.protect_delete()`. Deleting the files on disband needs the Storage API (server route with the service role), not SQL. |

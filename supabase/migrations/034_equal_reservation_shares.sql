@@ -4,15 +4,19 @@
 -- 021 rounded a share to the nearest cent and let the last row
 -- absorb the remainder, so one participant could owe a few cents
 -- less (e.g. 30.50 / 13 => 12 x 2.35 + 1 x 2.30). A shared bill
--- has to read the same for everyone, so the share is now rounded
--- *up* to the next cent and every row gets exactly that amount.
+-- has to read the same for everyone, so every row now gets the
+-- nearest-cent share:
 --
--- A total that does not divide evenly into cents can therefore
--- collect at most `v_count - 1` cents more than the reservation
--- amount (30.50 / 13 => 13 x 2.35 = 30.55). Nobody is ever left
--- short and no single person carries the discrepancy. Because the
--- share is rounded up it can never round down to 0.00, so a very
--- small amount still gives every participant at least one cent.
+--   round((amount * 100) / count) / 100
+--
+-- It is *nearest* cent, not the next cent up. A total that does not
+-- divide evenly can therefore collect slightly more or slightly less
+-- than the reservation amount (30.50 / 13 => 13 x 2.35 = 30.55, five
+-- cents over). No single person carries the discrepancy. The amount
+-- is not clamped: a share can only round to 0.00 when there is less
+-- than half a cent per participant (0.04 split 13 ways), which cannot
+-- happen at a real pitch price. Clamping to 0.01 there would collect
+-- more than three times the reservation amount, which is worse.
 --
 -- CREATE OR REPLACE keeps this file re-runnable.
 
