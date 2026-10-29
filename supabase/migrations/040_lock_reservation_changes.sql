@@ -23,6 +23,9 @@
 -- policies that call it. Updates that leave `amount` untouched are
 -- allowed: `close_reservation()` / `reopen_reservation()` only set
 -- `closed_at` and have to keep working after the split exists.
+-- Deletes that cascade from an event, team or profile are left alone;
+-- deleting the parent already requires its own permission and still
+-- removes the reservation and its shares.
 --
 -- CREATE OR REPLACE / DROP TRIGGER IF EXISTS keep this re-runnable.
 
@@ -33,6 +36,14 @@ SECURITY DEFINER
 SET search_path = ''
 AS $fn$
 BEGIN
+  -- A delete that cascades from an event, team or profile is already
+  -- authorised by the parent row and must keep its ON DELETE CASCADE
+  -- behaviour. A direct DELETE on this table is a top-level trigger
+  -- (depth 1); a cascade is nested (depth > 1).
+  IF TG_OP = 'DELETE' AND pg_trigger_depth() > 1 THEN
+    RETURN OLD;
+  END IF;
+
   -- Same lock finalize_reservation_split() takes, so the payment
   -- snapshot below cannot change between the check and the write.
   PERFORM 1
