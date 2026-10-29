@@ -271,6 +271,7 @@ export default function ReservationsPage() {
             : await supabase.rpc("finalize_reservation_split", {
                   p_reservation_id: reservation.id,
                   p_participants: ticked,
+                  p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
               });
         if (error) {
             setAlertMsg(
