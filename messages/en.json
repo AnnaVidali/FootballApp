@@ -51,7 +51,8 @@
     "close": "Close",
     "errorUpload": "Upload failed",
     "deleteConfirmTitle": "Delete this?",
-    "deleteConfirmMessage": "It will be removed from the gallery for everyone."
+    "deleteConfirmMessage": "It will be removed from the gallery for everyone.",
+    "deleteFailed": "Could not delete the item: {error}"
   },
   "roles": {
     "admin": "Admin",
@@ -137,7 +138,8 @@
     "logoOptional": "Team Logo (optional)",
     "creating": "Creating...",
     "goToDashboard": "Go to Dashboard",
-    "duplicateName": "A team with this name already exists!"
+    "duplicateName": "A team with this name already exists!",
+    "settingsFailed": "The team was created, but its colours or logo could not be saved: {error}"
   },
   "joinTeam": {
     "title": "Join a Team",
@@ -166,6 +168,10 @@
     "transferConfirm": "Transfer ownership to {name}? You\u0027ll remain an admin.",
     "removeConfirm": "Remove {name} from the team?",
     "saveFailed": "Could not save the changes: {error}",
+    "checkFailed": "Could not check whether you can leave the team: {error}",
+    "leaveFailed": "Could not leave the team: {error}",
+    "transferFailed": "Could not transfer ownership: {error}",
+    "removeFailed": "Could not remove the player: {error}",
     "invalidShirtNumber": "Shirt number must be a whole number between 0 and 99."
   },
   "events": {

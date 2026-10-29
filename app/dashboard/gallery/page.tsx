@@ -201,10 +201,16 @@ export default function GalleryPage() {
         const item = items.find((i) => i.id === deleteId);
         setDeleteId(null);
         if (!item || !teamId) return;
+        // Delete the row first: if that fails, the gallery keeps a working
+        // entry instead of leaving a row whose stored file is already gone.
+        const { error } = await supabase.from("gallery_items").delete().eq("id", item.id);
+        if (error) {
+            showAlert(t("gallery.deleteFailed", { error: error.message }));
+            return;
+        }
         if (item.kind === "photo" && item.storage_path) {
             await supabase.storage.from("gallery").remove([item.storage_path]);
         }
-        await supabase.from("gallery_items").delete().eq("id", item.id);
         await loadItems(teamId);
     }
 

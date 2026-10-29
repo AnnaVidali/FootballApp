@@ -51,7 +51,8 @@
     "close": "Cerrar",
     "errorUpload": "Error al subir",
     "deleteConfirmTitle": "\u00bfEliminar esto?",
-    "deleteConfirmMessage": "Se quitar\u00e1 de la galer\u00eda para todos."
+    "deleteConfirmMessage": "Se quitar\u00e1 de la galer\u00eda para todos.",
+    "deleteFailed": "No se pudo eliminar el elemento: {error}"
   },
   "roles": {
     "admin": "Administrador",
@@ -137,7 +138,8 @@
     "logoOptional": "Logo del Equipo (opcional)",
     "creating": "Creando...",
     "goToDashboard": "Ir al Panel",
-    "duplicateName": "\u00a1Ya existe un equipo con este nombre!"
+    "duplicateName": "\u00a1Ya existe un equipo con este nombre!",
+    "settingsFailed": "El equipo se cre\u00f3, pero no se pudieron guardar sus colores o logo: {error}"
   },
   "joinTeam": {
     "title": "Unirse a un Equipo",
@@ -166,6 +168,10 @@
     "transferConfirm": "\u00bfTransferir la propiedad a {name}? Permanecer\u00e1s como administrador.",
     "removeConfirm": "\u00bfEliminar a {name} del equipo?",
     "saveFailed": "No se pudieron guardar los cambios: {error}",
+    "checkFailed": "No se pudo comprobar si puedes salir del equipo: {error}",
+    "leaveFailed": "No se pudo salir del equipo: {error}",
+    "transferFailed": "No se pudo transferir la propiedad: {error}",
+    "removeFailed": "No se pudo eliminar al jugador: {error}",
     "invalidShirtNumber": "El dorsal debe ser un n\u00famero entero entre 0 y 99."
   },
   "events": {

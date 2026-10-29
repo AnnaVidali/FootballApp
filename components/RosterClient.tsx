@@ -105,7 +105,12 @@ export default function RosterClient({
     }
 
     async function leaveTeam() {
-        const { data: canLeave } = await supabase.rpc("can_leave_team");
+        const { data: canLeave, error: canLeaveError } = await supabase.rpc("can_leave_team");
+        if (canLeaveError) {
+            setAlertMsg(t("roster.checkFailed", { error: canLeaveError.message }));
+            setAlertOpen(true);
+            return;
+        }
         if (canLeave === false) {
             if (isOwner) {
                 setAlertMsg(t("roster.ownerWarning"));
@@ -145,12 +150,23 @@ export default function RosterClient({
                     if (pendingLeave) {
                         setPendingLeave(false);
                         setLoading(true);
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (!user) return;
-                        await supabase
+                        const { data: { user }, error: userError } = await supabase.auth.getUser();
+                        if (userError || !user) {
+                            setLoading(false);
+                            setAlertMsg(t("roster.leaveFailed", { error: userError?.message ?? t("auth.notLoggedIn") }));
+                            setAlertOpen(true);
+                            return;
+                        }
+                        const { error } = await supabase
                             .from("profiles")
                             .update({ team_id: null })
                             .eq("user_id", user.id);
+                        if (error) {
+                            setLoading(false);
+                            setAlertMsg(t("roster.leaveFailed", { error: error.message }));
+                            setAlertOpen(true);
+                            return;
+                        }
                         setLoading(false);
                         router.push("/dashboard");
                         router.refresh();
@@ -158,14 +174,26 @@ export default function RosterClient({
                         const targetId = pendingTransferId;
                         setPendingTransferId(null);
                         setLoading(true);
-                        await supabase.rpc("transfer_ownership", { target_profile_id: targetId });
+                        const { error } = await supabase.rpc("transfer_ownership", { target_profile_id: targetId });
+                        if (error) {
+                            setLoading(false);
+                            setAlertMsg(t("roster.transferFailed", { error: error.message }));
+                            setAlertOpen(true);
+                            return;
+                        }
                         setLoading(false);
                         router.refresh();
                     } else if (pendingRemoveId) {
                         const targetId = pendingRemoveId;
                         setPendingRemoveId(null);
                         setLoading(true);
-                        await supabase.rpc("admin_remove_player", { target_profile_id: targetId });
+                        const { error } = await supabase.rpc("admin_remove_player", { target_profile_id: targetId });
+                        if (error) {
+                            setLoading(false);
+                            setAlertMsg(t("roster.removeFailed", { error: error.message }));
+                            setAlertOpen(true);
+                            return;
+                        }
                         setLoading(false);
                         router.refresh();
                     }

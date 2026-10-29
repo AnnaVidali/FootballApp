@@ -16,6 +16,7 @@ export default function CreateTeamPage() {
     const [primaryColour, setPrimaryColour] = useState("#16a34a");
     const [secondaryColour, setSecondaryColour] = useState("#ffffff");
     const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [settingsWarning, setSettingsWarning] = useState("");
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -57,11 +58,13 @@ export default function CreateTeamPage() {
             const { error: uploadError } = await supabase.storage
                 .from("team-logos")
                 .upload(fileName, logoFile);
-            if (!uploadError) {
+            if (uploadError) {
+                setSettingsWarning(t("team.settingsFailed", { error: uploadError.message }));
+            } else {
                 const { data: urlData } = supabase.storage
                     .from("team-logos")
                     .getPublicUrl(fileName);
-                await supabase
+                const { error: settingsError } = await supabase
                     .from("teams")
                     .update({
                         logo_url: urlData.publicUrl,
@@ -69,15 +72,21 @@ export default function CreateTeamPage() {
                         secondary_color: secondaryColour,
                     })
                     .eq("id", team.id);
+                if (settingsError) {
+                    setSettingsWarning(t("team.settingsFailed", { error: settingsError.message }));
+                }
             }
         } else {
-            await supabase
+            const { error: settingsError } = await supabase
                 .from("teams")
                 .update({
                     primary_color: primaryColour,
                     secondary_color: secondaryColour,
                 })
                 .eq("id", team.id);
+            if (settingsError) {
+                setSettingsWarning(t("team.settingsFailed", { error: settingsError.message }));
+            }
         }
 
         setInviteCode(team.invite_code);
@@ -96,6 +105,9 @@ export default function CreateTeamPage() {
                     <p className="text-3xl font-mono font-bold mb-6" style={{ color: "var(--primary-display)" }}>
                         {inviteCode}
                     </p>
+                    {settingsWarning && (
+                        <p className="text-sm text-red-600 mb-4" role="alert">{settingsWarning}</p>
+                    )}
                     <button
                         onClick={() => { router.push("/dashboard"); router.refresh(); }}
                         className="w-full rounded-md px-4 py-2 font-medium"
