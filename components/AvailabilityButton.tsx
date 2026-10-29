@@ -38,14 +38,12 @@ function isPastDeadline(deadline: Date): boolean {
 export default function AvailabilityButton({
     eventId,
     eventDate,
-    eventType,
     currentUserId,
     initialStatus,
     onUpdate,
 }: {
     eventId: string;
     eventDate: string;
-    eventType: string;
     currentUserId: string;
     initialStatus: Status | null;
     onUpdate: (eventId: string, userId: string, status: Status) => void;
@@ -68,8 +66,8 @@ export default function AvailabilityButton({
     // Derived, not stored: the deadline has to follow the event when the admin
     // moves it, otherwise the countdown keeps pointing at the old date.
     const deadline = useMemo(
-        () => getAvailabilityDeadline({ date: eventDate, type: eventType }),
-        [eventDate, eventType]
+        () => getAvailabilityDeadline({ date: eventDate }),
+        [eventDate]
     );
 
     const now = useNow();

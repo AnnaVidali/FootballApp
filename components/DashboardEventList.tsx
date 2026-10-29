@@ -86,7 +86,7 @@ export default function DashboardEventList({
                   {t("dashboard.markAvailability")}
                 </p>
               )}
-              {!isCoach && <AvailabilityStatus eventDate={event.date} eventType={event.type} />}
+              {!isCoach && <AvailabilityStatus eventDate={event.date} />}
               <div className="mt-2">
                 <AddToCalendarButton
                   title={event.title}

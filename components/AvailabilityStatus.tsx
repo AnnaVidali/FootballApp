@@ -5,14 +5,14 @@ import { formatTimeLeft, getAvailabilityDeadline } from "@/lib/utils";
 import { useLocaleContext } from "@/lib/i18n-context";
 import { useNow } from "@/lib/use-now";
 
-export default function AvailabilityStatus({ eventDate, eventType }: { eventDate: string; eventType: string }) {
+export default function AvailabilityStatus({ eventDate }: { eventDate: string }) {
   const { t } = useLocaleContext();
 
   // Derived, not stored: the deadline has to follow the event when the admin
   // moves it, otherwise the countdown keeps pointing at the old date.
   const deadline = useMemo(
-    () => getAvailabilityDeadline({ date: eventDate, type: eventType }),
-    [eventDate, eventType]
+    () => getAvailabilityDeadline({ date: eventDate }),
+    [eventDate]
   );
 
   const now = useNow();

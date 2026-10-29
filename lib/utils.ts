@@ -1,6 +1,6 @@
 /**
- * RSVP deadline for an event. Matches close at midnight on the match day;
- * trainings close 25 hours before their start time.
+ * RSVP deadline for an event. Every event -- match or training -- closes at
+ * midnight on its own day.
  *
  * "Midnight" is midnight in the viewer's own timezone, which follows the day
  * boundary the calendar and the event list use. The previous UTC version took
@@ -14,12 +14,10 @@
  * and could hide an event that is still open, or keep one around after it
  * closed.
  */
-export function getAvailabilityDeadline(event: { date: string; type: string }): Date {
+export function getAvailabilityDeadline(event: { date: string }): Date {
     const start = new Date(event.date);
     if (Number.isNaN(start.getTime())) return new Date(0);
-    return event.type === "match"
-        ? new Date(start.getFullYear(), start.getMonth(), start.getDate())
-        : new Date(start.getTime() - 25 * 60 * 60 * 1000);
+    return new Date(start.getFullYear(), start.getMonth(), start.getDate());
 }
 
 /**
