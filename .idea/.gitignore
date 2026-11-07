@@ -8,3 +8,5 @@
 /dataSources.local.xml
 # Shared datasource definition - keep out of git so an inline password can never be committed
 /dataSources.xml
+# Per-machine SQL dialect mapping
+/sqldialects.xml
