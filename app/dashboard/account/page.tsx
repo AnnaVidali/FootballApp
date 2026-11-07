@@ -187,14 +187,21 @@ export default function AccountPage() {
 
     async function handleDisbandTeam() {
         setLoading(true);
-        const { error } = await supabase.rpc("disband_team");
-        setLoading(false);
-        if (error) {
-            showAlert(t("common.error"), error.message);
-        } else {
-            router.push("/dashboard");
-            router.refresh();
+        try {
+            const res = await fetch("/api/team/disband", { method: "POST" });
+            const data = await readJsonResponse(res);
+            if (!res.ok) {
+                showAlert(t("common.error"), data.error || "Unknown error");
+                return;
+            }
+        } catch (err) {
+            showAlert(t("common.error"), err instanceof Error ? err.message : "Unknown error");
+            return;
+        } finally {
+            setLoading(false);
         }
+        router.push("/dashboard");
+        router.refresh();
     }
 
     return (

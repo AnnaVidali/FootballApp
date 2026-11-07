@@ -14,7 +14,13 @@
     "maybe": "Maybe",
     "no": "No",
     "none": "None",
-    "remove": "Remove"
+    "remove": "Remove",
+    "somethingWentWrong": "Something went wrong",
+    "errorDescription": "The app hit an unexpected error. You can try again.",
+    "tryAgain": "Try again",
+    "backToDashboard": "Back to dashboard",
+    "pageNotFound": "Page not found",
+    "pageNotFoundDescription": "That page does not exist or you no longer have access to it."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -146,6 +152,7 @@
     "inviteCode": "Invite Code",
     "askCoach": "Ask your coach or captain for the code",
     "invalidCode": "Invalid invite code. Check with your admin for the correct code.",
+    "tooManyAttempts": "Too many invite code attempts. Wait a few minutes and try again.",
     "joining": "Joining...",
     "joinTeam": "Join Team"
   },

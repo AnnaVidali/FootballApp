@@ -26,7 +26,16 @@ export default function JoinTeamPage() {
         const { data: teamId, error: joinError } = await supabase.rpc("join_team_with_code", {
             p_code: code,
         });
-        if (joinError || !teamId) {
+        if (joinError) {
+            setError(
+                joinError.details === "join_rate_limited"
+                    ? t("joinTeam.tooManyAttempts")
+                    : t("joinTeam.invalidCode")
+            );
+            setLoading(false);
+            return;
+        }
+        if (!teamId) {
             setError(t("joinTeam.invalidCode"));
             setLoading(false);
             return;

@@ -14,7 +14,13 @@
     "maybe": "Tal vez",
     "no": "No",
     "none": "Ninguno",
-    "remove": "Eliminar"
+    "remove": "Eliminar",
+    "somethingWentWrong": "Algo sali\u00f3 mal",
+    "errorDescription": "La aplicaci\u00f3n encontr\u00f3 un error inesperado. Puedes intentarlo de nuevo.",
+    "tryAgain": "Intentar de nuevo",
+    "backToDashboard": "Volver al inicio",
+    "pageNotFound": "P\u00e1gina no encontrada",
+    "pageNotFoundDescription": "Esa p\u00e1gina no existe o ya no tienes acceso a ella."
   },
   "nav": {
     "dashboard": "Inicio",
@@ -146,6 +152,7 @@
     "inviteCode": "C\u00f3digo de Invitaci\u00f3n",
     "askCoach": "Pide el c\u00f3digo a tu entrenador o capit\u00e1n",
     "invalidCode": "C\u00f3digo de invitaci\u00f3n inv\u00e1lido. Consulta con tu administrador para el c\u00f3digo correcto.",
+    "tooManyAttempts": "Demasiados intentos con el c\u00f3digo de invitaci\u00f3n. Espera unos minutos e int\u00e9ntalo de nuevo.",
     "joining": "Uni\u00e9ndose...",
     "joinTeam": "Unirse al Equipo"
   },
