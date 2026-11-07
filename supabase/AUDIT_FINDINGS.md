@@ -2,6 +2,7 @@
 
 Scope: `supabase/migrations/001…026` (26 files), cross-checked against the **live** Supabase
 project (`syamvhvanlnyexmxljni`, PG 17.6), `types/database.ts`, and the app pages under `app/`.
+_(Fix migrations 027-043 are tracked in [Resolution status](#resolution-status-2026-10-29-updated-2026-11-07).)_
 
 Method: every migration was read end to end; the live schema was dumped (`pg_policies`,
 `pg_class.relacl`, `pg_proc.proacl/proconfig`, `pg_trigger`, `pg_constraint`, `pg_indexes`,
@@ -862,10 +863,11 @@ Re-run the audit after each step; the probes above are re-runnable as-is against
 
 ---
 
-## Resolution status (2026-10-29)
+## Resolution status (2026-10-29, updated 2026-11-07)
 
 Every finding below was re-checked against the live project after the fix. The verification probes were
-run inside `BEGIN … ROLLBACK`, so no live row was modified.
+run inside `BEGIN … ROLLBACK`, so no live row was modified. The 2026-11-07 update covers the Storage
+cleanup on disband (the last part of M-4), the follow-up migrations 041-043, and the rate limit.
 
 | Finding | Status | Fix |
 |---|---|---|
@@ -884,7 +886,7 @@ run inside `BEGIN … ROLLBACK`, so no live row was modified.
 | M-1 | Fixed | **036** stamps `paid_at` on the false→true transition and freezes it afterwards. The audit's proposed `ELSE` only covered the transition; a later update could still rewrite an already-paid timestamp, so that case is covered too. |
 | M-2 | Fixed | **036** takes `FOR UPDATE` on the reservation before the split reads it; **040** adds a `BEFORE UPDATE OR DELETE` trigger that takes the same lock *before* checking for payment rows. A two-session test confirms the change waits behind the split lock and is then rejected. |
 | M-3 | Fixed | **035** demotes the outgoing owner and locks the team row during the transfer. |
-| M-4 | Fixed | **036** renames the cleanup trigger to `cleanup_on_team_change()` and removes lineups, set pieces and captaincies as well as availability. Storage objects on disband are still not deleted (see L-7). |
+| M-4 | Fixed | **036** renames the cleanup trigger to `cleanup_on_team_change()` and removes lineups, set pieces and captaincies as well as availability. Storage objects are removed by `POST /api/team/disband`, which lists the team's own folder in both buckets and deletes it with the service role after checking the caller is the owner (SQL cannot delete them; see L-7). |
 | M-5 | Fixed | **035** pins the profile guard; **036** pins `prevent_reserved_training_type_change()` and `protect_team_owner_id()`. No public function is unpinned now. |
 | M-6 | Fixed | **036** drops `on_profile_admin_insert`, `on_profile_admin_change` and both `sync_admin_*` functions. |
 | M-7 | Fixed | `012` now uses `DROP POLICY IF EXISTS` (with 027-031). |
@@ -896,8 +898,11 @@ run inside `BEGIN … ROLLBACK`, so no live row was modified.
 | L-4 | Fixed | **034** uses the same nearest-cent rule on the server and in `equalShare()`. The header now describes nearest-cent rounding, including the (theoretical) 0.00 share below half a cent per participant; clamping it was rejected because it would over-collect more than the reservation itself. |
 | L-5 | Fixed | **036** bounds name, position, title, location and caption. |
 | L-6 | Fixed | **036** generates new codes from `gen_random_uuid()` (CSPRNG, built in on PG 13+). Existing codes are unchanged; rotate them by clearing `teams.invite_code` if that matters. |
-| L-7 | Open, documented | Direct deletes from `storage.objects` are still rejected by `storage.protect_delete()`. Deleting the files on disband needs the Storage API (server route with the service role), not SQL. |
+| L-7 | Partially fixed, documented | The disband route now removes the team's files through the Storage API with the service role. The `storage.objects` DELETE policies remain decorative: direct deletes are still rejected by `storage.protect_delete()` and the Storage API bypasses RLS, so they must not be treated as a security control. |
 | L-8 | Open, documented | Renaming the columns is a data-model migration with app-wide touch points; not worth the churn without another reason. |
+| — | **041** | The `lineups` `WITH CHECK` now requires the player's `profiles.team_id` to equal the event's team, closing the app-code note that an admin could place another team's profile in their own lineup. |
+| — | **042** | Drops the now-unused two-argument `finalize_reservation_split(uuid, uuid[])` wrapper, leaving only the timezone-aware three-argument version. |
+| — | **043** | Adds `join_code_attempts` and caps failed invite-code guesses at 10 per 10 minutes per user; invalid codes now return `NULL` instead of raising so the failure row survives. The join page shows a distinct "too many attempts" message. |
 
 ### N-1 (found while applying the audit, fixed in 035) · `can_leave_team()` was only a UI check
 
