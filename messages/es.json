@@ -153,6 +153,8 @@
     "askCoach": "Pide el c\u00f3digo a tu entrenador o capit\u00e1n",
     "invalidCode": "C\u00f3digo de invitaci\u00f3n inv\u00e1lido. Consulta con tu administrador para el c\u00f3digo correcto.",
     "tooManyAttempts": "Demasiados intentos con el c\u00f3digo de invitaci\u00f3n. Espera unos minutos e int\u00e9ntalo de nuevo.",
+    "currentTeamWarning": "Est\u00e1s en {team}. Unirte a otro equipo te mueve y elimina tu rol de administrador o entrenador.",
+    "cannotLeave": "Transfiere la propiedad o nombra a otro administrador antes de unirte a otro equipo.",
     "joining": "Uni\u00e9ndose...",
     "joinTeam": "Unirse al Equipo"
   },

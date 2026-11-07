@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { getServerLocale } from "@/lib/server-i18n";
 import { LocaleProvider } from "@/lib/i18n-context";
+import { CspNonceProvider } from "@/lib/csp-nonce";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,6 +30,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getServerLocale();
+  // Set by proxy.ts for this request; hand-written inline scripts need it.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
     <html
@@ -35,7 +39,9 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <LocaleProvider locale={locale}>{children}</LocaleProvider>
+        <CspNonceProvider nonce={nonce}>
+          <LocaleProvider locale={locale}>{children}</LocaleProvider>
+        </CspNonceProvider>
       </body>
     </html>
   );

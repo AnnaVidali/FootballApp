@@ -2,6 +2,7 @@
 
 import { useId, useSyncExternalStore } from "react";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { useCspNonce } from "@/lib/csp-nonce";
 
 // `useSyncExternalStore` is the supported way to read a browser-only value:
 // the server snapshot (and the hydration pass) says "not on the client", then
@@ -42,6 +43,7 @@ const OPTIONS: Intl.DateTimeFormatOptions = {
 export default function EventDate({ date }: { date: string }) {
   const id = useId();
   const { locale } = useLocaleContext();
+  const nonce = useCspNonce();
   const dateFmt = locale === "es" ? "es-ES" : "en-GB";
   const onClient = useSyncExternalStore(
     subscribe,
@@ -65,6 +67,7 @@ export default function EventDate({ date }: { date: string }) {
       </time>
       <script
         type={typeof window === "undefined" ? "text/javascript" : "text/plain"}
+        nonce={nonce}
         suppressHydrationWarning
         dangerouslySetInnerHTML={{
           __html: `{var n=document.getElementById(${JSON.stringify(id)});if(n)n.textContent=new Date(${safeDate}).toLocaleDateString(${JSON.stringify(dateFmt)},${JSON.stringify(OPTIONS)})}`,
