@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, type ReactNode } from "react";
 import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function ConfirmModal({
@@ -9,6 +9,8 @@ export default function ConfirmModal({
     message,
     confirmLabel,
     danger = false,
+    confirmDisabled = false,
+    children,
     onConfirm,
     onCancel,
 }: {
@@ -17,22 +19,33 @@ export default function ConfirmModal({
     message: string;
     confirmLabel?: string;
     danger?: boolean;
+    confirmDisabled?: boolean;
+    children?: ReactNode;
     onConfirm: () => void;
     onCancel: () => void;
 }) {
     const cancelRef = useRef<HTMLButtonElement>(null);
     const dialogRef = useRef<HTMLDivElement>(null);
+    const previouslyFocused = useRef<HTMLElement | null>(null);
     const { t } = useLocaleContext();
 
     useEffect(() => {
-        if (open) cancelRef.current?.focus();
+        if (open) {
+            previouslyFocused.current = document.activeElement as HTMLElement | null;
+            cancelRef.current?.focus();
+        } else {
+            previouslyFocused.current?.focus();
+            previouslyFocused.current = null;
+        }
     }, [open]);
 
     const handleKey = useCallback(
         (e: KeyboardEvent) => {
             if (e.key === "Escape") onCancel();
             if (e.key === "Tab" && dialogRef.current) {
-                const focusable = dialogRef.current.querySelectorAll<HTMLElement>("button");
+                const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+                    "button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]"
+                );
                 if (focusable.length === 0) return;
                 const first = focusable[0];
                 const last = focusable[focusable.length - 1];
@@ -66,11 +79,13 @@ export default function ConfirmModal({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="confirm-dialog-title"
+                aria-describedby="confirm-dialog-message"
                 className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4"
                 onClick={(e) => e.stopPropagation()}
             >
                 <h3 id="confirm-dialog-title" className="text-lg font-bold text-black mb-2">{title}</h3>
-                <p className="text-sm text-gray-600 mb-4">{message}</p>
+                <p id="confirm-dialog-message" className="text-sm text-gray-600 mb-4">{message}</p>
+                {children}
                 <div className="flex gap-2">
                     <button
                         ref={cancelRef}
@@ -81,7 +96,8 @@ export default function ConfirmModal({
                     </button>
                     <button
                         onClick={onConfirm}
-                        className={`flex-1 rounded-md px-4 py-2 text-sm font-medium text-white ${
+                        disabled={confirmDisabled}
+                        className={`flex-1 rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${
                             danger ? "bg-red-600 hover:bg-red-700" : ""
                         }`}
                         style={danger ? {} : { backgroundColor: "var(--primary)", color: "var(--primary-text)" }}

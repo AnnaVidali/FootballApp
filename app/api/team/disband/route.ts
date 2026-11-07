@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
+import { rejectCrossOrigin } from "@/lib/api-guard";
 
 const BUCKETS = ["team-logos", "gallery"] as const;
 const LIST_PAGE = 100;
@@ -58,7 +59,10 @@ async function removeFiles(
  * caller has been checked as the team owner, and it only touches the
  * two buckets under that team's own folder.
  */
-export async function POST() {
+export async function POST(request: Request) {
+    const blocked = rejectCrossOrigin(request);
+    if (blocked) return blocked;
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

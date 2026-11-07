@@ -15,7 +15,7 @@ import ConfirmModal from "@/components/ConfirmModal";
  * in its loading state with no error shown. Anything that is not JSON is
  * reported as an error instead.
  */
-async function readJsonResponse(res: Response): Promise<{ error?: string }> {
+async function readJsonResponse(res: Response): Promise<{ error?: string; code?: string; success?: boolean }> {
     const contentType = res.headers.get("content-type") ?? "";
     if (!contentType.includes("application/json")) {
         throw new Error(`Unexpected response (${res.status} ${res.statusText || "no status"}).`);
@@ -32,9 +32,12 @@ export default function AccountPage() {
     const supabase = createClient();
     const { t } = useLocaleContext();
 
+    const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [newEmail, setNewEmail] = useState("");
+    const [emailPassword, setEmailPassword] = useState("");
+    const [deletePassword, setDeletePassword] = useState("");
     const [loading, setLoading] = useState(false);
 
     const [alertOpen, setAlertOpen] = useState(false);
@@ -75,6 +78,10 @@ export default function AccountPage() {
 
     async function handleChangePassword(e: React.FormEvent) {
         e.preventDefault();
+        if (!currentPassword) {
+            showAlert(t("common.error"), t("account.passwordRequired"));
+            return;
+        }
         if (newPassword.length < 6) {
             showAlert(t("common.error"), t("account.passwordMinLength"));
             return;
@@ -84,14 +91,33 @@ export default function AccountPage() {
             return;
         }
         setLoading(true);
-        const { error } = await supabase.auth.updateUser({ password: newPassword });
-        setLoading(false);
-        if (error) {
-            showAlert(t("common.error"), error.message);
-        } else {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user?.email) {
+                showAlert(t("common.error"), t("auth.notLoggedIn"));
+                return;
+            }
+            // Re-authenticate first so a stolen session cannot silently
+            // change the password.
+            const { error: verifyError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: currentPassword,
+            });
+            if (verifyError) {
+                showAlert(t("common.error"), t("account.invalidPassword"));
+                return;
+            }
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+            if (error) {
+                showAlert(t("common.error"), error.message);
+                return;
+            }
+            setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
             showAlert(t("common.notice"), t("account.passwordUpdated"));
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -101,19 +127,30 @@ export default function AccountPage() {
             showAlert(t("common.error"), t("account.enterValidEmail"));
             return;
         }
+        if (!emailPassword) {
+            showAlert(t("common.error"), t("account.passwordRequired"));
+            return;
+        }
         setLoading(true);
         try {
             const res = await fetch("/api/account/update-email", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ newEmail }),
+                body: JSON.stringify({ newEmail, currentPassword: emailPassword }),
             });
             const data = await readJsonResponse(res);
             if (!res.ok) {
-                showAlert(t("common.error"), data.error || t("common.error"));
+                const message =
+                    data.code === "invalid_password"
+                        ? t("account.invalidPassword")
+                        : data.code === "email_unchanged"
+                          ? t("account.emailUnchanged")
+                          : data.error || t("common.error");
+                showAlert(t("common.error"), message);
                 return;
             }
             setNewEmail("");
+            setEmailPassword("");
             showAlert(t("common.notice"), t("account.emailUpdated"));
         } catch (err) {
             showAlert(t("common.error"), err instanceof Error ? err.message : t("common.error"));
@@ -167,19 +204,28 @@ export default function AccountPage() {
         }
 
         try {
-            const deleteRes = await fetch("/api/account/delete", { method: "POST" });
+            const deleteRes = await fetch("/api/account/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ currentPassword: deletePassword }),
+            });
             const data = await readJsonResponse(deleteRes);
             if (!deleteRes.ok) {
-                showAlert(t("common.error"), t("account.failedDelete") + (data.error || "Unknown error"));
+                const message =
+                    data.code === "invalid_password"
+                        ? t("account.invalidPassword")
+                        : t("account.failedDelete") + (data.error || t("common.error"));
+                showAlert(t("common.error"), message);
                 return;
             }
         } catch (err) {
-            showAlert(t("common.error"), t("account.failedDelete") + (err instanceof Error ? err.message : "Unknown error"));
+            showAlert(t("common.error"), t("account.failedDelete") + (err instanceof Error ? err.message : t("common.error")));
             return;
         } finally {
             setLoading(false);
         }
 
+        setDeletePassword("");
         await supabase.auth.signOut();
         router.push("/");
         router.refresh();
@@ -215,9 +261,25 @@ export default function AccountPage() {
                 message={t("account.deleteDesc")}
                 confirmLabel={t("account.deleteAccount")}
                 danger
+                confirmDisabled={!deletePassword}
                 onConfirm={() => { setConfirmOpen(false); handleDeleteAccount(); }}
-                onCancel={() => setConfirmOpen(false)}
-            />
+                onCancel={() => { setConfirmOpen(false); setDeletePassword(""); }}
+            >
+                <div className="mb-4">
+                    <label htmlFor="delete-password" className="block text-sm font-medium text-gray-700 mb-1">
+                        {t("account.currentPassword")}
+                    </label>
+                    <input
+                        id="delete-password"
+                        type="password"
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                        autoComplete="current-password"
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">{t("account.deletePasswordHint")}</p>
+                </div>
+            </ConfirmModal>
             <ConfirmModal
                 open={disbandConfirmOpen}
                 title={t("account.disbandTeam")}
@@ -231,7 +293,22 @@ export default function AccountPage() {
             {/* Change Password */}
             <div className="rounded-lg bg-white p-4 shadow-sm">
                 <h2 className="font-bold text-black mb-3">{t("account.changePassword")}</h2>
+                <p className="text-sm text-gray-500 mb-3">{t("account.currentPasswordHint")}</p>
                 <form onSubmit={handleChangePassword} className="space-y-3">
+                    <div>
+                        <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 mb-1">
+                            {t("account.currentPassword")}
+                        </label>
+                        <input
+                            id="current-password"
+                            type="password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            required
+                            autoComplete="current-password"
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
+                        />
+                    </div>
                     <div>
                         <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-1">
                             {t("account.newPassword")}
@@ -243,6 +320,7 @@ export default function AccountPage() {
                             onChange={(e) => setNewPassword(e.target.value)}
                             required
                             minLength={6}
+                            autoComplete="new-password"
                             className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
                         />
                     </div>
@@ -257,6 +335,7 @@ export default function AccountPage() {
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
                             minLength={6}
+                            autoComplete="new-password"
                             className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
                         />
                     </div>
@@ -286,6 +365,20 @@ export default function AccountPage() {
                             value={newEmail}
                             onChange={(e) => setNewEmail(e.target.value)}
                             required
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="email-password" className="block text-sm font-medium text-gray-700 mb-1">
+                            {t("account.currentPassword")}
+                        </label>
+                        <input
+                            id="email-password"
+                            type="password"
+                            value={emailPassword}
+                            onChange={(e) => setEmailPassword(e.target.value)}
+                            required
+                            autoComplete="current-password"
                             className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
                         />
                     </div>

@@ -51,12 +51,13 @@ function check(name, ok, detail = "") {
     }
 }
 
-async function post(path, body, cookie) {
+async function post(path, body, cookie, extraHeaders = {}) {
     const response = await fetch(`${BASE_URL}${path}`, {
         method: "POST",
         headers: {
             ...(body === undefined ? {} : { "content-type": "application/json" }),
             ...(cookie ? { cookie } : {}),
+            ...extraHeaders,
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         redirect: "manual",
@@ -123,6 +124,8 @@ try {
     const csp = landing.headers.get("content-security-policy") ?? "";
     check("app is reachable", landing.status < 400, `status ${landing.status}`);
     check("CSP header is served", csp.includes("default-src 'self'") && csp.includes("nonce-"));
+    check("X-Powered-By is not advertised", !landing.headers.has("x-powered-by"));
+    check("HSTS header is served", (landing.headers.get("strict-transport-security") ?? "").includes("max-age="));
 
     const { data: created, error: createError } = await admin.auth.admin.createUser({
         email,
@@ -133,7 +136,7 @@ try {
     userId = created.user.id;
     check("throwaway user created", Boolean(userId));
 
-    const unauthorized = await post("/api/account/update-email", { newEmail });
+    const unauthorized = await post("/api/account/update-email", { newEmail, currentPassword: password });
     check(
         "server has the service-role key (401, not 500)",
         unauthorized.status === 401,
@@ -143,14 +146,48 @@ try {
     const cookie = await signIn(email, password);
     check("signed in and captured session cookies", cookie.length > 0);
 
-    const changed = await post("/api/account/update-email", { newEmail }, cookie);
+    const wrongPassword = await post(
+        "/api/account/update-email",
+        { newEmail, currentPassword: "not-the-password" },
+        cookie,
+    );
+    check(
+        "update-email rejects a wrong current password",
+        wrongPassword.status === 401 && wrongPassword.data.code === "invalid_password",
+        `status ${wrongPassword.status}: ${JSON.stringify(wrongPassword.data)}`,
+    );
+
+    const crossOrigin = await post(
+        "/api/account/update-email",
+        { newEmail, currentPassword: password },
+        cookie,
+        { origin: "https://evil.example" },
+    );
+    check(
+        "state-changing route rejects a cross-origin request",
+        crossOrigin.status === 403,
+        `status ${crossOrigin.status}: ${JSON.stringify(crossOrigin.data)}`,
+    );
+
+    const changed = await post(
+        "/api/account/update-email",
+        { newEmail, currentPassword: password },
+        cookie,
+    );
     check("update-email returns success", changed.status === 200 && changed.data.success === true,
         `status ${changed.status}: ${JSON.stringify(changed.data)}`);
 
     const newCookie = await signIn(newEmail, password);
     check("can sign in with the new email", newCookie.length > 0);
 
-    const deleted = await post("/api/account/delete", undefined, newCookie);
+    const wrongDelete = await post("/api/account/delete", { currentPassword: "not-the-password" }, newCookie);
+    check(
+        "delete rejects a wrong current password",
+        wrongDelete.status === 401 && wrongDelete.data.code === "invalid_password",
+        `status ${wrongDelete.status}: ${JSON.stringify(wrongDelete.data)}`,
+    );
+
+    const deleted = await post("/api/account/delete", { currentPassword: password }, newCookie);
     check("delete returns success", deleted.status === 200 && deleted.data.success === true,
         `status ${deleted.status}: ${JSON.stringify(deleted.data)}`);
 

@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
+import { readJsonBody, rejectCrossOrigin, verifyPassword } from "@/lib/api-guard";
 
-export async function POST() {
+export async function POST(request: Request) {
+    const blocked = rejectCrossOrigin(request);
+    if (blocked) return blocked;
+
+    const body = await readJsonBody(request);
+    const currentPassword =
+        typeof body?.currentPassword === "string" ? body.currentPassword : "";
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -15,6 +23,20 @@ export async function POST() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
         return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+    }
+
+    if (!user.email) {
+        return NextResponse.json(
+            { error: "The current account has no email address.", code: "no_email" },
+            { status: 400 },
+        );
+    }
+
+    if (!currentPassword) {
+        return NextResponse.json(
+            { error: "Current password is required.", code: "password_required" },
+            { status: 400 },
+        );
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -41,6 +63,14 @@ export async function POST() {
                 { status: 400 },
             );
         }
+    }
+
+    const passwordOk = await verifyPassword(user.email, currentPassword);
+    if (!passwordOk) {
+        return NextResponse.json(
+            { error: "Current password is incorrect.", code: "invalid_password" },
+            { status: 401 },
+        );
     }
 
     // Delete the auth user
