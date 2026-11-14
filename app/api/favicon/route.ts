@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isOwnTeamLogoUrl } from "@/lib/logo-url";
+import { createHash } from "crypto";
 import { readFile } from "fs/promises";
 import path from "path";
 
@@ -9,7 +10,21 @@ export const dynamic = "force-dynamic";
 const LOGO_FETCH_TIMEOUT_MS = 5000;
 const LOGO_MAX_BYTES = 2 * 1024 * 1024;
 
-export async function GET() {
+function weakEtag(value: string | Buffer): string {
+  return `W/"${createHash("sha1").update(value).digest("hex")}"`;
+}
+
+function notModified(request: Request, etag: string): NextResponse | null {
+  if (request.headers.get("if-none-match") === etag) {
+    return new NextResponse(null, {
+      status: 304,
+      headers: { ETag: etag, "Cache-Control": "private, no-cache" },
+    });
+  }
+  return null;
+}
+
+export async function GET(request: Request) {
   const supabase = await createClient();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const {
@@ -31,6 +46,13 @@ export async function GET() {
         .single();
 
       if (team?.logo_url && isOwnTeamLogoUrl(team.logo_url, profile.team_id, supabaseUrl)) {
+        // The storage path changes whenever a new logo is uploaded, so the
+        // URL itself is a valid cache validator. Revalidating with it keeps
+        // the icon fresh without re-downloading an unchanged logo.
+        const etag = weakEtag(team.logo_url);
+        const cached = notModified(request, etag);
+        if (cached) return cached;
+
         try {
           const res = await fetch(team.logo_url, {
             signal: AbortSignal.timeout(LOGO_FETCH_TIMEOUT_MS),
@@ -44,7 +66,8 @@ export async function GET() {
               return new NextResponse(blob, {
                 headers: {
                   "Content-Type": contentType,
-                  "Cache-Control": "no-cache",
+                  "Cache-Control": "private, no-cache",
+                  ETag: etag,
                 },
               });
             }
@@ -58,10 +81,15 @@ export async function GET() {
 
   const filePath = path.join(process.cwd(), "public", "soccerballimage.png");
   const buffer = await readFile(filePath);
+  const etag = weakEtag(buffer);
+  const cached = notModified(request, etag);
+  if (cached) return cached;
+
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "private, max-age=3600",
+      "Cache-Control": "private, no-cache",
+      ETag: etag,
     },
   });
 }

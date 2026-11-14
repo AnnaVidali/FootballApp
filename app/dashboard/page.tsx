@@ -1,13 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
+import { getSessionContext } from "@/lib/session";
 import Link from "next/link";
 import DashboardEventList from "@/components/DashboardEventList";
 import { getServerT } from "@/lib/server-i18n";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user, profile, team } = await getSessionContext();
 
   const t = await getServerT();
 
@@ -18,12 +15,6 @@ export default async function DashboardPage() {
       </div>
     );
   }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name, role, is_admin, team_id")
-    .eq("user_id", user.id)
-    .single();
 
   const isCoach = profile?.role === "coach";
 
@@ -56,12 +47,6 @@ export default async function DashboardPage() {
       </div>
     );
   }
-
-  const { data: team } = await supabase
-    .from("teams")
-    .select("name, invite_code, logo_url")
-    .eq("id", profile.team_id)
-    .single();
 
   const { data: upcomingEvents } = await supabase
     .from("events")

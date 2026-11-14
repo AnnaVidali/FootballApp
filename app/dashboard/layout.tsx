@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import DashboardShell from "@/components/DashboardShell";
+import { getSessionContext } from "@/lib/session";
 import pkg from "../../package.json";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,28 +17,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, profile, team } = await getSessionContext();
 
   if (!user) {
     redirect("/login");
   }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name, role, is_admin, team_id")
-    .eq("user_id", user.id)
-    .single();
-
-    const { data: team } = profile?.team_id
-    ? await supabase
-        .from("teams")
-        .select("name, logo_url, primary_color, secondary_color, owner_id")
-        .eq("id", profile.team_id)
-        .single()
-    : { data: null };
 
   return (
     <DashboardShell

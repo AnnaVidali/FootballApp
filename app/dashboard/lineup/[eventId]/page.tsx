@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import LineupEditor from "@/components/LineupEditor";
+import { getSessionContext } from "@/lib/session";
 
 export default async function LineupPage({
     params,
@@ -8,17 +8,8 @@ export default async function LineupPage({
     params: Promise<{ eventId: string }>;
 }) {
     const { eventId } = await params;
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    const { supabase, user, profile } = await getSessionContext();
     if (!user) redirect("/login");
-
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("team_id, is_admin")
-        .eq("user_id", user.id)
-        .single();
     if (!profile?.team_id) redirect("/dashboard");
 
     const { data: event } = await supabase

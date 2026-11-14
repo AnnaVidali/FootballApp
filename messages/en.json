@@ -49,6 +49,7 @@
     "general": "General",
     "empty": "Nothing here yet",
     "emptyHint": "Be the first to share a photo.",
+    "loadMore": "Load more",
     "invalidUrl": "Please enter a valid link",
     "openOnInstagram": "Open on Instagram",
     "uploadedBy": "By",
@@ -347,7 +348,9 @@
     "teamLogo": "Team Logo",
     "adminLogoOnly": "Only admins can change the logo",
     "saveChanges": "Save Changes",
-    "settingsSaved": "Settings saved!"
+    "settingsSaved": "Settings saved!",
+    "logoTooLarge": "Logo must be under 2MB.",
+    "logoUploadFailed": "The logo could not be uploaded. Please try again."
   },
   "account": {
     "title": "Account",

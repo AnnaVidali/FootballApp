@@ -49,6 +49,7 @@
     "general": "General",
     "empty": "A\u00fan no hay nada",
     "emptyHint": "S\u00e9 el primero en compartir una foto.",
+    "loadMore": "Cargar m\u00e1s",
     "invalidUrl": "Introduce un enlace v\u00e1lido",
     "openOnInstagram": "Abrir en Instagram",
     "uploadedBy": "Por",
@@ -347,7 +348,9 @@
     "teamLogo": "Logo del Equipo",
     "adminLogoOnly": "Solo los administradores pueden cambiar el logo",
     "saveChanges": "Guardar Cambios",
-    "settingsSaved": "\u00a1Configuraci\u00f3n guardada!"
+    "settingsSaved": "\u00a1Configuraci\u00f3n guardada!",
+    "logoTooLarge": "El logo debe pesar menos de 2MB.",
+    "logoUploadFailed": "No se pudo subir el logo. Int\u00e9ntalo de nuevo."
   },
   "account": {
     "title": "Cuenta",
