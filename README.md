@@ -58,10 +58,10 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 Apply the Supabase migrations **in filename order** from
 `supabase/migrations/001_initial.sql` through
-`supabase/migrations/043_rate_limit_join_code.sql`. The history is applied by
-hand (the numeric prefix is the ordering), and each migration is written to be
-idempotent so a re-run is safe. Ensure the `team-logos` storage bucket exists
-for team logo uploads.
+`supabase/migrations/044_drop_redundant_events_index.sql`. The history is
+applied by hand (the numeric prefix is the ordering), and each migration is
+written to be idempotent so a re-run is safe. Ensure the `team-logos` storage
+bucket exists for team logo uploads.
 
 New tables must grant the Data API commands the app uses in the same migration
 (see the note in `AGENTS.md`); from 30 October 2026 Supabase no longer grants
@@ -75,6 +75,7 @@ New tables must grant the Data API commands the app uses in the same migration
 | `npm run build` | Build for production |
 | `npm start` | Start production server |
 | `npm run lint` | Run ESLint |
+| `npm run typecheck` | Type-check with `tsc --noEmit` |
 | `npm test` | Run the unit tests once (Vitest) |
 | `npm run test:watch` | Run the unit tests in watch mode |
 
@@ -84,6 +85,13 @@ Unit tests live next to the code as `*.test.ts` and run with Vitest. There is
 also an end-to-end account lifecycle check in `scripts/e2e-account.mjs`; it
 needs a production build and a running server (`npm run build && npm start`)
 plus the `SUPABASE_SERVICE_ROLE_KEY` from `.env.local`.
+
+### Continuous Integration
+
+Every push to `master` and every pull request runs the checks in
+`.github/workflows/ci.yml`: ESLint, `tsc --noEmit`, the Vitest unit tests, and
+a production build. Run the same four locally with `npm run lint`,
+`npm run typecheck`, `npm test`, and `npm run build`.
 
 ## Project Structure
 
