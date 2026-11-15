@@ -30,6 +30,7 @@ export default function SettingsClient({
     const [logoPreview, setLogoPreview] = useState<string | null>(initialLogoUrl);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
+    const [messageIsError, setMessageIsError] = useState(false);
     const [alertOpen, setAlertOpen] = useState(false);
     const [alertMsg, setAlertMsg] = useState("");
     const router = useRouter();
@@ -71,9 +72,11 @@ export default function SettingsClient({
             })
             .eq("id", teamId);
         if (error) {
-            setMessage(t("common.error") + ": " + error.message);
+            setMessage(t("settings.saveFailed", { error: error.message }));
+            setMessageIsError(true);
         } else {
             setMessage(t("settings.settingsSaved"));
+            setMessageIsError(false);
             router.refresh();
         }
         setLoading(false);
@@ -84,7 +87,7 @@ export default function SettingsClient({
             <AlertModal open={alertOpen} title={t("common.notice")} message={alertMsg} onClose={() => setAlertOpen(false)} />
             <h1 className="text-2xl font-bold text-black mb-6">{t("settings.teamSettings")}</h1>
             {message && (
-                <p className={`mb-4 text-sm ${message.includes(t("common.error")) ? "text-red-600" : ""}`} style={!message.includes(t("common.error")) ? { color: "var(--primary-display)" } : undefined} role="status">
+                <p className={`mb-4 text-sm ${messageIsError ? "text-red-600" : ""}`} style={!messageIsError ? { color: "var(--primary-display)" } : undefined} role="status">
                     {message}
                 </p>
             )}

@@ -15,14 +15,20 @@ export async function POST(request: Request) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!serviceRoleKey) {
-        return NextResponse.json({ error: "Server misconfigured." }, { status: 500 });
+        return NextResponse.json(
+            { error: "Server misconfigured.", code: "server_misconfigured" },
+            { status: 500 },
+        );
     }
 
     const supabase = await createServerSupabaseClient();
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-        return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+        return NextResponse.json(
+            { error: "Not authenticated.", code: "not_authenticated" },
+            { status: 401 },
+        );
     }
 
     if (!user.email) {
@@ -59,7 +65,10 @@ export async function POST(request: Request) {
 
         if (team?.owner_id === user.id) {
             return NextResponse.json(
-                { error: "You're the team owner. Transfer ownership to another member before deleting your account." },
+                {
+                    error: "You're the team owner. Transfer ownership to another member before deleting your account.",
+                    code: "owner",
+                },
                 { status: 400 },
             );
         }

@@ -110,7 +110,7 @@ export default function GalleryClient({
                     .from("gallery")
                     .upload(path, blob, { contentType });
                 if (uploadError) {
-                    showAlert(uploadError.message);
+                    showAlert(t("gallery.uploadFailed", { error: uploadError.message }));
                     continue;
                 }
                 const { error: insertError } = await supabase.from("gallery_items").insert({
@@ -123,7 +123,7 @@ export default function GalleryClient({
                 if (insertError) {
                     // Roll back the orphaned file so the bucket stays in sync.
                     await supabase.storage.from("gallery").remove([path]);
-                    showAlert(insertError.message);
+                    showAlert(t("gallery.saveFailed", { error: insertError.message }));
                 }
             } catch {
                 showAlert(t("gallery.errorUpload"));
@@ -157,7 +157,7 @@ export default function GalleryClient({
         });
         setBusy(false);
         if (error) {
-            showAlert(error.message);
+            showAlert(t("gallery.saveFailed", { error: error.message }));
             return;
         }
         setLinkUrl("");

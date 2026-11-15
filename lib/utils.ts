@@ -53,14 +53,26 @@ export function fromDateTimeLocalValue(value: string): string | null {
 }
 
 /**
- * Amount with 2 decimals and comma as the decimal separator (7,40 / 8,00).
- * Currency symbol defaults to the euro, which is what the app charges in;
- * pass a different one if that ever changes.
+ * Amount formatted for the viewer's locale, with the currency symbol where
+ * that locale puts it ("€7.40" in en-GB, "7,40 €" in es-ES) and always two
+ * decimals.
+ *
+ * `locale` is a BCP-47 tag (see `intlLocale` in lib/i18n) and `currency` an
+ * ISO 4217 code; the euro is what the app charges in.
  */
-export const DEFAULT_CURRENCY = "€";
+export const DEFAULT_CURRENCY = "EUR";
 
-export function formatAmount(value: number, currency = DEFAULT_CURRENCY): string {
-    return `${currency}${value.toFixed(2).replace(".", ",")}`;
+export function formatAmount(
+    value: number,
+    locale = "en-GB",
+    currency = DEFAULT_CURRENCY
+): string {
+    return new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(value);
 }
 
 /**

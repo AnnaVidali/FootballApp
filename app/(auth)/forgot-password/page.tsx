@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { authErrorMessage } from "@/lib/auth-errors";
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState("");
@@ -23,7 +24,7 @@ export default function ForgotPasswordPage() {
         });
 
         if (error) {
-            setError(error.message);
+            setError(authErrorMessage(error, t));
             setLoading(false);
             return;
         }

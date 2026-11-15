@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { intlLocale } from "@/lib/i18n";
 import { getAvailabilityDeadline } from "@/lib/utils";
 
 type Event = {
@@ -44,7 +45,7 @@ export default function CalendarClient({
   initialStatus: Record<string, RsvpStatus>;
 }) {
   const { t, locale } = useLocaleContext();
-  const dateFmt = locale === "es" ? "es-ES" : "en-GB";
+  const dateFmt = intlLocale(locale);
 
   const [events] = useState<Event[]>(initialEvents);
   const [myStatus] = useState<Record<string, RsvpStatus>>(initialStatus);

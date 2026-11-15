@@ -10,7 +10,6 @@ export default function DashboardShell({
     teamLogo,
     teamName,
     primaryColor,
-    secondaryColor,
     userName,
     isAdmin,
     role,
@@ -21,7 +20,6 @@ export default function DashboardShell({
     teamLogo: string | null;
     teamName: string | null;
     primaryColor: string;
-    secondaryColor: string;
     userName: string;
     isAdmin: boolean;
     role: string;
@@ -33,7 +31,6 @@ export default function DashboardShell({
 
     React.useEffect(() => {
         document.documentElement.style.setProperty("--primary", primaryColor);
-        document.documentElement.style.setProperty("--secondary", secondaryColor);
 
         // Auto-generate button text color based on primary brightness
         const r = parseInt(primaryColor.slice(1, 3), 16);
@@ -67,7 +64,7 @@ export default function DashboardShell({
         } else {
             document.documentElement.style.setProperty("--primary-display", primaryColor);
         }
-    }, [primaryColor, secondaryColor]);
+    }, [primaryColor]);
 
     return (
         <div className="flex h-screen overflow-hidden">

@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     if (!serviceRoleKey) {
         return NextResponse.json(
-            { error: "Server misconfigured: missing SUPABASE_SERVICE_ROLE_KEY." },
+            { error: "Server misconfigured: missing SUPABASE_SERVICE_ROLE_KEY.", code: "server_misconfigured" },
             { status: 500 },
         );
     }
@@ -28,7 +28,10 @@ export async function POST(request: Request) {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-        return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+        return NextResponse.json(
+            { error: "Not authenticated.", code: "not_authenticated" },
+            { status: 401 },
+        );
     }
 
     if (!user.email) {

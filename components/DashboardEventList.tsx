@@ -5,6 +5,7 @@ import AddToCalendarButton from "@/components/AddToCalendarButton";
 import AvailabilityStatus from "@/components/AvailabilityStatus";
 import EventDate from "@/components/EventDate";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { intlLocale } from "@/lib/i18n";
 import { useNow } from "@/lib/use-now";
 import { formatAmount, getAvailabilityDeadline } from "@/lib/utils";
 
@@ -39,7 +40,8 @@ export default function DashboardEventList({
   reservationAmounts: Record<string, number>;
   isCoach: boolean;
 }) {
-  const { t } = useLocaleContext();
+  const { t, locale } = useLocaleContext();
+  const money = (value: number) => formatAmount(value, intlLocale(locale));
   const now = useNow(60_000);
 
   const visibleEvents = events.filter((event) => {
@@ -72,7 +74,7 @@ export default function DashboardEventList({
                     href="/dashboard/reservations"
                     className="text-xs text-gray-400 hover:text-gray-600"
                   >
-                    🏟️ {t("reservations.pitchReserved", { amount: formatAmount(amount) })}
+                    🏟️ {t("reservations.pitchReserved", { amount: money(amount) })}
                   </Link>
                 </p>
               )}

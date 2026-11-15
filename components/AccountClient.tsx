@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { authErrorMessage } from "@/lib/auth-errors";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
@@ -24,6 +25,68 @@ async function readJsonResponse(res: Response): Promise<{ error?: string; code?:
         return await res.json();
     } catch {
         throw new Error(`Unexpected response (${res.status}): the body was not valid JSON.`);
+    }
+}
+
+/**
+ * The disband route answers with a stable code; map it to a translated
+ * message so a Spanish user never sees the route's English text.
+ */
+function disbandErrorMessage(
+    code: string | undefined,
+    t: (key: string) => string
+): string {
+    switch (code) {
+        case "not_authenticated":
+            return t("account.errorNotAuthenticated");
+        case "no_team":
+            return t("account.errorNoTeam");
+        case "not_owner":
+            return t("account.errorNotOwner");
+        default:
+            return t("account.errorDisband");
+    }
+}
+
+function emailUpdateErrorMessage(
+    code: string | undefined,
+    t: (key: string) => string
+): string {
+    switch (code) {
+        case "invalid_password":
+            return t("account.invalidPassword");
+        case "email_unchanged":
+            return t("account.emailUnchanged");
+        case "invalid_email":
+            return t("account.enterValidEmail");
+        case "password_required":
+            return t("account.passwordRequired");
+        case "no_email":
+            return t("account.errorNoEmail");
+        case "not_authenticated":
+            return t("account.errorNotAuthenticated");
+        default:
+            return t("account.errorEmailUpdate");
+    }
+}
+
+function deleteErrorMessage(
+    code: string | undefined,
+    t: (key: string) => string
+): string {
+    switch (code) {
+        case "invalid_password":
+            return t("account.invalidPassword");
+        case "password_required":
+            return t("account.passwordRequired");
+        case "no_email":
+            return t("account.errorNoEmail");
+        case "owner":
+            return t("account.ownerTransferFirst");
+        case "not_authenticated":
+            return t("account.errorNotAuthenticated");
+        default:
+            return t("account.errorDelete");
     }
 }
 
@@ -92,7 +155,7 @@ export default function AccountClient({
             }
             const { error } = await supabase.auth.updateUser({ password: newPassword });
             if (error) {
-                showAlert(t("common.error"), error.message);
+                showAlert(t("common.error"), authErrorMessage(error, t));
                 return;
             }
             setCurrentPassword("");
@@ -123,20 +186,14 @@ export default function AccountClient({
             });
             const data = await readJsonResponse(res);
             if (!res.ok) {
-                const message =
-                    data.code === "invalid_password"
-                        ? t("account.invalidPassword")
-                        : data.code === "email_unchanged"
-                          ? t("account.emailUnchanged")
-                          : data.error || t("common.error");
-                showAlert(t("common.error"), message);
+                showAlert(t("common.error"), emailUpdateErrorMessage(data.code, t));
                 return;
             }
             setNewEmail("");
             setEmailPassword("");
             showAlert(t("common.notice"), t("account.emailUpdated"));
-        } catch (err) {
-            showAlert(t("common.error"), err instanceof Error ? err.message : t("common.error"));
+        } catch {
+            showAlert(t("common.error"), t("account.errorEmailUpdate"));
         } finally {
             setLoading(false);
         }
@@ -168,15 +225,11 @@ export default function AccountClient({
             });
             const data = await readJsonResponse(deleteRes);
             if (!deleteRes.ok) {
-                const message =
-                    data.code === "invalid_password"
-                        ? t("account.invalidPassword")
-                        : t("account.failedDelete") + (data.error || t("common.error"));
-                showAlert(t("common.error"), message);
+                showAlert(t("common.error"), deleteErrorMessage(data.code, t));
                 return;
             }
-        } catch (err) {
-            showAlert(t("common.error"), t("account.failedDelete") + (err instanceof Error ? err.message : t("common.error")));
+        } catch {
+            showAlert(t("common.error"), t("account.errorDelete"));
             return;
         } finally {
             setLoading(false);
@@ -194,11 +247,11 @@ export default function AccountClient({
             const res = await fetch("/api/team/disband", { method: "POST" });
             const data = await readJsonResponse(res);
             if (!res.ok) {
-                showAlert(t("common.error"), data.error || "Unknown error");
+                showAlert(t("common.error"), disbandErrorMessage(data.code, t));
                 return;
             }
-        } catch (err) {
-            showAlert(t("common.error"), err instanceof Error ? err.message : "Unknown error");
+        } catch {
+            showAlert(t("common.error"), t("account.errorDisband"));
             return;
         } finally {
             setLoading(false);

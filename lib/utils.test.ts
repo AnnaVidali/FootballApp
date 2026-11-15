@@ -48,14 +48,18 @@ describe("getAvailabilityDeadline", () => {
 });
 
 describe("formatAmount", () => {
-    it("uses two decimals and a comma", () => {
-        expect(formatAmount(7.4)).toBe("€7,40");
-        expect(formatAmount(30.5)).toBe("€30,50");
-        expect(formatAmount(0)).toBe("€0,00");
+    it("formats according to the locale's conventions", () => {
+        // en-GB puts the symbol first and uses a dot.
+        expect(formatAmount(7.4, "en-GB")).toBe("€7.40");
+        expect(formatAmount(30.5, "en-GB")).toBe("€30.50");
+        expect(formatAmount(0, "en-GB")).toBe("€0.00");
+        // es-ES uses a comma and a non-breaking space before the symbol.
+        expect(formatAmount(7.4, "es-ES")).toBe("7,40\u00a0€");
+        expect(formatAmount(30.5, "es-ES")).toBe("30,50\u00a0€");
     });
 
-    it("accepts another currency symbol", () => {
-        expect(formatAmount(2, "$")).toBe("$2,00");
+    it("accepts another currency", () => {
+        expect(formatAmount(2, "en-GB", "USD")).toBe("US$2.00");
     });
 });
 

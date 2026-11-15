@@ -57,6 +57,8 @@
     "viewPhoto": "Ver foto",
     "close": "Cerrar",
     "errorUpload": "Error al subir",
+    "uploadFailed": "No se pudo subir la foto: {error}",
+    "saveFailed": "No se pudo guardar el elemento: {error}",
     "deleteConfirmTitle": "\u00bfEliminar esto?",
     "deleteConfirmMessage": "Se quitar\u00e1 de la galer\u00eda para todos.",
     "deleteFailed": "No se pudo eliminar el elemento: {error}"
@@ -107,7 +109,14 @@
     "registrationSuccess": "\u00a1Registro Exitoso!",
     "accountCreated": "Tu cuenta ha sido creada. Ahora puedes iniciar sesi\u00f3n.",
     "goToLogin": "Ir al Inicio de Sesi\u00f3n",
-    "notLoggedIn": "No has iniciado sesi\u00f3n"
+    "notLoggedIn": "No has iniciado sesi\u00f3n",
+    "errorInvalidCredentials": "Correo o contrase\u00f1a incorrectos.",
+    "errorEmailNotConfirmed": "Confirma tu correo antes de iniciar sesi\u00f3n.",
+    "errorUserExists": "Ya existe una cuenta con ese correo.",
+    "errorWeakPassword": "Esa contrase\u00f1a es demasiado d\u00e9bil. Usa al menos 6 caracteres.",
+    "errorSamePassword": "La nueva contrase\u00f1a debe ser distinta de la anterior.",
+    "errorRateLimited": "Demasiados intentos. Espera un momento e int\u00e9ntalo de nuevo.",
+    "errorGeneric": "Algo sali\u00f3 mal. Int\u00e9ntalo de nuevo."
   },
   "landing": {
     "title": "Squad HQ",
@@ -146,6 +155,8 @@
     "creating": "Creando...",
     "goToDashboard": "Ir al Panel",
     "duplicateName": "\u00a1Ya existe un equipo con este nombre!",
+    "createFailed": "No se pudo crear el equipo: {error}",
+    "profileFailed": "El equipo se cre\u00f3, pero tu perfil no se pudo vincular a \u00e9l: {error}",
     "settingsFailed": "El equipo se cre\u00f3, pero no se pudieron guardar sus colores o logo: {error}"
   },
   "joinTeam": {
@@ -208,6 +219,7 @@
     "setLineup": "\u26bd Definir Alineaci\u00f3n \u2192",
     "viewLineup": "\u26bd Ver Alineaci\u00f3n \u2192",
     "failedSave": "Error al guardar: ",
+    "createFailed": "No se pudo crear el evento: {error}",
     "failedDelete": "Error al eliminar: ",
     "notSaved": "No se pudo actualizar el evento. Puede que se haya eliminado o que no tengas permiso para editarlo.",
     "invalidDate": "Introduce una fecha y hora v\u00e1lidas.",
@@ -349,6 +361,7 @@
     "adminLogoOnly": "Solo los administradores pueden cambiar el logo",
     "saveChanges": "Guardar Cambios",
     "settingsSaved": "\u00a1Configuraci\u00f3n guardada!",
+    "saveFailed": "No se pudo guardar la configuraci\u00f3n: {error}",
     "logoTooLarge": "El logo debe pesar menos de 2MB.",
     "logoUploadFailed": "No se pudo subir el logo. Int\u00e9ntalo de nuevo."
   },
@@ -379,7 +392,14 @@
     "emailUpdated": "Correo actualizado exitosamente.",
     "emailUnchanged": "Ese ya es tu correo electr\u00f3nico.",
     "enterValidEmail": "Por favor ingresa un correo electr\u00f3nico v\u00e1lido.",
-    "failedDelete": "Error al eliminar la cuenta: "
+    "failedDelete": "Error al eliminar la cuenta: ",
+    "errorNotAuthenticated": "Tu sesi\u00f3n ha caducado. Inicia sesi\u00f3n de nuevo.",
+    "errorNoTeam": "No perteneces a ning\u00fan equipo.",
+    "errorNotOwner": "Solo el propietario del equipo puede disolverlo.",
+    "errorDisband": "No se pudo disolver el equipo. Int\u00e9ntalo de nuevo.",
+    "errorNoEmail": "Esta cuenta no tiene correo electr\u00f3nico.",
+    "errorEmailUpdate": "No se pudo actualizar el correo. Int\u00e9ntalo de nuevo.",
+    "errorDelete": "No se pudo eliminar la cuenta. Int\u00e9ntalo de nuevo."
   },
   "calendar": {
     "title": "Calendario del Equipo",

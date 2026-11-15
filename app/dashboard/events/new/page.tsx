@@ -52,7 +52,7 @@ export default function NewEventPage() {
             location: location || null,
         });
         if (insertError) {
-            setError(insertError.message);
+            setError(t("events.createFailed", { error: insertError.message }));
             setLoading(false);
             return;
         }

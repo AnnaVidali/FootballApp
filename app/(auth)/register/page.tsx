@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { authErrorMessage } from "@/lib/auth-errors";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -31,7 +32,7 @@ export default function RegisterPage() {
     });
 
     if (authError) {
-      setError(authError.message);
+      setError(authErrorMessage(authError, t));
       setLoading(false);
       return;
     }

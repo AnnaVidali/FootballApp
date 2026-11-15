@@ -28,7 +28,6 @@ export default async function DashboardLayout({
         teamLogo={team?.logo_url ?? null}
         teamName={team?.name ?? null}
         primaryColor={team?.primary_color ?? "#16a34a"}
-        secondaryColor={team?.secondary_color ?? "#ffffff"}
         userName={profile?.name ?? user.email ?? "User"}
         isAdmin={profile?.is_admin ?? false}
         role={profile?.role ?? "player"}

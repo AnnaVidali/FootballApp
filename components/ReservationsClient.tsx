@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { intlLocale } from "@/lib/i18n";
 import { equalShare, formatAmount, getAvailabilityDeadline } from "@/lib/utils";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -73,7 +74,8 @@ export default function ReservationsClient({
     const [alertMsg, setAlertMsg] = useState("");
     const { t, locale } = useLocaleContext();
 
-    const dateFmt = locale === "es" ? "es-ES" : "en-GB";
+    const dateFmt = intlLocale(locale);
+    const money = (value: number) => formatAmount(value, dateFmt);
 
     useEffect(() => {
         // The first paint already has server-fetched data, so only refetch
@@ -364,7 +366,7 @@ export default function ReservationsClient({
                             {ticked.length > 0
                                 ? t("reservations.splitPreview", {
                                       count: ticked.length,
-                                      amount: formatAmount(previewShare),
+                                      amount: money(previewShare),
                                   })
                                 : t("reservations.splitMinOne")}
                         </p>
@@ -480,7 +482,7 @@ export default function ReservationsClient({
                     <div className="mt-3 rounded-md bg-gray-50 p-3">
                         <div className="flex flex-wrap items-baseline justify-between gap-2">
                             <p className="text-lg font-bold text-black">
-                                {formatAmount(Number(reservation.amount))}
+                                {money(Number(reservation.amount))}
                             </p>
                             <p className="text-xs text-gray-500">
                                 {t("reservations.reservedBy", {
@@ -635,7 +637,7 @@ export default function ReservationsClient({
                                     <div className="mt-3">
                                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                                             <span className="font-medium text-gray-600">
-                                                {t("reservations.perPerson", { amount: formatAmount(share) })}
+                                                {t("reservations.perPerson", { amount: money(share) })}
                                             </span>
                                             <span className="text-gray-400">
                                                 {t("reservations.paidCount", {
@@ -650,7 +652,7 @@ export default function ReservationsClient({
                                             ) : (
                                                 <span className="text-yellow-600">
                                                     {t("reservations.outstanding", {
-                                                        amount: formatAmount(total - paidTotal),
+                                                        amount: money(total - paidTotal),
                                                     })}
                                                 </span>
                                             )}
@@ -660,7 +662,7 @@ export default function ReservationsClient({
                                                     .map((p) => (
                                                         <span key={p.id} className="text-gray-400">
                                                             {t("reservations.yourShare", {
-                                                                amount: formatAmount(Number(p.amount)),
+                                                                amount: money(Number(p.amount)),
                                                             })}
                                                         </span>
                                                     ))}
@@ -711,7 +713,7 @@ export default function ReservationsClient({
                                                         </div>
                                                         <div className="flex shrink-0 items-center gap-3">
                                                             <span className="text-sm text-gray-500">
-                                                                {formatAmount(Number(payment.amount))}
+                                                                {money(Number(payment.amount))}
                                                             </span>
                                                             {isMine ? (
                                                                 <button
@@ -788,7 +790,7 @@ export default function ReservationsClient({
                     <p className="text-xs text-gray-500">
                         <EventDate date={event.date} />
                         {event.location && ` · ${event.location}`}
-                        {` · ${formatAmount(Number(reservation.amount))}`}
+                        {` · ${money(Number(reservation.amount))}`}
                     </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">

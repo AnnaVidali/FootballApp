@@ -67,7 +67,10 @@ export async function POST(request: Request) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !serviceRoleKey) {
-        return NextResponse.json({ error: "Server misconfigured." }, { status: 500 });
+        return NextResponse.json(
+            { error: "Server misconfigured.", code: "server_misconfigured" },
+            { status: 500 },
+        );
     }
 
     const supabase = await createServerSupabaseClient();
@@ -77,7 +80,10 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-        return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+        return NextResponse.json(
+            { error: "Not authenticated.", code: "not_authenticated" },
+            { status: 401 },
+        );
     }
 
     const admin = createClient(supabaseUrl, serviceRoleKey, {
@@ -91,7 +97,10 @@ export async function POST(request: Request) {
         .single();
 
     if (!profile?.team_id) {
-        return NextResponse.json({ error: "You are not on a team." }, { status: 400 });
+        return NextResponse.json(
+            { error: "You are not on a team.", code: "no_team" },
+            { status: 400 },
+        );
     }
 
     const teamId = profile.team_id;
@@ -103,7 +112,7 @@ export async function POST(request: Request) {
 
     if (!team || team.owner_id !== user.id) {
         return NextResponse.json(
-            { error: "Only the team owner can disband the team." },
+            { error: "Only the team owner can disband the team.", code: "not_owner" },
             { status: 403 },
         );
     }
@@ -120,8 +129,9 @@ export async function POST(request: Request) {
             ),
         ) as Record<string, string[]>;
     } catch (err) {
+        console.error("disband: could not list the team's files", err);
         return NextResponse.json(
-            { error: err instanceof Error ? err.message : "Could not list the team's files." },
+            { error: "Could not list the team's files.", code: "list_failed" },
             { status: 500 },
         );
     }
@@ -129,7 +139,11 @@ export async function POST(request: Request) {
     // Use the user's own session so disband_team() sees auth.uid().
     const { error: disbandError } = await supabase.rpc("disband_team");
     if (disbandError) {
-        return NextResponse.json({ error: disbandError.message }, { status: 400 });
+        console.error("disband: disband_team failed", disbandError.message);
+        return NextResponse.json(
+            { error: disbandError.message, code: "disband_failed" },
+            { status: 400 },
+        );
     }
 
     const warnings: string[] = [];

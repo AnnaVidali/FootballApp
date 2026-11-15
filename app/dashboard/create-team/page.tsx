@@ -37,7 +37,7 @@ export default function CreateTeamPage() {
         if (teamError) {
             const message = teamError.message.includes("duplicate")
                 ? t("team.duplicateName")
-                : teamError.message;
+                : t("team.createFailed", { error: teamError.message });
             setError(message);
             setLoading(false);
             return;
@@ -48,7 +48,7 @@ export default function CreateTeamPage() {
             .update({ team_id: team.id, is_admin: true, role: "coach" })
             .eq("user_id", user.id);
         if (profileError) {
-            setError(profileError.message);
+            setError(t("team.profileFailed", { error: profileError.message }));
             setLoading(false);
             return;
         }

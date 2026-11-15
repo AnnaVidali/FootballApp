@@ -6,6 +6,15 @@ export type Locale = "en" | "es";
 export const locales: Locale[] = ["en", "es"];
 export const defaultLocale: Locale = "en";
 
+/**
+ * The BCP-47 tag behind an app locale, for `Intl` (dates, numbers,
+ * currency). The app's own `Locale` is deliberately short ("en"/"es"); this
+ * maps it to the regional tag whose formatting the app shows.
+ */
+export function intlLocale(locale: Locale): string {
+  return locale === "es" ? "es-ES" : "en-GB";
+}
+
 export type TranslationDictionary = typeof en;
 
 const dictionaries: Record<Locale, TranslationDictionary> = { en, es };

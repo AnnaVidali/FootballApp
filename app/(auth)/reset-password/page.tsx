@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { authErrorMessage } from "@/lib/auth-errors";
 
 const supabase = createClient();
 
@@ -63,7 +64,7 @@ export default function ResetPasswordPage() {
         setLoading(false);
 
         if (error) {
-            setError(error.message);
+            setError(authErrorMessage(error, t));
         } else {
             await supabase.auth.signOut();
             router.push("/login");

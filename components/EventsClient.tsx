@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { intlLocale } from "@/lib/i18n";
 import AvailabilityButton from "@/components/AvailabilityButton";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -77,7 +78,8 @@ function EventsContent({
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [confirmMsg, setConfirmMsg] = useState("");
     const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null);
-    const { t } = useLocaleContext();
+    const { t, locale } = useLocaleContext();
+    const money = (value: number) => formatAmount(value, intlLocale(locale));
     const router = useRouter();
     const searchParams = useSearchParams();
     const targetEventId = searchParams.get("eventId");
@@ -340,7 +342,7 @@ function EventsContent({
                                                                     href="/dashboard/reservations"
                                                                     className="mt-0.5 inline-block text-xs text-gray-400 hover:text-gray-600"
                                                                 >
-                                                                    🏟️ {t("reservations.pitchReserved", { amount: formatAmount(reservationAmounts[event.id]) })}
+                                                                    🏟️ {t("reservations.pitchReserved", { amount: money(reservationAmounts[event.id]) })}
                                                                 </Link>
                                                             )}
                                                         </div>
@@ -503,7 +505,7 @@ key={event.id}
                                                                     href="/dashboard/reservations"
                                                                     className="mt-0.5 inline-block text-xs text-gray-400 hover:text-gray-600"
                                                                 >
-                                                                    🏟️ {t("reservations.pitchReserved", { amount: formatAmount(reservationAmounts[event.id]) })}
+                                                                    🏟️ {t("reservations.pitchReserved", { amount: money(reservationAmounts[event.id]) })}
                                                                 </Link>
                                                             )}
                                                         </div>

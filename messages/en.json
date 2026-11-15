@@ -57,6 +57,8 @@
     "viewPhoto": "View photo",
     "close": "Close",
     "errorUpload": "Upload failed",
+    "uploadFailed": "Could not upload the photo: {error}",
+    "saveFailed": "Could not save the item: {error}",
     "deleteConfirmTitle": "Delete this?",
     "deleteConfirmMessage": "It will be removed from the gallery for everyone.",
     "deleteFailed": "Could not delete the item: {error}"
@@ -107,7 +109,14 @@
     "registrationSuccess": "Registration Successful!",
     "accountCreated": "Your account has been created. You can now sign in.",
     "goToLogin": "Go to Login",
-    "notLoggedIn": "Not logged in"
+    "notLoggedIn": "Not logged in",
+    "errorInvalidCredentials": "Incorrect email or password.",
+    "errorEmailNotConfirmed": "Confirm your email before signing in.",
+    "errorUserExists": "An account with that email already exists.",
+    "errorWeakPassword": "That password is too weak. Use at least 6 characters.",
+    "errorSamePassword": "The new password must be different from the old one.",
+    "errorRateLimited": "Too many attempts. Please wait a moment and try again.",
+    "errorGeneric": "Something went wrong. Please try again."
   },
   "landing": {
     "title": "Squad HQ",
@@ -146,6 +155,8 @@
     "creating": "Creating...",
     "goToDashboard": "Go to Dashboard",
     "duplicateName": "A team with this name already exists!",
+    "createFailed": "Could not create the team: {error}",
+    "profileFailed": "The team was created, but your profile could not be linked to it: {error}",
     "settingsFailed": "The team was created, but its colours or logo could not be saved: {error}"
   },
   "joinTeam": {
@@ -208,6 +219,7 @@
     "setLineup": "\u26bd Set Lineup \u2192",
     "viewLineup": "\u26bd View Lineup \u2192",
     "failedSave": "Failed to save: ",
+    "createFailed": "Could not create the event: {error}",
     "failedDelete": "Failed to delete: ",
     "notSaved": "The event could not be updated. It may have been deleted, or you may not be allowed to edit it.",
     "invalidDate": "Enter a valid date and time.",
@@ -349,6 +361,7 @@
     "adminLogoOnly": "Only admins can change the logo",
     "saveChanges": "Save Changes",
     "settingsSaved": "Settings saved!",
+    "saveFailed": "Could not save the settings: {error}",
     "logoTooLarge": "Logo must be under 2MB.",
     "logoUploadFailed": "The logo could not be uploaded. Please try again."
   },
@@ -379,7 +392,14 @@
     "emailUpdated": "Email updated successfully.",
     "emailUnchanged": "That's already your email address.",
     "enterValidEmail": "Please enter a valid email address.",
-    "failedDelete": "Failed to delete account: "
+    "failedDelete": "Failed to delete account: ",
+    "errorNotAuthenticated": "Your session has expired. Sign in again.",
+    "errorNoTeam": "You are not on a team.",
+    "errorNotOwner": "Only the team owner can disband the team.",
+    "errorDisband": "Could not disband the team. Please try again.",
+    "errorNoEmail": "This account has no email address.",
+    "errorEmailUpdate": "Could not update the email. Please try again.",
+    "errorDelete": "Could not delete the account. Please try again."
   },
   "calendar": {
     "title": "Team Calendar",
