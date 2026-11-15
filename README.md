@@ -32,7 +32,7 @@ A full-stack web application for managing amateur and semi-professional football
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22.12+ (or 24 LTS) — required by Vitest 5
 - A Supabase project with the migrations applied
 
 ### Environment Variables
@@ -56,7 +56,16 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ### Database Setup
 
-Apply the Supabase migrations in order from `supabase/migrations/001_initial.sql` through `023_fix_reservation_policy_recursion.sql`. Ensure the `team-logos` storage bucket exists for team logo uploads.
+Apply the Supabase migrations **in filename order** from
+`supabase/migrations/001_initial.sql` through
+`supabase/migrations/043_rate_limit_join_code.sql`. The history is applied by
+hand (the numeric prefix is the ordering), and each migration is written to be
+idempotent so a re-run is safe. Ensure the `team-logos` storage bucket exists
+for team logo uploads.
+
+New tables must grant the Data API commands the app uses in the same migration
+(see the note in `AGENTS.md`); from 30 October 2026 Supabase no longer grants
+`public` schema access automatically.
 
 ### Scripts
 
@@ -66,6 +75,15 @@ Apply the Supabase migrations in order from `supabase/migrations/001_initial.sql
 | `npm run build` | Build for production |
 | `npm start` | Start production server |
 | `npm run lint` | Run ESLint |
+| `npm test` | Run the unit tests once (Vitest) |
+| `npm run test:watch` | Run the unit tests in watch mode |
+
+### Testing
+
+Unit tests live next to the code as `*.test.ts` and run with Vitest. There is
+also an end-to-end account lifecycle check in `scripts/e2e-account.mjs`; it
+needs a production build and a running server (`npm run build && npm start`)
+plus the `SUPABASE_SERVICE_ROLE_KEY` from `.env.local`.
 
 ## Project Structure
 
@@ -74,6 +92,7 @@ app/            # Next.js App Router (routes, layouts, API routes)
 components/     # React components
 lib/            # Utilities, i18n, Supabase clients
 messages/       # i18n translations (en, es)
+scripts/        # One-off and end-to-end scripts (not part of the app bundle)
 supabase/       # Database migrations
 types/          # TypeScript interfaces
 public/         # Static assets
@@ -81,4 +100,4 @@ public/         # Static assets
 
 ## License
 
-MIT
+[MIT](LICENSE)

@@ -1,3 +1,14 @@
+// Hand-maintained row shapes for the tables the app reads directly.
+//
+// These are plain interfaces, not a generated Supabase `Database` type, and
+// the clients in lib/supabase are therefore untyped. That is a deliberate
+// deferral: wiring a `Database` generic through `createClient` would flow
+// schema types into every query in the app at once. When we pick it up, the
+// right move is to generate the type from the live schema (supabase CLI) and
+// pass it to createBrowserClient<Database>/createServerClient<Database>, then
+// delete these interfaces. Until then, keep each interface in sync with the
+// migration that defines the table.
+
 export interface Team {
   id: string;
   name: string;
