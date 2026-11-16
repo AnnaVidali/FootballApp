@@ -178,7 +178,7 @@ export default function ReservationsClient({
             setAlertMsg(
                 error.code === "23505"
                     ? t("reservations.alreadyReserved")
-                    : t("reservations.reserveFailed") + error.message
+                    : t("reservations.reserveFailed", { error: error.message })
             );
             setAlertOpen(true);
             setBusyId(null);
@@ -203,7 +203,7 @@ export default function ReservationsClient({
             .update({ amount })
             .eq("id", reservation.id);
         if (error) {
-            setAlertMsg(t("reservations.updateFailed") + error.message);
+            setAlertMsg(t("reservations.updateFailed", { error: error.message }));
             setAlertOpen(true);
             setBusyId(null);
             return;
@@ -217,7 +217,7 @@ export default function ReservationsClient({
         setBusyId(reservation.id);
         const { error } = await supabase.from("reservations").delete().eq("id", reservation.id);
         if (error) {
-            setAlertMsg(t("reservations.cancelFailed") + error.message);
+            setAlertMsg(t("reservations.cancelFailed", { error: error.message }));
             setAlertOpen(true);
             setBusyId(null);
             return;
@@ -253,9 +253,9 @@ export default function ReservationsClient({
               });
         if (error) {
             setAlertMsg(
-                (editing
-                    ? t("reservations.updateSplitFailed")
-                    : t("reservations.finalizeFailed")) + error.message
+                t(editing ? "reservations.updateSplitFailed" : "reservations.finalizeFailed", {
+                    error: error.message,
+                })
             );
             setAlertOpen(true);
             setBusyId(null);
@@ -273,7 +273,7 @@ export default function ReservationsClient({
             p_reservation_id: reservation.id,
         });
         if (error) {
-            setAlertMsg(t("reservations.closeFailed") + error.message);
+            setAlertMsg(t("reservations.closeFailed", { error: error.message }));
             setAlertOpen(true);
             setBusyId(null);
             return;
@@ -291,7 +291,7 @@ export default function ReservationsClient({
             p_reservation_id: reservation.id,
         });
         if (error) {
-            setAlertMsg(t("reservations.reopenFailed") + error.message);
+            setAlertMsg(t("reservations.reopenFailed", { error: error.message }));
             setAlertOpen(true);
             setBusyId(null);
             return;
@@ -311,7 +311,7 @@ export default function ReservationsClient({
             .update({ paid })
             .eq("id", payment.id);
         if (error) {
-            setAlertMsg(t("reservations.updateFailed") + error.message);
+            setAlertMsg(t("reservations.updateFailed", { error: error.message }));
             setAlertOpen(true);
             setBusyId(null);
             return;

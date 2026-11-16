@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { apiErrorMessage } from "@/lib/api-errors";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
@@ -29,67 +30,9 @@ async function readJsonResponse(res: Response): Promise<{ error?: string; code?:
 }
 
 /**
- * The disband route answers with a stable code; map it to a translated
- * message so a Spanish user never sees the route's English text.
+ * The routes answer with a stable code; `apiErrorMessage` maps it to a
+ * translated message so a Spanish user never sees the route's English text.
  */
-function disbandErrorMessage(
-    code: string | undefined,
-    t: (key: string) => string
-): string {
-    switch (code) {
-        case "not_authenticated":
-            return t("account.errorNotAuthenticated");
-        case "no_team":
-            return t("account.errorNoTeam");
-        case "not_owner":
-            return t("account.errorNotOwner");
-        default:
-            return t("account.errorDisband");
-    }
-}
-
-function emailUpdateErrorMessage(
-    code: string | undefined,
-    t: (key: string) => string
-): string {
-    switch (code) {
-        case "invalid_password":
-            return t("account.invalidPassword");
-        case "email_unchanged":
-            return t("account.emailUnchanged");
-        case "invalid_email":
-            return t("account.enterValidEmail");
-        case "password_required":
-            return t("account.passwordRequired");
-        case "no_email":
-            return t("account.errorNoEmail");
-        case "not_authenticated":
-            return t("account.errorNotAuthenticated");
-        default:
-            return t("account.errorEmailUpdate");
-    }
-}
-
-function deleteErrorMessage(
-    code: string | undefined,
-    t: (key: string) => string
-): string {
-    switch (code) {
-        case "invalid_password":
-            return t("account.invalidPassword");
-        case "password_required":
-            return t("account.passwordRequired");
-        case "no_email":
-            return t("account.errorNoEmail");
-        case "owner":
-            return t("account.ownerTransferFirst");
-        case "not_authenticated":
-            return t("account.errorNotAuthenticated");
-        default:
-            return t("account.errorDelete");
-    }
-}
-
 export default function AccountClient({
     email,
     isOwner,
@@ -186,7 +129,7 @@ export default function AccountClient({
             });
             const data = await readJsonResponse(res);
             if (!res.ok) {
-                showAlert(t("common.error"), emailUpdateErrorMessage(data.code, t));
+                showAlert(t("common.error"), apiErrorMessage("email", data.code, t));
                 return;
             }
             setNewEmail("");
@@ -225,7 +168,7 @@ export default function AccountClient({
             });
             const data = await readJsonResponse(deleteRes);
             if (!deleteRes.ok) {
-                showAlert(t("common.error"), deleteErrorMessage(data.code, t));
+                showAlert(t("common.error"), apiErrorMessage("delete", data.code, t));
                 return;
             }
         } catch {
@@ -247,7 +190,7 @@ export default function AccountClient({
             const res = await fetch("/api/team/disband", { method: "POST" });
             const data = await readJsonResponse(res);
             if (!res.ok) {
-                showAlert(t("common.error"), disbandErrorMessage(data.code, t));
+                showAlert(t("common.error"), apiErrorMessage("disband", data.code, t));
                 return;
             }
         } catch {

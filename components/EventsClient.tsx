@@ -179,7 +179,7 @@ function EventsContent({
             .select("id, title, type, date, location")
             .maybeSingle();
         if (error) {
-            setAlertMsg(t("events.failedSave") + error.message);
+            setAlertMsg(t("events.failedSave", { error: error.message }));
             setAlertOpen(true);
             setSaving(false);
             return;
@@ -211,7 +211,7 @@ function EventsContent({
         setSaving(true);
         const { error } = await supabase.from("events").delete().eq("id", pendingDeleteEventId);
         if (error) {
-            setAlertMsg(t("events.failedDelete") + error.message);
+            setAlertMsg(t("events.failedDelete", { error: error.message }));
             setAlertOpen(true);
             setSaving(false);
             setPendingDeleteEventId(null);

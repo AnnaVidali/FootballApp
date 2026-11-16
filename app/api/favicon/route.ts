@@ -14,6 +14,26 @@ function weakEtag(value: string | Buffer): string {
   return `W/"${createHash("sha1").update(value).digest("hex")}"`;
 }
 
+/**
+ * The bundled fallback icon, read from disk once and reused. Its content
+ * cannot change while the process is running, so both the bytes and their
+ * ETag are cached. A failed read is not cached, so a transient error can be
+ * retried on the next request.
+ */
+let fallbackLogo: Promise<{ body: Uint8Array<ArrayBuffer>; etag: string }> | null = null;
+
+function loadFallbackLogo(): Promise<{ body: Uint8Array<ArrayBuffer>; etag: string }> {
+  if (!fallbackLogo) {
+    fallbackLogo = readFile(path.join(process.cwd(), "public", "soccerballimage.png"))
+      .then((buffer) => ({ body: Uint8Array.from(buffer), etag: weakEtag(buffer) }))
+      .catch((err) => {
+        fallbackLogo = null;
+        throw err;
+      });
+  }
+  return fallbackLogo;
+}
+
 function notModified(request: Request, etag: string): NextResponse | null {
   if (request.headers.get("if-none-match") === etag) {
     return new NextResponse(null, {
@@ -79,13 +99,11 @@ export async function GET(request: Request) {
     }
   }
 
-  const filePath = path.join(process.cwd(), "public", "soccerballimage.png");
-  const buffer = await readFile(filePath);
-  const etag = weakEtag(buffer);
+  const { body, etag } = await loadFallbackLogo();
   const cached = notModified(request, etag);
   if (cached) return cached;
 
-  return new NextResponse(buffer, {
+  return new NextResponse(body, {
     headers: {
       "Content-Type": "image/png",
       "Cache-Control": "private, no-cache",

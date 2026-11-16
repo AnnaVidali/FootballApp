@@ -141,7 +141,7 @@ export async function POST(request: Request) {
     if (disbandError) {
         console.error("disband: disband_team failed", disbandError.message);
         return NextResponse.json(
-            { error: disbandError.message, code: "disband_failed" },
+            { error: "Could not disband the team.", code: "disband_failed" },
             { status: 400 },
         );
     }

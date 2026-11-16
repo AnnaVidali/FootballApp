@@ -3,6 +3,9 @@ import Link from "next/link";
 import DashboardEventList from "@/components/DashboardEventList";
 import { getServerT } from "@/lib/server-i18n";
 
+/** The dashboard only needs the next few events; the events page has the rest. */
+const UPCOMING_LIMIT = 20;
+
 export default async function DashboardPage() {
   const { supabase, user, profile, team } = await getSessionContext();
 
@@ -48,40 +51,44 @@ export default async function DashboardPage() {
     );
   }
 
-  const { data: upcomingEvents } = await supabase
-    .from("events")
-    .select("id, title, type, date, location")
-    .eq("team_id", profile.team_id)
-    .gte("date", new Date().toISOString())
-    .order("date", { ascending: true });
+  // The roster count does not depend on the events, so both run together.
+  const [{ data: upcomingEvents }, { count: rosterCount }] = await Promise.all([
+    supabase
+      .from("events")
+      .select("id, title, type, date, location")
+      .eq("team_id", profile.team_id)
+      .gte("date", new Date().toISOString())
+      .order("date", { ascending: true })
+      .limit(UPCOMING_LIMIT),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", profile.team_id)
+      .neq("role", "coach"),
+  ]);
 
   const eventIds = (upcomingEvents ?? []).map((e) => e.id);
-  const { data: myAvailability } = eventIds.length > 0
-    ? await supabase
-        .from("availability")
-        .select("event_id, status")
-        .eq("user_id", user.id)
-        .in("event_id", eventIds)
-    : { data: [] };
+  const [availabilityResult, reservationsResult] = await Promise.all([
+    eventIds.length > 0
+      ? supabase
+          .from("availability")
+          .select("event_id, status")
+          .eq("user_id", user.id)
+          .in("event_id", eventIds)
+      : Promise.resolve({ data: [] as { event_id: string; status: string }[] }),
+    eventIds.length > 0
+      ? supabase
+          .from("reservations")
+          .select("event_id, amount")
+          .in("event_id", eventIds)
+      : Promise.resolve({ data: [] as { event_id: string; amount: number }[] }),
+  ]);
   const statuses: Record<string, string> = Object.fromEntries(
-    (myAvailability ?? []).map((a) => [a.event_id, a.status])
+    (availabilityResult.data ?? []).map((a) => [a.event_id, a.status])
   );
-
-  const { data: reservationRows } = eventIds.length > 0
-    ? await supabase
-        .from("reservations")
-        .select("event_id, amount")
-        .in("event_id", eventIds)
-    : { data: [] };
   const reservationAmounts: Record<string, number> = Object.fromEntries(
-    (reservationRows ?? []).map((r) => [r.event_id, Number(r.amount)])
+    (reservationsResult.data ?? []).map((r) => [r.event_id, Number(r.amount)])
   );
-
-  const { count: rosterCount } = await supabase
-    .from("profiles")
-    .select("id", { count: "exact", head: true })
-    .eq("team_id", profile.team_id)
-    .neq("role", "coach");
 
   return (
     <div>

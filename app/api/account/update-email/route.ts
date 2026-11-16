@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     if (!serviceRoleKey) {
         return NextResponse.json(
-            { error: "Server misconfigured: missing SUPABASE_SERVICE_ROLE_KEY.", code: "server_misconfigured" },
+            { error: "Server misconfigured.", code: "server_misconfigured" },
             { status: 500 },
         );
     }
@@ -83,7 +83,15 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        // The usual failure is the address being taken by another account.
+        // Log the raw reason and answer with a stable code, so the client can
+        // show a translated message instead of Supabase's English text.
+        console.error("update-email: admin update failed", error.message);
+        const taken = error.code === "email_exists" || error.code === "user_already_exists";
+        return NextResponse.json(
+            { error: "Could not update the email.", code: taken ? "email_taken" : "email_update_failed" },
+            { status: 400 },
+        );
     }
 
     return NextResponse.json({ success: true });
