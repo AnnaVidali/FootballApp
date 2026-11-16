@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 
+const supabase = createClient();
+
 export default function SignOutButton() {
   const router = useRouter();
-  const supabase = createClient();
   const { t } = useLocaleContext();
 
   async function handleSignOut() {

@@ -33,13 +33,16 @@ export default function ResetPasswordPage() {
             }
         });
 
-        // If neither fires within 3s, the link is likely invalid
+        // The recovery token arrives in the URL and is exchanged for a
+        // session asynchronously. Give that exchange a generous window before
+        // calling the link bad -- at 3s a slow network marked a perfectly
+        // valid link as expired.
         const timeout = setTimeout(() => {
             setReady((prev) => {
                 if (!prev) setInvalid(true);
                 return prev;
             });
-        }, 3000);
+        }, 8000);
 
         return () => {
             subscription.unsubscribe();

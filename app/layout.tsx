@@ -17,7 +17,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Squad HQ",
+  title: {
+    default: "Squad HQ",
+    // Every page names itself; the product name is appended once, here.
+    template: "%s · Squad HQ",
+  },
   description: "Manage your football team, schedule trainings, and build lineups.",
   icons: {
     icon: "/soccerballimage.png",

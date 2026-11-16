@@ -1,10 +1,16 @@
+import type { Metadata } from "next";
 import EventsClient, {
     type AvailabilityRow,
     type Event,
 } from "@/components/EventsClient";
 import { getSessionContext } from "@/lib/session";
+import { pageMetadata } from "@/lib/page-metadata";
 
 const EVENT_COLUMNS = "id, title, type, date, location, captain_id";
+
+export async function generateMetadata(): Promise<Metadata> {
+    return pageMetadata("nav.events");
+}
 
 export default async function EventsPage() {
     const { supabase, user, profile } = await getSessionContext();
@@ -44,58 +50,60 @@ export default async function EventsPage() {
 
     const events: Event[] = [...(upcoming ?? []), ...(past ?? [])];
 
+    const eventIds = events.map((event) => event.id);
     const captainIds = [
         ...new Set(events.map((event) => event.captain_id).filter(Boolean)),
     ] as string[];
+
+    // Captains, availability and reservations all key off the events just
+    // loaded and do not depend on each other, so they go out together.
+    const [captainResult, availabilityResult, reservationResult] = await Promise.all([
+        captainIds.length > 0
+            ? supabase.from("profiles").select("id, name").in("id", captainIds)
+            : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+        eventIds.length > 0
+            ? supabase
+                  .from("availability")
+                  .select("event_id, user_id, status")
+                  .in("event_id", eventIds)
+            : Promise.resolve({
+                  data: [] as { event_id: string; user_id: string; status: string }[],
+              }),
+        eventIds.length > 0
+            ? supabase.from("reservations").select("event_id, amount").in("event_id", eventIds)
+            : Promise.resolve({ data: [] as { event_id: string; amount: number }[] }),
+    ]);
+
     const captainNames: Record<string, string> = {};
-    if (captainIds.length > 0) {
-        const { data } = await supabase
-            .from("profiles")
-            .select("id, name")
-            .in("id", captainIds);
-        (data ?? []).forEach((captain) => {
-            captainNames[captain.id] = captain.name;
-        });
-    }
+    (captainResult.data ?? []).forEach((captain) => {
+        captainNames[captain.id] = captain.name;
+    });
 
-    const eventIds = events.map((event) => event.id);
-    let availability: AvailabilityRow[] = [];
+    const rows = availabilityResult.data ?? [];
+    const userIds = [...new Set(rows.map((row) => row.user_id))];
+    const { data: profiles } = userIds.length > 0
+        ? await supabase
+              .from("profiles")
+              .select("user_id, name, role")
+              .in("user_id", userIds)
+        : { data: [] };
+    const profileMap = new Map(
+        (profiles ?? []).map((row) => [row.user_id, { name: row.name, role: row.role }]),
+    );
+
+    const availability: AvailabilityRow[] = rows
+        .filter((row) => profileMap.get(row.user_id)?.role !== "coach")
+        .map((row) => ({
+            event_id: row.event_id,
+            user_id: row.user_id,
+            status: row.status as AvailabilityRow["status"],
+            name: profileMap.get(row.user_id)?.name ?? "Unknown",
+        }));
+
     const reservationAmounts: Record<string, number> = {};
-
-    if (eventIds.length > 0) {
-        const { data: rows } = await supabase
-            .from("availability")
-            .select("event_id, user_id, status")
-            .in("event_id", eventIds);
-
-        const userIds = [...new Set((rows ?? []).map((row) => row.user_id))];
-        const { data: profiles } = userIds.length > 0
-            ? await supabase
-                  .from("profiles")
-                  .select("user_id, name, role")
-                  .in("user_id", userIds)
-            : { data: [] };
-        const profileMap = new Map(
-            (profiles ?? []).map((row) => [row.user_id, { name: row.name, role: row.role }]),
-        );
-
-        availability = (rows ?? [])
-            .filter((row) => profileMap.get(row.user_id)?.role !== "coach")
-            .map((row) => ({
-                event_id: row.event_id,
-                user_id: row.user_id,
-                status: row.status as AvailabilityRow["status"],
-                name: profileMap.get(row.user_id)?.name ?? "Unknown",
-            }));
-
-        const { data: reservationRows } = await supabase
-            .from("reservations")
-            .select("event_id, amount")
-            .in("event_id", eventIds);
-        (reservationRows ?? []).forEach((reservation) => {
-            reservationAmounts[reservation.event_id] = Number(reservation.amount);
-        });
-    }
+    (reservationResult.data ?? []).forEach((reservation) => {
+        reservationAmounts[reservation.event_id] = Number(reservation.amount);
+    });
 
     return (
         <EventsClient

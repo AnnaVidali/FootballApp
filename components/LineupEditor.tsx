@@ -9,6 +9,8 @@ import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import EventDate from "@/components/EventDate";
 
+const supabase = createClient();
+
 type Member = {
     id: string;
     user_id: string;
@@ -159,7 +161,6 @@ export default function LineupEditor({
     isAdmin: boolean;
 }) {
     const router = useRouter();
-    const supabase = createClient();
     const pitchRef = useRef<HTMLDivElement>(null);
     const { t } = useLocaleContext();
     const [saving, setSaving] = useState(false);

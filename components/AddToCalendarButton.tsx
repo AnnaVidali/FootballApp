@@ -54,7 +54,7 @@ export default function AddToCalendarButton({
         const lines = [
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
-            "PRODID:-//SquadUp//EN",
+            "PRODID:-//Squad HQ//EN",
             "BEGIN:VEVENT",
             `DTSTART:${toISOCompact(start)}`,
             `DTEND:${toISOCompact(end)}`,
@@ -115,7 +115,7 @@ export default function AddToCalendarButton({
             {open && (
                 <div
                     role="menu"
-                    aria-label="Calendar options"
+                    aria-label={t("calendar.options")}
                     className="absolute left-0 mt-1 w-48 rounded-md border border-gray-200 bg-white shadow-lg z-10"
                 >
                     <button
@@ -134,7 +134,7 @@ export default function AddToCalendarButton({
                         onKeyDown={(e) => handleMenuKeyDown(e, 1)}
                         className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-b-md border-t border-gray-100"
                     >
-                        Apple / Outlook (.ics)
+                        {t("calendar.appleOutlook")}
                     </button>
                 </div>
             )}

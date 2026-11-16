@@ -51,7 +51,7 @@ export default function Sidebar({
                 <div className="flex items-center gap-3">
                     {teamLogo ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={teamLogo} alt={teamName || "Team logo"} className="h-10 w-10 rounded-full object-cover" />
+                        <img src={teamLogo} alt={teamName || t("common.teamLogoAlt")} className="h-10 w-10 rounded-full object-cover" />
                     ) : (
                         <span className="text-2xl">⚽</span>
                     )}
@@ -79,7 +79,7 @@ export default function Sidebar({
                 <LanguageSwitcher />
             </div>
 
-            <nav className="flex-1 p-4 space-y-1" aria-label="Main navigation">
+            <nav className="flex-1 p-4 space-y-1" aria-label={t("sidebar.mainNav")}>
                 {navLinks.map((link) => {
                     const isActive =
                         link.href === "/dashboard"

@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import AlertModal from "@/components/AlertModal";
+import ColorField from "@/components/ColorField";
+import { MAX_LOGO_BYTES, uniqueStorageName } from "@/lib/utils";
 
 const supabase = createClient();
 
@@ -33,8 +35,38 @@ export default function SettingsClient({
     const [messageIsError, setMessageIsError] = useState(false);
     const [alertOpen, setAlertOpen] = useState(false);
     const [alertMsg, setAlertMsg] = useState("");
+    const objectUrlRef = useRef<string | null>(null);
     const router = useRouter();
     const { t } = useLocaleContext();
+
+    // The preview object URL is not garbage collected with the state that
+    // holds it, so release it on unmount as well as when it is replaced.
+    useEffect(
+        () => () => {
+            if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+        },
+        []
+    );
+
+    function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0] ?? null;
+        if (file && file.size > MAX_LOGO_BYTES) {
+            setAlertMsg(t("settings.logoTooLarge"));
+            setAlertOpen(true);
+            e.target.value = "";
+            return;
+        }
+        if (objectUrlRef.current) {
+            URL.revokeObjectURL(objectUrlRef.current);
+            objectUrlRef.current = null;
+        }
+        setLogoFile(file);
+        if (file) {
+            const url = URL.createObjectURL(file);
+            objectUrlRef.current = url;
+            setLogoPreview(url);
+        }
+    }
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -42,9 +74,15 @@ export default function SettingsClient({
         setLoading(true);
         setMessage("");
 
-        let logoUrl = logoPreview;
+        // Fall back to the stored URL, never the preview: after a re-upload
+        // the preview is a `blob:` address that would be useless in the
+        // database.
+        let logoUrl = initialLogoUrl;
         if (logoFile) {
-            const fileName = `${teamId}/${logoFile.name}`;
+            // A fresh object name per upload: reusing the file's own name
+            // wrote the same path, so the public URL never changed and
+            // browsers kept showing the old cached logo.
+            const fileName = `${teamId}/${uniqueStorageName(logoFile.name)}`;
             const { error: uploadError } = await supabase.storage
                 .from("team-logos")
                 .upload(fileName, logoFile);
@@ -105,38 +143,20 @@ export default function SettingsClient({
                         className="w-full rounded-md border border-gray-300 px-3 py-2 text-black disabled:bg-gray-100"
                     />
                 </div>
-                <div>
-                    <label htmlFor="settings-primary-color" className="block text-sm font-medium text-gray-700 mb-1">
-                        {t("settings.primaryColor")}
-                    </label>
-                    <div className="flex items-center gap-3">
-                        <input
-                            id="settings-primary-color"
-                            type="color"
-                            value={primaryColour}
-                            onChange={(e) => setPrimaryColour(e.target.value)}
-                            disabled={!isAdmin}
-                            className="h-10 w-10 rounded border border-gray-300 cursor-pointer"
-                        />
-                        <span className="text-sm text-gray-500">{primaryColour}</span>
-                    </div>
-                </div>
-                <div>
-                    <label htmlFor="settings-secondary-color" className="block text-sm font-medium text-gray-700 mb-1">
-                        {t("settings.secondaryColor")}
-                    </label>
-                    <div className="flex items-center gap-3">
-                        <input
-                            id="settings-secondary-color"
-                            type="color"
-                            value={secondaryColour}
-                            onChange={(e) => setSecondaryColour(e.target.value)}
-                            disabled={!isAdmin}
-                            className="h-10 w-10 rounded border border-gray-300 cursor-pointer"
-                        />
-                        <span className="text-sm text-gray-500">{secondaryColour}</span>
-                    </div>
-                </div>
+                <ColorField
+                    id="settings-primary-color"
+                    label={t("settings.primaryColor")}
+                    value={primaryColour}
+                    onChange={setPrimaryColour}
+                    disabled={!isAdmin}
+                />
+                <ColorField
+                    id="settings-secondary-color"
+                    label={t("settings.secondaryColor")}
+                    value={secondaryColour}
+                    onChange={setSecondaryColour}
+                    disabled={!isAdmin}
+                />
                 <div>
                     <label htmlFor="settings-team-logo" className="block text-sm font-medium text-gray-700 mb-1">
                         {t("settings.teamLogo")}
@@ -145,7 +165,7 @@ export default function SettingsClient({
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                             src={logoPreview}
-                            alt="Team logo"
+                            alt={t("common.teamLogoAlt")}
                             className="mb-2 h-16 w-16 rounded-full object-cover"
                         />
                     )}
@@ -154,19 +174,7 @@ export default function SettingsClient({
                             id="settings-team-logo"
                             type="file"
                             accept="image/*"
-                            onChange={(e) => {
-                                const file = e.target.files?.[0] ?? null;
-                                if (file && file.size > 2 * 1024 * 1024) {
-                                    setAlertMsg(t("settings.logoTooLarge"));
-                                    setAlertOpen(true);
-                                    e.target.value = "";
-                                    return;
-                                }
-                                setLogoFile(file);
-                                if (file) {
-                                    setLogoPreview(URL.createObjectURL(file));
-                                }
-                            }}
+                            onChange={handleLogoChange}
                             className="w-full text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium"
                         />
                     ) : (

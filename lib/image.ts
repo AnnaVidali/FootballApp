@@ -1,5 +1,6 @@
 // Downscale an image in the browser before uploading, so the gallery stays
-// small and fast to load. Returns a JPEG blob (or the original file on failure).
+// small and fast to load. Returns a compressed blob (or the original file on
+// failure); PNGs stay PNGs, everything else becomes a JPEG.
 
 function loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
@@ -31,8 +32,12 @@ export async function compressImage(
         if (!ctx) return file;
         ctx.drawImage(image, 0, 0, width, height);
 
+        // PNGs are re-encoded as PNG: JPEG has no alpha channel, so a
+        // transparent logo or screenshot came out with its transparent
+        // pixels flattened to black. Everything else is smaller as JPEG.
+        const outputType = file.type === "image/png" ? "image/png" : "image/jpeg";
         const blob = await new Promise<Blob | null>((resolve) =>
-            canvas.toBlob(resolve, "image/jpeg", quality)
+            canvas.toBlob(resolve, outputType, quality)
         );
         return blob ?? file;
     } catch {

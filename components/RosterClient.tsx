@@ -7,6 +7,8 @@ import { useLocaleContext } from "@/lib/i18n-context";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
+const supabase = createClient();
+
 type Member = {
     id: string;
     user_id: string;
@@ -33,7 +35,6 @@ export default function RosterClient({
     ownerId: string;
 }) {
     const router = useRouter();
-    const supabase = createClient();
     const { t } = useLocaleContext();
     const [copied, setCopied] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);

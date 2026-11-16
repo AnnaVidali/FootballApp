@@ -15,6 +15,9 @@
     "no": "No",
     "none": "None",
     "remove": "Remove",
+    "teamLogoAlt": "Team logo",
+    "switchToEnglish": "Switch to English",
+    "switchToSpanish": "Switch to Spanish",
     "somethingWentWrong": "Something went wrong",
     "errorDescription": "The app hit an unexpected error. You can try again.",
     "tryAgain": "Try again",
@@ -71,7 +74,8 @@
     "adminCoach": "Admin · Coach"
   },
   "sidebar": {
-    "noTeam": "No Team"
+    "noTeam": "No Team",
+    "mainNav": "Main navigation"
   },
   "shell": {
     "skipToContent": "Skip to content",
@@ -146,6 +150,7 @@
     "teamCreated": "Team Created!",
     "shareInviteCode": "Share this invite code with your players:",
     "teamName": "Team Name",
+    "namePlaceholder": "e.g. Las Bravas FC",
     "primaryColor": "Primary Color",
     "secondaryColor": "Secondary Color",
     "logoOptional": "Team Logo (optional)",
@@ -159,6 +164,7 @@
   "joinTeam": {
     "title": "Join a Team",
     "inviteCode": "Invite Code",
+    "codePlaceholder": "e.g. ABC12345",
     "askCoach": "Ask your coach or captain for the code",
     "invalidCode": "Invalid invite code. Check with your admin for the correct code.",
     "tooManyAttempts": "Too many invite code attempts. Wait a few minutes and try again.",
@@ -201,12 +207,15 @@
     "match": "\u26bd Match",
     "training": "\ud83c\udfc3 Training",
     "captain": "Captain: {name}",
+    "you": "You",
     "edit": "Edit",
     "delete": "Delete",
     "save": "Save",
     "cancel": "Cancel",
     "eventTitle": "Event title",
+    "titlePlaceholder": "e.g. Thursday Training",
     "locationOptional": "Location (optional)",
+    "locationPlaceholder": "e.g. Central Park Field",
     "yesCount": "{count} yes",
     "maybeCount": "{count} maybe",
     "noCount": "{count} no",
@@ -402,7 +411,9 @@
   "calendar": {
     "title": "Team Calendar",
     "addToCalendar": "Add to calendar",
+    "options": "Calendar options",
     "googleCalendar": "Google Calendar",
+    "appleOutlook": "Apple / Outlook (.ics)",
     "today": "Today",
     "prevMonth": "Previous month",
     "nextMonth": "Next month",

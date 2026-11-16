@@ -60,23 +60,26 @@ export default function LineupPageClient({
     const { t } = useLocaleContext();
 
     const loadLineup = useCallback(async (eventId: string) => {
-        const { data } = await supabase
-            .from("lineups")
-            .select("player_id, position, shirt_number, pos_x, pos_y")
-            .eq("event_id", eventId);
+        // The three lookups are independent, so they go out together rather
+        // than one after the other.
+        const [{ data }, { data: sp }, { data: available }] = await Promise.all([
+            supabase
+                .from("lineups")
+                .select("player_id, position, shirt_number, pos_x, pos_y")
+                .eq("event_id", eventId),
+            supabase
+                .from("set_pieces")
+                .select("piece_type, player_id")
+                .eq("event_id", eventId),
+            supabase
+                .from("availability")
+                .select("user_id")
+                .eq("event_id", eventId)
+                .eq("status", "available"),
+        ]);
         setLineup(data ?? []);
-
-        const { data: sp } = await supabase
-            .from("set_pieces")
-            .select("piece_type, player_id")
-            .eq("event_id", eventId);
         setSetPieces(sp ?? []);
 
-        const { data: available } = await supabase
-            .from("availability")
-            .select("user_id")
-            .eq("event_id", eventId)
-            .eq("status", "available");
         const availableUserIds = new Set((available ?? []).map((a) => a.user_id));
         const lineupPlayerIds = new Set((data ?? []).map((l) => l.player_id));
         setFilteredMembers(

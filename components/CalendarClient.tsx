@@ -82,8 +82,11 @@ export default function CalendarClient({
   const todayKey = useMemo(() => dayKey(new Date()), []);
 
   const weekdayLabels = useMemo(() => {
+    // 1 Jan 2024 is a Monday, and the grid starts its week on Monday, so the
+    // labels line up with the columns. A fixed anchor keeps them stable
+    // instead of depending on today's date.
     return Array.from({ length: 7 }, (_, i) =>
-      new Date(2026, 0, 5 + i).toLocaleDateString(dateFmt, {
+      new Date(2024, 0, 1 + i).toLocaleDateString(dateFmt, {
         weekday: "short",
       })
     );

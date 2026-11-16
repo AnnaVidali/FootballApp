@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import DashboardShell from "@/components/DashboardShell";
 import { getSessionContext } from "@/lib/session";
+import { themeVars } from "@/lib/theme";
 import pkg from "../../package.json";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -23,18 +24,26 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  // The team colour is rendered into the first byte of HTML. Deriving it in a
+  // client effect left every custom-coloured team on the default green until
+  // hydration, so the page flashed the wrong colour on every load. The values
+  // are validated hex strings, so they cannot break out of the <style>.
+  const theme = themeVars(team?.primary_color ?? "#16a34a");
+
   return (
-    <DashboardShell
+    <>
+      <style>{`:root{--primary:${theme.primary};--primary-text:${theme.primaryText};--primary-display:${theme.primaryDisplay}}`}</style>
+      <DashboardShell
         teamLogo={team?.logo_url ?? null}
         teamName={team?.name ?? null}
-        primaryColor={team?.primary_color ?? "#16a34a"}
         userName={profile?.name ?? user.email ?? "User"}
         isAdmin={profile?.is_admin ?? false}
         role={profile?.role ?? "player"}
         isOwner={team?.owner_id === user.id}
         appVersion={pkg.version}
-    >
-      {children}
-    </DashboardShell>
+      >
+        {children}
+      </DashboardShell>
+    </>
   );
 }

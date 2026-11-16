@@ -7,13 +7,14 @@ import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import { authErrorMessage } from "@/lib/auth-errors";
 
+const supabase = createClient();
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
   const { t } = useLocaleContext();
 
   async function handleLogin(e: React.FormEvent) {

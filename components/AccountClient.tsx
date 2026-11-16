@@ -9,6 +9,8 @@ import { apiErrorMessage } from "@/lib/api-errors";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
+const supabase = createClient();
+
 /**
  * Read a JSON body from a fetch response without ever throwing.
  *
@@ -43,7 +45,6 @@ export default function AccountClient({
     isAdmin: boolean;
 }) {
     const router = useRouter();
-    const supabase = createClient();
     const { t } = useLocaleContext();
 
     const [currentPassword, setCurrentPassword] = useState("");

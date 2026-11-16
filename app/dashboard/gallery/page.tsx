@@ -1,12 +1,18 @@
+import type { Metadata } from "next";
 import GalleryClient, {
     GALLERY_PAGE_SIZE,
     type EventOption,
 } from "@/components/GalleryClient";
 import { getSessionContext } from "@/lib/session";
+import { pageMetadata } from "@/lib/page-metadata";
 import type { GalleryItem } from "@/types/database";
 
 /** Events shown in the tag/filter dropdowns; older ones load by reference. */
 const EVENT_OPTION_LIMIT = 200;
+
+export async function generateMetadata(): Promise<Metadata> {
+    return pageMetadata("nav.gallery");
+}
 
 export default async function GalleryPage() {
     const { supabase, user, profile } = await getSessionContext();

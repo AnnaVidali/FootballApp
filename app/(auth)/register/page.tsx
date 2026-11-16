@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import { authErrorMessage } from "@/lib/auth-errors";
 
+const supabase = createClient();
+
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -15,7 +17,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [registered, setRegistered] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
   const { t } = useLocaleContext();
 
   async function handleRegister(e: React.FormEvent) {

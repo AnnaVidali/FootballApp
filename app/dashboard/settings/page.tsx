@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import SettingsClient from "@/components/SettingsClient";
 import { getSessionContext } from "@/lib/session";
+import { pageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+    return pageMetadata("nav.settings");
+}
 
 export default async function SettingsPage() {
     const { user, profile, team } = await getSessionContext();

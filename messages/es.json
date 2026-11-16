@@ -15,6 +15,9 @@
     "no": "No",
     "none": "Ninguno",
     "remove": "Eliminar",
+    "teamLogoAlt": "Logo del equipo",
+    "switchToEnglish": "Cambiar a ingl\u00e9s",
+    "switchToSpanish": "Cambiar a espa\u00f1ol",
     "somethingWentWrong": "Algo sali\u00f3 mal",
     "errorDescription": "La aplicaci\u00f3n encontr\u00f3 un error inesperado. Puedes intentarlo de nuevo.",
     "tryAgain": "Intentar de nuevo",
@@ -71,7 +74,8 @@
     "adminCoach": "Admin · Entrenador"
   },
   "sidebar": {
-    "noTeam": "Sin Equipo"
+    "noTeam": "Sin Equipo",
+    "mainNav": "Navegaci\u00f3n principal"
   },
   "shell": {
     "skipToContent": "Saltar al contenido",
@@ -146,6 +150,7 @@
     "teamCreated": "\u00a1Equipo Creado!",
     "shareInviteCode": "Comparte este c\u00f3digo de invitaci\u00f3n con tus jugadores:",
     "teamName": "Nombre del Equipo",
+    "namePlaceholder": "p. ej. Las Bravas FC",
     "primaryColor": "Color Primario",
     "secondaryColor": "Color Secundario",
     "logoOptional": "Logo del Equipo (opcional)",
@@ -159,6 +164,7 @@
   "joinTeam": {
     "title": "Unirse a un Equipo",
     "inviteCode": "C\u00f3digo de Invitaci\u00f3n",
+    "codePlaceholder": "p. ej. ABC12345",
     "askCoach": "Pide el c\u00f3digo a tu entrenador o capit\u00e1n",
     "invalidCode": "C\u00f3digo de invitaci\u00f3n inv\u00e1lido. Consulta con tu administrador para el c\u00f3digo correcto.",
     "tooManyAttempts": "Demasiados intentos con el c\u00f3digo de invitaci\u00f3n. Espera unos minutos e int\u00e9ntalo de nuevo.",
@@ -201,12 +207,15 @@
     "match": "\u26bd Partido",
     "training": "\ud83c\udfc3 Entrenamiento",
     "captain": "Capit\u00e1n: {name}",
+    "you": "T\u00fa",
     "edit": "Editar",
     "delete": "Eliminar",
     "save": "Guardar",
     "cancel": "Cancelar",
     "eventTitle": "T\u00edtulo del evento",
+    "titlePlaceholder": "p. ej. Entrenamiento del jueves",
     "locationOptional": "Ubicaci\u00f3n (opcional)",
+    "locationPlaceholder": "p. ej. Campo Central Park",
     "yesCount": "{count} s\u00ed",
     "maybeCount": "{count} tal vez",
     "noCount": "{count} no",
@@ -402,7 +411,9 @@
   "calendar": {
     "title": "Calendario del Equipo",
     "addToCalendar": "Agregar al calendario",
+    "options": "Opciones de calendario",
     "googleCalendar": "Google Calendar",
+    "appleOutlook": "Apple / Outlook (.ics)",
     "today": "Hoy",
     "prevMonth": "Mes anterior",
     "nextMonth": "Mes siguiente",

@@ -11,7 +11,7 @@ const labels: Record<Locale, string> = {
 };
 
 export default function LanguageSwitcher() {
-  const { locale } = useLocaleContext();
+  const { locale, t } = useLocaleContext();
   const router = useRouter();
 
   async function switchLocale(newLocale: Locale) {
@@ -31,7 +31,7 @@ export default function LanguageSwitcher() {
               ? "bg-gray-900 text-white"
               : "bg-gray-200 text-gray-600 hover:bg-gray-300"
           }`}
-          aria-label={`Switch to ${l === "en" ? "English" : "Español"}`}
+          aria-label={l === "en" ? t("common.switchToEnglish") : t("common.switchToSpanish")}
         >
           {labels[l]}
         </button>

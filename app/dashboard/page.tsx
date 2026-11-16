@@ -1,10 +1,16 @@
 import { getSessionContext } from "@/lib/session";
 import Link from "next/link";
+import type { Metadata } from "next";
 import DashboardEventList from "@/components/DashboardEventList";
 import { getServerT } from "@/lib/server-i18n";
+import { pageMetadata } from "@/lib/page-metadata";
 
 /** The dashboard only needs the next few events; the events page has the rest. */
 const UPCOMING_LIMIT = 20;
+
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata("nav.dashboard");
+}
 
 export default async function DashboardPage() {
   const { supabase, user, profile, team } = await getSessionContext();
@@ -102,7 +108,7 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-3 mt-1">
             {team?.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={team.logo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                <img src={team.logo_url} alt={team.name} className="h-10 w-10 rounded-full object-cover" />
             ) : (
                 <span className="text-2xl">⚽</span>
             )}

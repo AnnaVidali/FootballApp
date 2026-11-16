@@ -4,6 +4,10 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
+import ColorField from "@/components/ColorField";
+import { MAX_LOGO_BYTES, uniqueStorageName } from "@/lib/utils";
+
+const supabase = createClient();
 
 export default function CreateTeamPage() {
     const [teamName, setTeamName] = useState("");
@@ -11,12 +15,24 @@ export default function CreateTeamPage() {
     const [loading, setLoading] = useState(false);
     const [inviteCode, setInviteCode] = useState<string | null>(null);
     const router = useRouter();
-    const supabase = createClient();
     const { t } = useLocaleContext();
     const [primaryColour, setPrimaryColour] = useState("#16a34a");
     const [secondaryColour, setSecondaryColour] = useState("#ffffff");
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [settingsWarning, setSettingsWarning] = useState("");
+
+    function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0] ?? null;
+        // Same cap the settings page enforces; without it a huge image was
+        // uploaded and only failed later, after the team already existed.
+        if (file && file.size > MAX_LOGO_BYTES) {
+            setError(t("settings.logoTooLarge"));
+            e.target.value = "";
+            return;
+        }
+        setError("");
+        setLogoFile(file);
+    }
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -54,7 +70,9 @@ export default function CreateTeamPage() {
         }
 
         if (logoFile) {
-            const fileName = `${team.id}/${logoFile.name}`;
+            // A fresh object name per upload, so a later logo change in the
+            // settings page does not serve the cached first logo.
+            const fileName = `${team.id}/${uniqueStorageName(logoFile.name)}`;
             const { error: uploadError } = await supabase.storage
                 .from("team-logos")
                 .upload(fileName, logoFile);
@@ -129,39 +147,21 @@ export default function CreateTeamPage() {
                             onChange={(e) => setTeamName(e.target.value)}
                             required
                             className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
-                            placeholder="e.g. Las Bravas FC"
+                            placeholder={t("team.namePlaceholder")}
                         />
                     </div>
-                    <div>
-                        <label htmlFor="primary-color" className="block text-sm font-medium text-gray-700 mb-1">
-                            {t("team.primaryColor")}
-                        </label>
-                        <div className="flex items-center gap-3">
-                            <input
-                                id="primary-color"
-                                type="color"
-                                value={primaryColour}
-                                onChange={(e) => setPrimaryColour(e.target.value)}
-                                className="h-10 w-10 rounded border border-gray-300 cursor-pointer"
-                            />
-                            <span className="text-sm text-gray-500">{primaryColour}</span>
-                        </div>
-                    </div>
-                    <div>
-                        <label htmlFor="secondary-color" className="block text-sm font-medium text-gray-700 mb-1">
-                            {t("team.secondaryColor")}
-                        </label>
-                        <div className="flex items-center gap-3">
-                            <input
-                                id="secondary-color"
-                                type="color"
-                                value={secondaryColour}
-                                onChange={(e) => setSecondaryColour(e.target.value)}
-                                className="h-10 w-10 rounded border border-gray-300 cursor-pointer"
-                            />
-                            <span className="text-sm text-gray-500">{secondaryColour}</span>
-                        </div>
-                    </div>
+                    <ColorField
+                        id="primary-color"
+                        label={t("team.primaryColor")}
+                        value={primaryColour}
+                        onChange={setPrimaryColour}
+                    />
+                    <ColorField
+                        id="secondary-color"
+                        label={t("team.secondaryColor")}
+                        value={secondaryColour}
+                        onChange={setSecondaryColour}
+                    />
                     <div>
                         <label htmlFor="team-logo" className="block text-sm font-medium text-gray-700 mb-1">
                             {t("team.logoOptional")}
@@ -170,7 +170,7 @@ export default function CreateTeamPage() {
                             id="team-logo"
                             type="file"
                             accept="image/*"
-                            onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+                            onChange={handleLogoChange}
                             className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:font-medium"
                         />
                     </div>

@@ -6,6 +6,7 @@ import { useLocaleContext } from "@/lib/i18n-context";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import { compressImage } from "@/lib/image";
+import { mapWithConcurrency } from "@/lib/utils";
 import type { GalleryItem } from "@/types/database";
 
 const supabase = createClient();
@@ -97,12 +98,16 @@ export default function GalleryClient({
         if (files.length === 0) return;
         setBusy(true);
         const eventId = uploadEventId || null;
-        for (const file of files) {
+        // Upload a few at a time. One request after another made a large
+        // batch crawl, while firing them all at once would flood the storage
+        // API and the browser's connection pool.
+        await mapWithConcurrency(files, 3, async (file) => {
             try {
                 const blob = await compressImage(file);
-                // compressImage returns a JPEG, but falls back to the original
-                // file (e.g. HEIC on iOS) if the browser can't decode it, so we
-                // trust the blob's own type rather than assuming JPEG.
+                // compressImage returns a JPEG (or a PNG), but falls back to
+                // the original file (e.g. HEIC on iOS) if the browser can't
+                // decode it, so we trust the blob's own type rather than
+                // assuming JPEG.
                 const contentType = blob.type || "image/jpeg";
                 const extension = contentType === "image/png" ? "png" : contentType === "image/heic" ? "heic" : "jpg";
                 const path = `${teamId}/${uniqueName()}.${extension}`;
@@ -111,7 +116,7 @@ export default function GalleryClient({
                     .upload(path, blob, { contentType });
                 if (uploadError) {
                     showAlert(t("gallery.uploadFailed", { error: uploadError.message }));
-                    continue;
+                    return;
                 }
                 const { error: insertError } = await supabase.from("gallery_items").insert({
                     team_id: teamId,
@@ -128,7 +133,7 @@ export default function GalleryClient({
             } catch {
                 showAlert(t("gallery.errorUpload"));
             }
-        }
+        });
         setBusy(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
         await loadItems(teamId, limit);

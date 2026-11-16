@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
 import ReservationsClient, {
     type AvailabilityRow,
     type Member,
     type TrainingEvent,
 } from "@/components/ReservationsClient";
 import { getSessionContext } from "@/lib/session";
+import { pageMetadata } from "@/lib/page-metadata";
 import type { Reservation, ReservationPayment } from "@/types/database";
 
 const PAYMENT_COLUMNS = "id, reservation_id, user_id, amount, paid, paid_at, created_at";
@@ -11,6 +13,10 @@ const PAYMENT_COLUMNS = "id, reservation_id, user_id, amount, paid, paid_at, cre
 // Reservations are settled within weeks of the training, so a year of
 // trainings is plenty and keeps this query bounded.
 const RESERVATION_WINDOW_DAYS = 365;
+
+export async function generateMetadata(): Promise<Metadata> {
+    return pageMetadata("nav.reservations");
+}
 
 export default async function ReservationsPage() {
     const { supabase, user, profile } = await getSessionContext();

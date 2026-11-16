@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 
+const supabase = createClient();
+
 export default function JoinTeamClient({
     currentTeamName,
     canLeave,
@@ -16,7 +18,6 @@ export default function JoinTeamClient({
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const supabase = createClient();
     const { t } = useLocaleContext();
 
     // Warning, not a block: a regular player may switch teams, which is a
@@ -96,7 +97,7 @@ export default function JoinTeamClient({
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
                         required
-                        placeholder="e.g. ABC12345"
+                        placeholder={t("joinTeam.codePlaceholder")}
                         className="w-full rounded-md border border-gray-300 px-3 py-2 text-black uppercase tracking-wider text-center text-lg font-mono"
                     />
                     <p className="text-xs text-gray-400 mt-1">

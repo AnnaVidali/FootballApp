@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import JoinTeamClient from "@/components/JoinTeamClient";
 import { getSessionContext } from "@/lib/session";
+import { pageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+    return pageMetadata("joinTeam.title");
+}
 
 export default async function JoinTeamPage() {
     const { supabase, user, profile } = await getSessionContext();

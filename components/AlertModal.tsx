@@ -16,10 +16,20 @@ export default function AlertModal({
 }) {
     const buttonRef = useRef<HTMLButtonElement>(null);
     const dialogRef = useRef<HTMLDivElement>(null);
+    const previouslyFocused = useRef<HTMLElement | null>(null);
     const { t } = useLocaleContext();
 
     useEffect(() => {
-        if (open) buttonRef.current?.focus();
+        if (open) {
+            // Remember what had focus so it can be handed back on close;
+            // without this, focus fell to <body> and keyboard users lost
+            // their place in the page.
+            previouslyFocused.current = document.activeElement as HTMLElement | null;
+            buttonRef.current?.focus();
+        } else {
+            previouslyFocused.current?.focus();
+            previouslyFocused.current = null;
+        }
     }, [open]);
 
     const handleKey = useCallback(

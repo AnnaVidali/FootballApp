@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import RosterClient from "@/components/RosterClient";
 import { getSessionContext } from "@/lib/session";
+import { pageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+    return pageMetadata("nav.roster");
+}
 
 export default async function RosterPage() {
     const { supabase, user, profile, team } = await getSessionContext();

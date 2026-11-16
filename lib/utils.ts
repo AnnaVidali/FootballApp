@@ -101,3 +101,51 @@ export function formatTimeLeft(ms: number): string | null {
     if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
     return `${minutes}m ${seconds}s`;
 }
+
+/** Upload cap for team logos, shared by the create-team form and the settings page. */
+export const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+
+/**
+ * A collision-proof storage object name that keeps the original extension.
+ *
+ * Reusing the uploaded file's own name would write the same object path on
+ * every re-upload, so the public URL never changed and browsers kept serving
+ * the old cached image. A fresh name per upload sidesteps the cache; the
+ * previous object is left behind for the storage lifecycle policy to reap.
+ */
+export function uniqueStorageName(fileName: string): string {
+    const dot = fileName.lastIndexOf(".");
+    const extension = dot > 0 ? fileName.slice(dot).toLowerCase() : "";
+    return `${randomId()}${extension}`;
+}
+
+function randomId(): string {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+    }
+    return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
+}
+
+/**
+ * Runs `worker` over every item with at most `limit` in flight at once, so a
+ * large batch of uploads does not open dozens of sockets at the same time or
+ * flood the storage API, while still finishing much sooner than one at a time.
+ */
+export async function mapWithConcurrency<T>(
+    items: T[],
+    limit: number,
+    worker: (item: T) => Promise<void>
+): Promise<void> {
+    if (items.length === 0) return;
+    let next = 0;
+    const runners = Array.from(
+        { length: Math.min(Math.max(1, limit), items.length) },
+        async () => {
+            while (next < items.length) {
+                const index = next++;
+                await worker(items[index]);
+            }
+        }
+    );
+    await Promise.all(runners);
+}

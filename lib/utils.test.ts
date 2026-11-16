@@ -4,7 +4,9 @@ import {
     formatAmount,
     fromDateTimeLocalValue,
     getAvailabilityDeadline,
+    mapWithConcurrency,
     toDateTimeLocalValue,
+    uniqueStorageName,
 } from "./utils";
 
 describe("equalShare", () => {
@@ -83,5 +85,46 @@ describe("fromDateTimeLocalValue", () => {
     it("returns null for an empty or invalid value", () => {
         expect(fromDateTimeLocalValue("")).toBeNull();
         expect(fromDateTimeLocalValue("not-a-date")).toBeNull();
+    });
+});
+
+describe("uniqueStorageName", () => {
+    it("keeps the original extension, lower-cased", () => {
+        expect(uniqueStorageName("Team Logo.PNG")).toMatch(/\.png$/);
+        expect(uniqueStorageName("photo.jpeg")).toMatch(/\.jpeg$/);
+    });
+
+    it("gives a fresh name each call", () => {
+        expect(uniqueStorageName("logo.png")).not.toBe(uniqueStorageName("logo.png"));
+    });
+
+    it("handles names with no extension or a leading dot", () => {
+        expect(uniqueStorageName("logo")).not.toMatch(/\./);
+        expect(uniqueStorageName(".env")).not.toMatch(/\./);
+    });
+});
+
+describe("mapWithConcurrency", () => {
+    it("runs every item and never more than the limit at once", async () => {
+        const seen: number[] = [];
+        let inFlight = 0;
+        let peak = 0;
+
+        await mapWithConcurrency([1, 2, 3, 4, 5, 6, 7], 3, async (item) => {
+            inFlight += 1;
+            peak = Math.max(peak, inFlight);
+            await new Promise((resolve) => setTimeout(resolve, 1));
+            seen.push(item);
+            inFlight -= 1;
+        });
+
+        expect(seen.sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+        expect(peak).toBeLessThanOrEqual(3);
+    });
+
+    it("resolves without calling the worker for an empty list", async () => {
+        let calls = 0;
+        await mapWithConcurrency([], 3, async () => { calls += 1; });
+        expect(calls).toBe(0);
     });
 });

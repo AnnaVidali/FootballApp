@@ -9,7 +9,6 @@ export default function DashboardShell({
     children,
     teamLogo,
     teamName,
-    primaryColor,
     userName,
     isAdmin,
     role,
@@ -19,7 +18,6 @@ export default function DashboardShell({
     children: React.ReactNode;
     teamLogo: string | null;
     teamName: string | null;
-    primaryColor: string;
     userName: string;
     isAdmin: boolean;
     role: string;
@@ -28,43 +26,6 @@ export default function DashboardShell({
 }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const { t } = useLocaleContext();
-
-    React.useEffect(() => {
-        document.documentElement.style.setProperty("--primary", primaryColor);
-
-        // Auto-generate button text color based on primary brightness
-        const r = parseInt(primaryColor.slice(1, 3), 16);
-        const g = parseInt(primaryColor.slice(3, 5), 16);
-        const b = parseInt(primaryColor.slice(5, 7), 16);
-
-        // Use relative luminance (WCAG formula) for better contrast
-        const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-
-        // For saturated bright colors (high max channel, low min channel),
-        // force black text even if luminance is low
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        const saturation = max === 0 ? 0 : (max - min) / max;
-        const useBlackText = saturation > 0.5 && max > 150 ? true : luminance > 128;
-        document.documentElement.style.setProperty(
-            "--primary-text",
-            useBlackText ? "#000000" : "#ffffff"
-        );
-
-        // Display color: primary readable on white backgrounds
-        if (luminance > 180) {
-            // Light color - mix 60% primary + 40% black
-            const dr = Math.round(r * 0.6);
-            const dg = Math.round(g * 0.6);
-            const db = Math.round(b * 0.6);
-            document.documentElement.style.setProperty(
-                "--primary-display",
-                `#${dr.toString(16).padStart(2, "0")}${dg.toString(16).padStart(2, "0")}${db.toString(16).padStart(2, "0")}`
-            );
-        } else {
-            document.documentElement.style.setProperty("--primary-display", primaryColor);
-        }
-    }, [primaryColor]);
 
     return (
         <div className="flex h-screen overflow-hidden">

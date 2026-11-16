@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import AccountClient from "@/components/AccountClient";
 import { getSessionContext } from "@/lib/session";
+import { pageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+    return pageMetadata("nav.account");
+}
 
 export default async function AccountPage() {
     const { user, profile, team } = await getSessionContext();

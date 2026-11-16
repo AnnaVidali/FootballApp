@@ -2,6 +2,7 @@
 
 import { useId, useSyncExternalStore } from "react";
 import { useLocaleContext } from "@/lib/i18n-context";
+import { intlLocale } from "@/lib/i18n";
 import { useCspNonce } from "@/lib/csp-nonce";
 
 // `useSyncExternalStore` is the supported way to read a browser-only value:
@@ -44,7 +45,7 @@ export default function EventDate({ date }: { date: string }) {
   const id = useId();
   const { locale } = useLocaleContext();
   const nonce = useCspNonce();
-  const dateFmt = locale === "es" ? "es-ES" : "en-GB";
+  const dateFmt = intlLocale(locale);
   const onClient = useSyncExternalStore(
     subscribe,
     getClientSnapshot,

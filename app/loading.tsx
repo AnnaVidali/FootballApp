@@ -1,4 +1,7 @@
-export default function Loading() {
+import { getServerT } from "@/lib/server-i18n";
+
+export default async function Loading() {
+    const t = await getServerT();
     return (
         <div className="flex min-h-[60vh] items-center justify-center" role="status" aria-live="polite">
             <span className="flex items-center gap-3 text-sm text-gray-600">
@@ -6,7 +9,7 @@ export default function Loading() {
                     className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700"
                     aria-hidden="true"
                 />
-                Loading…
+                {t("common.loading")}
             </span>
         </div>
     );

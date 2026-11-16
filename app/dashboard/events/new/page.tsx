@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import { fromDateTimeLocalValue } from "@/lib/utils";
 
+const supabase = createClient();
+
 export default function NewEventPage() {
     const [type, setType] = useState<"match" | "training">("training");
     const [title, setTitle] = useState("");
@@ -14,7 +16,6 @@ export default function NewEventPage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const supabase = createClient();
     const { t } = useLocaleContext();
 
     async function handleSubmit(e: React.FormEvent) {
@@ -86,7 +87,7 @@ export default function NewEventPage() {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         required
-                        placeholder="e.g. Thursday Training"
+                        placeholder={t("events.titlePlaceholder")}
                         className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
                     />
                 </div>
@@ -112,7 +113,7 @@ export default function NewEventPage() {
                         type="text"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        placeholder="e.g. Central Park Field"
+                        placeholder={t("events.locationPlaceholder")}
                         className="w-full rounded-md border border-gray-300 px-3 py-2 text-black"
                     />
                 </div>
