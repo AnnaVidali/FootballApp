@@ -941,7 +941,7 @@ export default function LineupEditor({
                         <p className="text-xs text-gray-400 mb-1">{t("lineup.captainBadge")}</p>
                     )}
                     {!isAdmin && captainId && (
-                        <p className="text-xs text-gray-400 mb-1">{t("lineup.captainDisplay", { name: members.find(m => m.id === captainId)?.name ?? "Unknown" })}</p>
+                        <p className="text-xs text-gray-400 mb-1">{t("lineup.captainDisplay", { name: members.find(m => m.id === captainId)?.name ?? t("common.unknown") })}</p>
                     )}
 
                     {canEdit && (
@@ -1260,9 +1260,9 @@ export default function LineupEditor({
                         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
                             <h3 className="text-sm font-bold text-black mb-2">{t("lineup.setPieces")}</h3>
                             <div className="space-y-1 text-sm text-gray-600">
-                                {setPieceFoul && <p>{t("lineup.fouls")}: <span className="font-medium text-black">{members.find(m => m.id === setPieceFoul)?.name ?? "Unknown"}</span></p>}
-                                {setPieceCorner && <p>{t("lineup.corners")}: <span className="font-medium text-black">{members.find(m => m.id === setPieceCorner)?.name ?? "Unknown"}</span></p>}
-                                {setPiecePenalty && <p>{t("lineup.penalties")}: <span className="font-medium text-black">{members.find(m => m.id === setPiecePenalty)?.name ?? "Unknown"}</span></p>}
+                                {setPieceFoul && <p>{t("lineup.fouls")}: <span className="font-medium text-black">{members.find(m => m.id === setPieceFoul)?.name ?? t("common.unknown")}</span></p>}
+                                {setPieceCorner && <p>{t("lineup.corners")}: <span className="font-medium text-black">{members.find(m => m.id === setPieceCorner)?.name ?? t("common.unknown")}</span></p>}
+                                {setPiecePenalty && <p>{t("lineup.penalties")}: <span className="font-medium text-black">{members.find(m => m.id === setPiecePenalty)?.name ?? t("common.unknown")}</span></p>}
                             </div>
                         </div>
                     )}

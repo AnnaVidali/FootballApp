@@ -5,6 +5,7 @@ import {
     fromDateTimeLocalValue,
     getAvailabilityDeadline,
     mapWithConcurrency,
+    randomId,
     toDateTimeLocalValue,
     uniqueStorageName,
 } from "./utils";
@@ -85,6 +86,14 @@ describe("fromDateTimeLocalValue", () => {
     it("returns null for an empty or invalid value", () => {
         expect(fromDateTimeLocalValue("")).toBeNull();
         expect(fromDateTimeLocalValue("not-a-date")).toBeNull();
+    });
+});
+
+describe("randomId", () => {
+    it("returns a fresh non-empty id each call", () => {
+        const first = randomId();
+        expect(first.length).toBeGreaterThan(0);
+        expect(randomId()).not.toBe(first);
     });
 });
 

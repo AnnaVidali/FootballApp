@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useId } from "react";
 import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function AlertModal({
@@ -17,6 +17,7 @@ export default function AlertModal({
     const buttonRef = useRef<HTMLButtonElement>(null);
     const dialogRef = useRef<HTMLDivElement>(null);
     const previouslyFocused = useRef<HTMLElement | null>(null);
+    const titleId = useId();
     const { t } = useLocaleContext();
 
     useEffect(() => {
@@ -69,11 +70,11 @@ export default function AlertModal({
                 ref={dialogRef}
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="alert-dialog-title"
+                aria-labelledby={titleId}
                 className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h3 id="alert-dialog-title" className="text-lg font-bold text-black mb-2">{title}</h3>
+                <h3 id={titleId} className="text-lg font-bold text-black mb-2">{title}</h3>
                 <p className="text-sm text-gray-600 mb-4">{message}</p>
                 <button
                     ref={buttonRef}

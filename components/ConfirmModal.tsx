@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, type ReactNode } from "react";
+import { useEffect, useRef, useCallback, useId, type ReactNode } from "react";
 import { useLocaleContext } from "@/lib/i18n-context";
 
 export default function ConfirmModal({
@@ -27,6 +27,8 @@ export default function ConfirmModal({
     const cancelRef = useRef<HTMLButtonElement>(null);
     const dialogRef = useRef<HTMLDivElement>(null);
     const previouslyFocused = useRef<HTMLElement | null>(null);
+    const titleId = useId();
+    const messageId = useId();
     const { t } = useLocaleContext();
 
     useEffect(() => {
@@ -78,13 +80,13 @@ export default function ConfirmModal({
                 ref={dialogRef}
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="confirm-dialog-title"
-                aria-describedby="confirm-dialog-message"
+                aria-labelledby={titleId}
+                aria-describedby={messageId}
                 className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h3 id="confirm-dialog-title" className="text-lg font-bold text-black mb-2">{title}</h3>
-                <p id="confirm-dialog-message" className="text-sm text-gray-600 mb-4">{message}</p>
+                <h3 id={titleId} className="text-lg font-bold text-black mb-2">{title}</h3>
+                <p id={messageId} className="text-sm text-gray-600 mb-4">{message}</p>
                 {children}
                 <div className="flex gap-2">
                     <button

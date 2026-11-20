@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import DashboardShell from "@/components/DashboardShell";
 import { getSessionContext } from "@/lib/session";
+import { getServerT } from "@/lib/server-i18n";
 import { themeVars } from "@/lib/theme";
 import pkg from "../../package.json";
 
@@ -29,6 +30,7 @@ export default async function DashboardLayout({
   // hydration, so the page flashed the wrong colour on every load. The values
   // are validated hex strings, so they cannot break out of the <style>.
   const theme = themeVars(team?.primary_color ?? "#16a34a");
+  const t = await getServerT();
 
   return (
     <>
@@ -36,7 +38,7 @@ export default async function DashboardLayout({
       <DashboardShell
         teamLogo={team?.logo_url ?? null}
         teamName={team?.name ?? null}
-        userName={profile?.name ?? user.email ?? "User"}
+        userName={profile?.name ?? user.email ?? t("common.unknown")}
         isAdmin={profile?.is_admin ?? false}
         role={profile?.role ?? "player"}
         isOwner={team?.owner_id === user.id}

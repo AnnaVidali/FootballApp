@@ -6,7 +6,7 @@ import { useLocaleContext } from "@/lib/i18n-context";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import { compressImage } from "@/lib/image";
-import { mapWithConcurrency } from "@/lib/utils";
+import { mapWithConcurrency, randomId } from "@/lib/utils";
 import type { GalleryItem } from "@/types/database";
 
 const supabase = createClient();
@@ -24,15 +24,6 @@ export type GalleryClientProps = {
     initialMemberNames: Record<string, string>;
     initialEvents: EventOption[];
 };
-
-function uniqueName(): string {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-        return crypto.randomUUID();
-    }
-    const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 export default function GalleryClient({
     teamId,
@@ -110,7 +101,7 @@ export default function GalleryClient({
                 // assuming JPEG.
                 const contentType = blob.type || "image/jpeg";
                 const extension = contentType === "image/png" ? "png" : contentType === "image/heic" ? "heic" : "jpg";
-                const path = `${teamId}/${uniqueName()}.${extension}`;
+                const path = `${teamId}/${randomId()}.${extension}`;
                 const { error: uploadError } = await supabase.storage
                     .from("gallery")
                     .upload(path, blob, { contentType });

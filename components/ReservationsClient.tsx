@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import { intlLocale } from "@/lib/i18n";
 import { equalShare, formatAmount, getAvailabilityDeadline } from "@/lib/utils";
+import { useNow } from "@/lib/use-now";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import EventDate from "@/components/EventDate";
@@ -73,6 +74,10 @@ export default function ReservationsClient({
     const [alertOpen, setAlertOpen] = useState(false);
     const [alertMsg, setAlertMsg] = useState("");
     const { t, locale } = useLocaleContext();
+    // The RSVP deadline is midnight in the viewer's timezone, so it can only
+    // be resolved in the browser. `nowMs` is null for the server render and
+    // the first client render, which keeps their markup identical.
+    const nowMs = useNow(60_000);
 
     const dateFmt = intlLocale(locale);
     const money = (value: number) => formatAmount(value, dateFmt);
@@ -408,7 +413,14 @@ export default function ReservationsClient({
     function renderTraining(event: TrainingEvent) {
         const reservation = reservationByEvent.get(event.id);
         const deadline = getAvailabilityDeadline(event);
-        const closed = new Date() > deadline;
+        // Until the viewer's clock is known, fall back to the absolute start
+        // time: a training that has kicked off is past its midnight deadline
+        // in any timezone, and the comparison is timezone-independent, so the
+        // server and the client agree.
+        const closed =
+            nowMs !== null
+                ? nowMs > deadline.getTime()
+                : new Date().getTime() > new Date(event.date).getTime();
         const yesCount = yesProfileIds(event.id).length;
         const isCreatorOrAdmin =
             reservation !== undefined &&

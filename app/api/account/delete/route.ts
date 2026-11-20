@@ -11,10 +11,10 @@ export async function POST(request: Request) {
     const currentPassword =
         typeof body?.currentPassword === "string" ? body.currentPassword : "";
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!serviceRoleKey) {
+    if (!supabaseUrl || !serviceRoleKey) {
         return NextResponse.json(
             { error: "Server misconfigured.", code: "server_misconfigured" },
             { status: 500 },

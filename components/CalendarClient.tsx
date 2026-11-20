@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocaleContext } from "@/lib/i18n-context";
 import { intlLocale } from "@/lib/i18n";
 import { getAvailabilityDeadline } from "@/lib/utils";
+import { useNow } from "@/lib/use-now";
 
 type Event = {
   id: string;
@@ -52,22 +53,30 @@ export default function CalendarClient({
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [hideDeclined, setHideDeclined] = useState(false);
+  const now = useNow(60_000);
 
   const visibleEvents = useMemo(() => {
-    const now = new Date();
     const map: Record<string, DayEvent[]> = {};
+    // An event that has already started is past its midnight deadline in any
+    // timezone, so this absolute comparison is safe to make on the server.
+    const reference = new Date();
     events.forEach((e) => {
       const status = myStatus[e.id] ?? null;
+      const started = reference.getTime() > new Date(e.date).getTime();
+      // The deadline itself is midnight in the viewer's timezone, so it can
+      // only be resolved in the browser: `now` is null for the server render
+      // and the first client render, which keeps their markup identical. The
+      // started-time stand-in still dims and hides declined past events.
       const declinedAfterDeadline =
-        status !== "available" && now > getAvailabilityDeadline(e);
+        status !== "available" &&
+        (now !== null ? now > getAvailabilityDeadline(e).getTime() : started);
       if (hideDeclined && declinedAfterDeadline) return;
-      const dimmed =
-        declinedAfterDeadline || now.getTime() > new Date(e.date).getTime();
+      const dimmed = declinedAfterDeadline || started;
       const key = dayKey(new Date(e.date));
       (map[key] ??= []).push({ event: e, status, dimmed });
     });
     return map;
-  }, [events, myStatus, hideDeclined]);
+  }, [events, myStatus, hideDeclined, now]);
 
   const cellDates = useMemo(() => {
     const first = new Date(viewYear, viewMonth, 1);
@@ -79,7 +88,10 @@ export default function CalendarClient({
     );
   }, [viewYear, viewMonth]);
 
-  const todayKey = useMemo(() => dayKey(new Date()), []);
+  // Resolved on the client only; on the server render (and the first client
+  // render) no cell is highlighted, which keeps the markup identical and
+  // avoids the server's timezone picking "today" near midnight.
+  const todayKey = useMemo(() => (now === null ? null : dayKey(new Date(now))), [now]);
 
   const weekdayLabels = useMemo(() => {
     // 1 Jan 2024 is a Monday, and the grid starts its week on Monday, so the

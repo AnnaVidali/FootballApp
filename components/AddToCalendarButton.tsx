@@ -2,10 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useLocaleContext } from "@/lib/i18n-context";
-
-function toISOCompact(date: Date): string {
-    return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-}
+import { buildIcs, toIcsDate } from "@/lib/ics";
 
 export default function AddToCalendarButton({
     title,
@@ -43,7 +40,7 @@ export default function AddToCalendarButton({
         const params = new URLSearchParams({
             action: "TEMPLATE",
             text: title,
-            dates: `${toISOCompact(start)}/${toISOCompact(end)}`,
+            dates: `${toIcsDate(start)}/${toIcsDate(end)}`,
             ...(location ? { location } : {}),
         });
         window.open(`https://calendar.google.com/calendar/render?${params}`, "_blank");
@@ -51,18 +48,7 @@ export default function AddToCalendarButton({
     }
 
     function downloadICS() {
-        const lines = [
-            "BEGIN:VCALENDAR",
-            "VERSION:2.0",
-            "PRODID:-//Squad HQ//EN",
-            "BEGIN:VEVENT",
-            `DTSTART:${toISOCompact(start)}`,
-            `DTEND:${toISOCompact(end)}`,
-            `SUMMARY:${title}`,
-            location ? `LOCATION:${location}` : "",
-            "END:VEVENT",
-            "END:VCALENDAR",
-        ].filter(Boolean).join("\r\n");
+        const lines = buildIcs({ title, start, end, location });
 
         const blob = new Blob([lines], { type: "text/calendar;charset=utf-8" });
         const url = URL.createObjectURL(blob);

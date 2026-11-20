@@ -4,6 +4,7 @@ import EventsClient, {
     type Event,
 } from "@/components/EventsClient";
 import { getSessionContext } from "@/lib/session";
+import { getServerT } from "@/lib/server-i18n";
 import { pageMetadata } from "@/lib/page-metadata";
 
 const EVENT_COLUMNS = "id, title, type, date, location, captain_id";
@@ -91,13 +92,14 @@ export default async function EventsPage() {
         (profiles ?? []).map((row) => [row.user_id, { name: row.name, role: row.role }]),
     );
 
+    const t = await getServerT();
     const availability: AvailabilityRow[] = rows
         .filter((row) => profileMap.get(row.user_id)?.role !== "coach")
         .map((row) => ({
             event_id: row.event_id,
             user_id: row.user_id,
             status: row.status as AvailabilityRow["status"],
-            name: profileMap.get(row.user_id)?.name ?? "Unknown",
+            name: profileMap.get(row.user_id)?.name ?? t("common.unknown"),
         }));
 
     const reservationAmounts: Record<string, number> = {};

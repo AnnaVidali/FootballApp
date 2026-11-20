@@ -32,7 +32,7 @@ export default async function DashboardPage() {
       <div className="flex flex-col items-center justify-center h-full">
         <div className="text-center max-w-md">
           <h1 className="text-2xl font-bold text-black mb-4">
-            {t("dashboard.welcome", { name: profile?.name || "Player" })}
+            {t("dashboard.welcome", { name: profile?.name || t("common.unknown") })}
           </h1>
           <p className="text-gray-600 mb-8">
             {t("dashboard.noTeamYet")}

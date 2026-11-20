@@ -119,9 +119,19 @@ export function uniqueStorageName(fileName: string): string {
     return `${randomId()}${extension}`;
 }
 
-function randomId(): string {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-        return crypto.randomUUID();
+/**
+ * A collision-proof random id, used for storage object names. Prefers
+ * `crypto.randomUUID`, falls back to `crypto.getRandomValues`, and only
+ * then to a timestamp + `Math.random` for the (non-browser) odd runtime.
+ */
+export function randomId(): string {
+    if (typeof crypto !== "undefined") {
+        if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+        if (typeof crypto.getRandomValues === "function") {
+            const bytes = new Uint8Array(16);
+            crypto.getRandomValues(bytes);
+            return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+        }
     }
     return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
 }
