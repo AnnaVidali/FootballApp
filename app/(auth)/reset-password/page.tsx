@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { isRecoveryCallbackUrl } from "@/lib/utils";
+
+// supabase-js consumes the recovery token and the `type=recovery` marker from
+// the URL while it initialises, so capture this before creating the client.
+const isRecoveryLink =
+    typeof window !== "undefined" && isRecoveryCallbackUrl(window.location.href);
 
 const supabase = createClient();
 
@@ -26,12 +32,15 @@ export default function ResetPasswordPage() {
             }
         });
 
-        // Also check if we already have a valid session (e.g. tokens already exchanged)
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                setReady(true);
-            }
-        });
+        // A session is only sufficient on a recovery-link load: the token
+        // exchange may finish before the listener above is attached. On an
+        // ordinary visit, a signed-in user must not be able to set a new
+        // password without proving they own the account.
+        if (isRecoveryLink) {
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (session) setReady(true);
+            });
+        }
 
         // The recovery token arrives in the URL and is exchanged for a
         // session asynchronously. Give that exchange a generous window before

@@ -159,3 +159,15 @@ export async function mapWithConcurrency<T>(
     );
     await Promise.all(runners);
 }
+
+/**
+ * True when this page load came from a Supabase password-recovery link.
+ *
+ * supabase-js strips the token and `type=recovery` from the URL once it has
+ * exchanged them, so callers must check before the client initialises. A
+ * normal signed-in session is deliberately *not* a recovery: otherwise a
+ * stolen cookie alone would be enough to change the account password.
+ */
+export function isRecoveryCallbackUrl(href: string): boolean {
+    return /(?:[#?&])type=recovery(?:&|$)/i.test(href);
+}

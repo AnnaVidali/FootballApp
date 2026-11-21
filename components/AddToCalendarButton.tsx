@@ -5,11 +5,13 @@ import { useLocaleContext } from "@/lib/i18n-context";
 import { buildIcs, toIcsDate } from "@/lib/ics";
 
 export default function AddToCalendarButton({
+    eventId,
     title,
     date,
     location,
     type,
 }: {
+    eventId: string;
     title: string;
     date: string;
     location: string | null;
@@ -43,12 +45,22 @@ export default function AddToCalendarButton({
             dates: `${toIcsDate(start)}/${toIcsDate(end)}`,
             ...(location ? { location } : {}),
         });
-        window.open(`https://calendar.google.com/calendar/render?${params}`, "_blank");
+        window.open(
+            `https://calendar.google.com/calendar/render?${params}`,
+            "_blank",
+            "noopener,noreferrer"
+        );
         setOpen(false);
     }
 
     function downloadICS() {
-        const lines = buildIcs({ title, start, end, location });
+        const lines = buildIcs({
+            uid: `${eventId}@squadhq`,
+            title,
+            start,
+            end,
+            location,
+        });
 
         const blob = new Blob([lines], { type: "text/calendar;charset=utf-8" });
         const url = URL.createObjectURL(blob);

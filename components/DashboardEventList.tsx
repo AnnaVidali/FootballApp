@@ -91,6 +91,7 @@ export default function DashboardEventList({
               {!isCoach && <AvailabilityStatus eventDate={event.date} />}
               <div className="mt-2">
                 <AddToCalendarButton
+                  eventId={event.id}
                   title={event.title}
                   date={event.date}
                   location={event.location}

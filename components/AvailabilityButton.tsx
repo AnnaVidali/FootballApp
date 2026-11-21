@@ -78,7 +78,14 @@ export default function AvailabilityButton({
         // Check against the wall clock at click time rather than the
         // render-time value, so a click that lands in the first moments
         // after hydration still respects the deadline.
-        if (isPastDeadline(deadline)) return;
+        if (isPastDeadline(deadline)) {
+            // The 1s clock tick can leave the buttons visible for a moment
+            // after the deadline. Say why nothing was saved instead of
+            // silently swallowing the click.
+            setAlertMsg(t("availability.closed"));
+            setAlertOpen(true);
+            return;
+        }
         setLoading(true);
         try {
             const { error } = await supabase.from("availability").upsert(
@@ -96,34 +103,39 @@ export default function AvailabilityButton({
         }
     }
 
-    if (closed) {
-        return <p className="text-xs text-gray-400 mt-2">{t("availability.closed")}</p>;
-    }
-
     return (
         <div>
+            {/* Always mounted: a click that arrives just after the deadline
+                opens this on the way out, so the message must survive the
+                re-render that hides the buttons. */}
             <AlertModal open={alertOpen} title={t("common.error")} message={alertMsg} onClose={() => setAlertOpen(false)} />
-            <div className="flex gap-2 mt-2">
-                {(["available", "maybe", "unavailable"] as Status[]).map((status) => {
-                    const isActive = selected === status;
-                    return (
-                        <button
-                            key={status}
-                            type="button"
-                            onClick={() => respond(status)}
-                            disabled={loading}
-                            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                                isActive ? statusStyles[status].activeBg : statusStyles[status].inactiveBg
-                            }`}
-                        >
-                            {t(statusKeys[status])}
-                        </button>
-                    );
-                })}
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-                {timeLeft === null ? "" : t("availability.closesIn", { time: formatTimeLeft(timeLeft) ?? "" })}
-            </p>
+            {closed ? (
+                <p className="text-xs text-gray-400 mt-2">{t("availability.closed")}</p>
+            ) : (
+                <>
+                    <div className="flex gap-2 mt-2">
+                        {(["available", "maybe", "unavailable"] as Status[]).map((status) => {
+                            const isActive = selected === status;
+                            return (
+                                <button
+                                    key={status}
+                                    type="button"
+                                    onClick={() => respond(status)}
+                                    disabled={loading}
+                                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                                        isActive ? statusStyles[status].activeBg : statusStyles[status].inactiveBg
+                                    }`}
+                                >
+                                    {t(statusKeys[status])}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                        {timeLeft === null ? "" : t("availability.closesIn", { time: formatTimeLeft(timeLeft) ?? "" })}
+                    </p>
+                </>
+            )}
         </div>
     );
 }

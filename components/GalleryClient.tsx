@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, type FormEvent } from "react";
+import { useState, useCallback, useEffect, useRef, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import AlertModal from "@/components/AlertModal";
@@ -49,6 +49,7 @@ export default function GalleryClient({
     const [alertOpen, setAlertOpen] = useState(false);
     const [alertMsg, setAlertMsg] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const lightboxCloseRef = useRef<HTMLButtonElement>(null);
     const { t } = useLocaleContext();
 
     const loadItems = useCallback(async (tid: string, take: number) => {
@@ -82,6 +83,29 @@ export default function GalleryClient({
         setAlertMsg(message);
         setAlertOpen(true);
     }
+
+    // The lightbox is a modal: Escape closes it, focus starts on the close
+    // button and stays inside the overlay, then returns to the thumbnail.
+    useEffect(() => {
+        if (!lightbox) return;
+        const previousFocus = document.activeElement as HTMLElement | null;
+        lightboxCloseRef.current?.focus();
+
+        function onKeyDown(e: KeyboardEvent) {
+            if (e.key === "Escape") {
+                setLightbox(null);
+            } else if (e.key === "Tab") {
+                // The close button is the only control inside the overlay.
+                e.preventDefault();
+                lightboxCloseRef.current?.focus();
+            }
+        }
+        document.addEventListener("keydown", onKeyDown);
+        return () => {
+            document.removeEventListener("keydown", onKeyDown);
+            previousFocus?.focus();
+        };
+    }, [lightbox]);
 
     async function handleFiles(list: FileList | null) {
         if (!list || !teamId || !profileId) return;
@@ -430,8 +454,10 @@ export default function GalleryClient({
                     onClick={() => setLightbox(null)}
                     role="dialog"
                     aria-modal="true"
+                    aria-label={lightbox.caption || t("gallery.photo")}
                 >
                     <button
+                        ref={lightboxCloseRef}
                         type="button"
                         onClick={() => setLightbox(null)}
                         className="absolute top-4 right-4 rounded-md bg-white/90 px-3 py-1 text-sm font-medium text-black"

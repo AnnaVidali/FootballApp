@@ -4,7 +4,9 @@
   --background: #ffffff;
   --foreground: #171717;
   --primary: #16a34a;
-  --primary-text: #ffffff;
+  /* Matches themeVars("#16a34a") in lib/theme.ts; the dashboard overrides
+     this with the team's own derived value. */
+  --primary-text: #000000;
   /* Set per team by the dashboard layout; this is the fallback for the
      pages outside the dashboard (landing, auth). */
   --primary-display: #16a34a;

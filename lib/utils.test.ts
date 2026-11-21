@@ -4,6 +4,7 @@ import {
     formatAmount,
     fromDateTimeLocalValue,
     getAvailabilityDeadline,
+    isRecoveryCallbackUrl,
     mapWithConcurrency,
     randomId,
     toDateTimeLocalValue,
@@ -135,5 +136,21 @@ describe("mapWithConcurrency", () => {
         let calls = 0;
         await mapWithConcurrency([], 3, async () => { calls += 1; });
         expect(calls).toBe(0);
+    });
+});
+
+describe("isRecoveryCallbackUrl", () => {
+    it("recognises the marker in a hash or query callback", () => {
+        expect(
+            isRecoveryCallbackUrl("https://app.test/reset-password#access_token=x&type=recovery")
+        ).toBe(true);
+        expect(
+            isRecoveryCallbackUrl("https://app.test/reset-password?type=recovery&code=x")
+        ).toBe(true);
+    });
+
+    it("rejects an ordinary visit to the password form", () => {
+        expect(isRecoveryCallbackUrl("https://app.test/reset-password")).toBe(false);
+        expect(isRecoveryCallbackUrl("https://app.test/reset-password?next=type%3Drecovery")).toBe(false);
     });
 });

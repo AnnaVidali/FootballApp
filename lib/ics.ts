@@ -49,21 +49,29 @@ export function toIcsDate(date: Date): string {
 }
 
 export function buildIcs({
+    uid,
     title,
     start,
     end,
     location,
+    stamp = new Date(),
 }: {
+    uid: string;
     title: string;
     start: Date;
     end: Date;
     location?: string | null;
+    stamp?: Date;
 }): string {
     const lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//Squad HQ//EN",
+        "PRODID:-//Squad HQ//Squad HQ//EN",
         "BEGIN:VEVENT",
+        // RFC 5545 §3.6.1: UID and DTSTAMP are mandatory on every VEVENT.
+        // `stamp` is injectable so the output can be asserted in tests.
+        `UID:${uid}`,
+        `DTSTAMP:${toIcsDate(stamp)}`,
         `DTSTART:${toIcsDate(start)}`,
         `DTEND:${toIcsDate(end)}`,
         foldIcsLine(`SUMMARY:${escapeIcsText(title)}`),
