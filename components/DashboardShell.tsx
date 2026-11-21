@@ -25,7 +25,25 @@ export default function DashboardShell({
     appVersion: string;
 }) {
     const [isOpen, setIsOpen] = React.useState(false);
+    const sidebarId = React.useId();
+    const hamburgerRef = React.useRef<HTMLButtonElement>(null);
+    const sidebarRef = React.useRef<HTMLDivElement>(null);
     const { t } = useLocaleContext();
+
+    React.useEffect(() => {
+        if (!isOpen) return;
+        function onKeyDown(e: KeyboardEvent) {
+            if (e.key === "Escape") {
+                setIsOpen(false);
+                hamburgerRef.current?.focus();
+            }
+        }
+        window.addEventListener("keydown", onKeyDown);
+        // Move focus into the drawer so a keyboard user is not left on the
+        // hamburger with the navigation visually covering the page.
+        sidebarRef.current?.querySelector<HTMLElement>("nav a")?.focus();
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [isOpen]);
 
     return (
         <div className="flex h-screen overflow-hidden">
@@ -38,24 +56,33 @@ export default function DashboardShell({
             </a>
             {/* Hamburger button - mobile only */}
             <button
+                ref={hamburgerRef}
                 onClick={() => setIsOpen(true)}
                 className="fixed top-4 left-4 z-50 rounded-md bg-white p-2 shadow-md md:hidden"
                 aria-label={t("shell.openNav")}
+                aria-controls={sidebarId}
+                aria-expanded={isOpen}
             >
                 ☰
             </button>
-            {/* Overlay - mobile only, when sidebar is open */}
+            {/* Overlay - mobile only, when sidebar is open. A button so it
+                can be dismissed with the keyboard, not just a pointer. */}
             {isOpen && (
-                <div
-                    onClick={() => setIsOpen(false)}
+                <button
+                    type="button"
+                    onClick={() => { setIsOpen(false); hamburgerRef.current?.focus(); }}
+                    aria-label={t("shell.closeNav")}
                     className="fixed inset-0 z-40 bg-black/50 md:hidden"
                 />
             )}
-            {/* Sidebar column */}
+            {/* Sidebar column. `invisible` while closed on mobile keeps its
+                links out of the tab order and the accessibility tree. */}
             <div
+                ref={sidebarRef}
+                id={sidebarId}
                 className={`flex flex-col ${
-                    isOpen ? "translate-x-0" : "-translate-x-full"
-                } fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 md:relative md:translate-x-0`}
+                    isOpen ? "visible translate-x-0" : "invisible -translate-x-full"
+                } fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 md:visible md:relative md:translate-x-0`}
             >
                 <Sidebar
                     teamLogo={teamLogo}

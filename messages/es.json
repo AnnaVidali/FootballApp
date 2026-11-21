@@ -80,7 +80,8 @@
   },
   "shell": {
     "skipToContent": "Saltar al contenido",
-    "openNav": "Abrir men\u00fa de navegaci\u00f3n"
+    "openNav": "Abrir men\u00fa de navegaci\u00f3n",
+    "closeNav": "Cerrar men\u00fa de navegaci\u00f3n"
   },
   "auth": {
     "login": "Iniciar Sesi\u00f3n",
@@ -91,6 +92,7 @@
     "signIn": "Iniciar Sesi\u00f3n",
     "signingIn": "Iniciando...",
     "signOut": "Cerrar Sesi\u00f3n",
+    "signOutFailed": "No se pudo cerrar la sesi\u00f3n. Int\u00e9ntalo de nuevo.",
     "forgotPassword": "\u00bfOlvidaste tu contrase\u00f1a?",
     "resetPassword": "Restablecer Contrase\u00f1a",
     "createAccount": "Crear Cuenta",
@@ -180,6 +182,7 @@
     "inviteCode": "📋 Código de Invitación",
     "copy": "Copiar",
     "copied": "\u00a1Copiado!",
+    "copyFailed": "No se pudo copiar el c\u00f3digo de invitaci\u00f3n.",
     "shareCode": "Comparte este c\u00f3digo con los jugadores para que se unan",
     "teamMembers": "Miembros del Equipo ({count})",
     "makeAdmin": "Hacer Administrador",

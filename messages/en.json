@@ -80,7 +80,8 @@
   },
   "shell": {
     "skipToContent": "Skip to content",
-    "openNav": "Open navigation menu"
+    "openNav": "Open navigation menu",
+    "closeNav": "Close navigation menu"
   },
   "auth": {
     "login": "Login",
@@ -91,6 +92,7 @@
     "signIn": "Sign In",
     "signingIn": "Signing in...",
     "signOut": "Sign Out",
+    "signOutFailed": "Could not sign out. Please try again.",
     "forgotPassword": "Forgot Password?",
     "resetPassword": "Reset Password",
     "createAccount": "Create Account",
@@ -180,6 +182,7 @@
     "inviteCode": "📋 Invite Code",
     "copy": "Copy",
     "copied": "Copied!",
+    "copyFailed": "Could not copy the invite code.",
     "shareCode": "Share this code with players to join",
     "teamMembers": "Team Members ({count})",
     "makeAdmin": "Make Admin",

@@ -54,9 +54,14 @@ function EventsContent({
     isCoach,
     serverNow,
 }: EventsClientProps) {
+    const searchParams = useSearchParams();
+    const targetEventId = searchParams.get("eventId");
     const [events, setEvents] = useState<Event[]>(initialEvents);
     const [availability, setAvailability] = useState<AvailabilityRow[]>(initialAvailability);
-    const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+    // A deep link opens its card on mount. Dismissing it has to stick after
+    // the query string is cleaned up, so the expansion lives in state rather
+    // than being recomputed from `targetEventId` on every render.
+    const [expandedEvent, setExpandedEvent] = useState<string | null>(targetEventId);
     const [captainNames] = useState<Record<string, string>>(initialCaptainNames);
     const [reservationAmounts, setReservationAmounts] = useState<Record<string, number>>(initialReservationAmounts);
     const [alertOpen, setAlertOpen] = useState(false);
@@ -66,13 +71,9 @@ function EventsContent({
     const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null);
     const { t } = useLocaleContext();
     const router = useRouter();
-    const searchParams = useSearchParams();
     // A ticking clock keeps the upcoming/past split correct on a page left
     // open across kickoff; until hydration, use the exact server instant.
     const nowMs = useNow(60_000);
-    const targetEventId = searchParams.get("eventId");
-    // The card the link pointed at stays open until the user closes it.
-    const openFor = expandedEvent ?? targetEventId;
 
     useEffect(() => {
         if (!targetEventId) return;
@@ -218,10 +219,10 @@ function EventsContent({
                     .filter((a) => a.event_id === event.id)
                     .sort((a, b) => a.name.localeCompare(b.name))}
                 highlighted={targetEventId === event.id}
-                expanded={openFor === event.id}
+                expanded={expandedEvent === event.id}
                 onToggleExpanded={() => {
-                    router.replace("/dashboard/events");
-                    setExpandedEvent(openFor === event.id ? null : event.id);
+                    if (targetEventId) router.replace("/dashboard/events");
+                    setExpandedEvent(expandedEvent === event.id ? null : event.id);
                 }}
                 onSave={saveEvent}
                 onDelete={deleteEvent}

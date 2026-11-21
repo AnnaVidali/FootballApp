@@ -17,7 +17,8 @@
  * through an email change and an account deletion, verifies the rows
  * are gone, and deletes the user again if anything fails halfway. It
  * needs the service-role key, so it reads .env.local and must not be
- * pointed at a database whose users you care about.
+ * pointed at a database whose users you care about. Non-local targets
+ * require E2E_ALLOW_REMOTE=1 to confirm that.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -99,6 +100,24 @@ async function signIn(email, password) {
 }
 
 loadEnv();
+
+// This script deletes an auth user through the service-role key. Refuse to
+// run it against a deployed project unless the operator explicitly opts in.
+let targetHost = "";
+try {
+    targetHost = new URL(BASE_URL).hostname;
+} catch {
+    console.error(`E2E_BASE_URL is not a valid URL: ${BASE_URL}`);
+    process.exit(2);
+}
+const localHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+if (!localHosts.has(targetHost) && process.env.E2E_ALLOW_REMOTE !== "1") {
+    console.error(
+        `Refusing to run destructive account tests against ${targetHost}. ` +
+        "Set E2E_ALLOW_REMOTE=1 only when targeting a disposable project.",
+    );
+    process.exit(2);
+}
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

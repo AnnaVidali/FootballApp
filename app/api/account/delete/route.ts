@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     // Block team owner from deleting account — must transfer ownership first
     const { data: profile } = await adminClient
         .from("profiles")
-        .select("team_id")
+        .select("team_id, is_admin")
         .eq("user_id", user.id)
         .single();
 
@@ -71,6 +71,35 @@ export async function POST(request: Request) {
                 },
                 { status: 400 },
             );
+        }
+
+        // The roster page checks this through can_leave_team(), but that is
+        // a client-side gate. Enforce it here too so a direct POST cannot
+        // delete the last admin and leave a team no one can manage.
+        if (profile.is_admin) {
+            const { data: admins, error: countError } = await adminClient
+                .from("profiles")
+                .select("id")
+                .eq("team_id", profile.team_id)
+                .eq("is_admin", true);
+
+            if (countError) {
+                console.error("delete-account: admin count failed", countError.message);
+                return NextResponse.json(
+                    { error: "Could not verify the team's admins.", code: "server_misconfigured" },
+                    { status: 500 },
+                );
+            }
+
+            if ((admins?.length ?? 0) <= 1) {
+                return NextResponse.json(
+                    {
+                        error: "You're the only admin on this team. Promote another player before deleting your account.",
+                        code: "sole_admin",
+                    },
+                    { status: 400 },
+                );
+            }
         }
     }
 

@@ -259,12 +259,18 @@ export default function EventCard({
                                 <div className="mt-2 text-xs space-y-1">
                                     {availability.map((a) => (
                                         <div key={a.user_id} className="flex items-center gap-2">
-                                            <span className={
+                                            <span aria-hidden="true" className={
                                                 a.status === "available" ? "text-green-600" :
                                                 a.status === "maybe" ? "text-yellow-600" :
                                                 "text-red-500"
                                             }>
                                                 {a.status === "available" ? "\u2713" : a.status === "maybe" ? "?" : "\u2717"}
+                                            </span>
+                                            <span className="sr-only">
+                                                {t(
+                                                    a.status === "available" ? "common.yes" :
+                                                    a.status === "maybe" ? "common.maybe" : "common.no"
+                                                )}
                                             </span>
                                             <span className="text-gray-700">{a.name}</span>
                                         </div>
@@ -274,12 +280,12 @@ export default function EventCard({
                         </>
                     )}
 
-                    {isAdmin && event.type === "match" && (
+                    {event.type === "match" && (
                         <Link
                             href={`/dashboard/lineup/${event.id}`}
                             className="inline-block mt-2 text-xs font-medium text-gray-500 hover:text-gray-700"
                         >
-                            {isPast ? t("events.viewLineup") : t("events.setLineup")}
+                            {isAdmin && !isPast ? t("events.setLineup") : t("events.viewLineup")}
                         </Link>
                     )}
                 </>

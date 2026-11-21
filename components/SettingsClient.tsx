@@ -65,6 +65,10 @@ export default function SettingsClient({
             const url = URL.createObjectURL(file);
             objectUrlRef.current = url;
             setLogoPreview(url);
+        } else {
+            // Cancelling the file picker leaves `files` empty. Restore the
+            // stored logo instead of pointing the <img> at a revoked blob.
+            setLogoPreview(initialLogoUrl);
         }
     }
 

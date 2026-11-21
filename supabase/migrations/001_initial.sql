@@ -17,6 +17,7 @@ CREATE TABLE profiles (
   name TEXT NOT NULL,
   position TEXT,
   role TEXT DEFAULT 'player' NOT NULL CHECK (role IN ('coach', 'player')),
+  is_admin BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 

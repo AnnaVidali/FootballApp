@@ -55,9 +55,17 @@ export default function RosterClient({
     const isOwner = currentUserId === ownerId;
 
     async function copyInviteCode() {
-        await navigator.clipboard.writeText(inviteCode);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        try {
+            await navigator.clipboard.writeText(inviteCode);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // Clipboard access can be denied (or unavailable over http).
+            // Fail visibly instead of leaving an unhandled rejection and a
+            // button that looks like it did nothing.
+            setAlertMsg(t("roster.copyFailed"));
+            setAlertOpen(true);
+        }
     }
 
     function startEdit(member: Member) {
@@ -83,7 +91,11 @@ export default function RosterClient({
             position: editPosition || null,
             shirt_number: shirt,
         };
-        if (isAdmin) {
+        // The owner's privileges belong to ownership. A non-owner admin
+        // may edit their name/position/shirt number but not their rights.
+        const target = members.find((m) => m.id === memberId);
+        const ownerLocked = target?.user_id === ownerId && !isOwner;
+        if (isAdmin && !ownerLocked) {
             update.is_admin = editAdmin;
             update.role = editCoach ? "coach" : "player";
         }
@@ -268,6 +280,7 @@ export default function RosterClient({
                                                 <input
                                                     type="checkbox"
                                                     checked={editAdmin}
+                                                    disabled={member.user_id === ownerId && !isOwner}
                                                     onChange={(e) => setEditAdmin(e.target.checked)}
                                                 />
                                                 {t("roster.makeAdmin")}
@@ -276,6 +289,7 @@ export default function RosterClient({
                                                 <input
                                                     type="checkbox"
                                                     checked={editCoach}
+                                                    disabled={member.user_id === ownerId && !isOwner}
                                                     onChange={(e) => setEditCoach(e.target.checked)}
                                                 />
                                                 {t("roster.coachDescription")}
@@ -304,7 +318,7 @@ export default function RosterClient({
                                     <div>
                                         <p className="font-medium text-black">
                                             {member.name}
-                                            {member.shirt_number && (
+                                            {member.shirt_number !== null && member.shirt_number !== undefined && (
                                                 <span className="ml-2 text-sm text-gray-500">#{member.shirt_number}</span>
                                             )}
                                         </p>

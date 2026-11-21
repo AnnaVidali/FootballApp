@@ -18,6 +18,7 @@ export default function AlertModal({
     const dialogRef = useRef<HTMLDivElement>(null);
     const previouslyFocused = useRef<HTMLElement | null>(null);
     const titleId = useId();
+    const messageId = useId();
     const { t } = useLocaleContext();
 
     useEffect(() => {
@@ -71,11 +72,12 @@ export default function AlertModal({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
+                aria-describedby={messageId}
                 className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4"
                 onClick={(e) => e.stopPropagation()}
             >
                 <h3 id={titleId} className="text-lg font-bold text-black mb-2">{title}</h3>
-                <p className="text-sm text-gray-600 mb-4">{message}</p>
+                <p id={messageId} className="text-sm text-gray-600 mb-4">{message}</p>
                 <button
                     ref={buttonRef}
                     onClick={onClose}

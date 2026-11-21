@@ -39,6 +39,7 @@ const SCOPED: Record<ApiErrorScope, { codes: Record<string, string>; fallback: s
     delete: {
         codes: {
             owner: "account.ownerTransferFirst",
+            sole_admin: "account.soleAdminFirst",
         },
         fallback: "account.errorDelete",
     },

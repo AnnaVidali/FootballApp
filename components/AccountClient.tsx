@@ -135,6 +135,10 @@ export default function AccountClient({
             }
             setNewEmail("");
             setEmailPassword("");
+            // The page passes the email down as a server prop. Refresh it so
+            // the next password change re-authenticates with the new address
+            // instead of reporting "incorrect password" for the old one.
+            router.refresh();
             showAlert(t("common.notice"), t("account.emailUpdated"));
         } catch {
             showAlert(t("common.error"), t("account.errorEmailUpdate"));
@@ -153,7 +157,15 @@ export default function AccountClient({
         }
 
         if (isAdmin) {
-            const { data: canLeave } = await supabase.rpc("can_leave_team");
+            const { data: canLeave, error: canLeaveError } = await supabase.rpc("can_leave_team");
+            if (canLeaveError) {
+                // Never treat an RPC failure as permission to delete: the
+                // server also enforces this rule, but the user should not
+                // get a confusing password error after the check failed.
+                showAlert(t("common.error"), t("roster.checkFailed", { error: canLeaveError.message }));
+                setLoading(false);
+                return;
+            }
             if (canLeave === false) {
                 showAlert(t("common.error"), t("account.soleAdminFirst"));
                 setLoading(false);

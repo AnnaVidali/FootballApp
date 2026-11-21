@@ -32,6 +32,7 @@ export default function LanguageSwitcher() {
               : "bg-gray-200 text-gray-600 hover:bg-gray-300"
           }`}
           aria-label={l === "en" ? t("common.switchToEnglish") : t("common.switchToSpanish")}
+          aria-pressed={l === locale}
         >
           {labels[l]}
         </button>
