@@ -15,6 +15,7 @@ export default async function LineupPage({
 }) {
     const { eventId } = await params;
     const { supabase, user, profile } = await getSessionContext();
+    const serverNow = new Date().toISOString();
     if (!user) redirect("/login");
     if (!profile?.team_id) redirect("/dashboard");
 
@@ -62,6 +63,7 @@ export default async function LineupPage({
             existingLineup={lineup ?? []}
             existingSetPieces={setPieces ?? []}
             isAdmin={profile.is_admin}
+            serverNow={serverNow}
         />
     );
 }

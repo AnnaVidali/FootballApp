@@ -10,7 +10,9 @@ import { isRecoveryCallbackUrl } from "@/lib/utils";
 
 // supabase-js consumes the recovery token and the `type=recovery` marker from
 // the URL while it initialises, so capture this before creating the client.
-const isRecoveryLink =
+// Next.js caches route modules, so the effect below claims and clears the flag
+// on mount: a later client-side visit must not inherit an earlier recovery.
+let recoveryLinkPending =
     typeof window !== "undefined" && isRecoveryCallbackUrl(window.location.href);
 
 const supabase = createClient();
@@ -36,7 +38,9 @@ export default function ResetPasswordPage() {
         // exchange may finish before the listener above is attached. On an
         // ordinary visit, a signed-in user must not be able to set a new
         // password without proving they own the account.
-        if (isRecoveryLink) {
+        const hasRecoveryLink = recoveryLinkPending;
+        recoveryLinkPending = false;
+        if (hasRecoveryLink) {
             supabase.auth.getSession().then(({ data: { session } }) => {
                 if (session) setReady(true);
             });

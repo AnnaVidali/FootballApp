@@ -34,85 +34,117 @@ const RSVP_COLORS: Record<RsvpStatus, string> = {
 };
 const RSVP_PENDING = "#d1d5db";
 
-function dayKey(d: Date): string {
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+/**
+ * A grid key from UTC parts on the server and the first client render, and
+ * from the viewer's local parts once the clock is known. Using one convention
+ * at a time keeps the markup identical through hydration.
+ */
+function dayKey(d: Date, local: boolean): string {
+  const year = local ? d.getFullYear() : d.getUTCFullYear();
+  const month = local ? d.getMonth() : d.getUTCMonth();
+  const day = local ? d.getDate() : d.getUTCDate();
+  return `${year}-${month}-${day}`;
 }
 
 export default function CalendarClient({
   initialEvents,
   initialStatus,
+  serverNow,
 }: {
   initialEvents: Event[];
   initialStatus: Record<string, RsvpStatus>;
+  serverNow: string;
 }) {
   const { t, locale } = useLocaleContext();
   const dateFmt = intlLocale(locale);
 
   const [events] = useState<Event[]>(initialEvents);
   const [myStatus] = useState<Record<string, RsvpStatus>>(initialStatus);
-  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
-  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [hideDeclined, setHideDeclined] = useState(false);
+  const [viewOverride, setViewOverride] = useState<{ year: number; month: number } | null>(null);
   const now = useNow(60_000);
+  const referenceMs = now ?? Date.parse(serverNow);
+
+  // The first paint shows the UTC month of the server's timestamp, which is
+  // identical in the HTML and in React's client tree. The clock effect then
+  // swaps in the local month; only a viewer right on a month boundary sees a
+  // change, and there is no hydration error either way.
+  const anchor = viewOverride ?? (() => {
+    const d = new Date(referenceMs);
+    return now === null
+      ? { year: d.getUTCFullYear(), month: d.getUTCMonth() }
+      : { year: d.getFullYear(), month: d.getMonth() };
+  })();
+  const viewYear = anchor.year;
+  const viewMonth = anchor.month;
 
   const visibleEvents = useMemo(() => {
     const map: Record<string, DayEvent[]> = {};
-    // An event that has already started is past its midnight deadline in any
-    // timezone, so this absolute comparison is safe to make on the server.
-    const reference = new Date();
     events.forEach((e) => {
       const status = myStatus[e.id] ?? null;
-      const started = reference.getTime() > new Date(e.date).getTime();
-      // The deadline itself is midnight in the viewer's timezone, so it can
-      // only be resolved in the browser: `now` is null for the server render
-      // and the first client render, which keeps their markup identical. The
-      // started-time stand-in still dims and hides declined past events.
+      // An event that has already started is past its midnight deadline in
+      // any timezone, so this absolute comparison is safe on the server.
+      const started = referenceMs > new Date(e.date).getTime();
+      // The deadline itself is midnight in the viewer's timezone: use the
+      // clock once it exists, and the start-time stand-in until then.
       const declinedAfterDeadline =
         status !== "available" &&
         (now !== null ? now > getAvailabilityDeadline(e).getTime() : started);
       if (hideDeclined && declinedAfterDeadline) return;
       const dimmed = declinedAfterDeadline || started;
-      const key = dayKey(new Date(e.date));
+      const key = dayKey(new Date(e.date), now !== null);
       (map[key] ??= []).push({ event: e, status, dimmed });
     });
     return map;
-  }, [events, myStatus, hideDeclined, now]);
+  }, [events, myStatus, hideDeclined, now, referenceMs]);
 
+  // Grid cells are plain calendar parts, built in UTC. Their keys therefore
+  // match the UTC event keys on the server and the local ones in the browser,
+  // without ever constructing a Date in the viewer's timezone during render.
   const cellDates = useMemo(() => {
-    const first = new Date(viewYear, viewMonth, 1);
-    const offset = (first.getDay() + 6) % 7;
-    return Array.from(
-      { length: 42 },
-      (_, i) =>
-        new Date(viewYear, viewMonth, 1 - offset + i)
-    );
+    const offset = (new Date(Date.UTC(viewYear, viewMonth, 1)).getUTCDay() + 6) % 7;
+    return Array.from({ length: 42 }, (_, i) => {
+      const d = new Date(Date.UTC(viewYear, viewMonth, 1 - offset + i));
+      const year = d.getUTCFullYear();
+      const month = d.getUTCMonth();
+      const day = d.getUTCDate();
+      return {
+        key: `${year}-${month}-${day}`,
+        day,
+        inMonth: month === viewMonth,
+      };
+    });
   }, [viewYear, viewMonth]);
 
-  // Resolved on the client only; on the server render (and the first client
-  // render) no cell is highlighted, which keeps the markup identical and
-  // avoids the server's timezone picking "today" near midnight.
-  const todayKey = useMemo(() => (now === null ? null : dayKey(new Date(now))), [now]);
+  const todayKey = useMemo(() => (now === null ? null : dayKey(new Date(now), true)), [now]);
 
   const weekdayLabels = useMemo(() => {
     // 1 Jan 2024 is a Monday, and the grid starts its week on Monday, so the
-    // labels line up with the columns. A fixed anchor keeps them stable
-    // instead of depending on today's date.
+    // labels line up with the columns. A fixed anchor keeps them stable.
     return Array.from({ length: 7 }, (_, i) =>
-      new Date(2024, 0, 1 + i).toLocaleDateString(dateFmt, {
+      new Date(Date.UTC(2024, 0, 1 + i)).toLocaleDateString(dateFmt, {
         weekday: "short",
+        timeZone: "UTC",
       })
     );
   }, [dateFmt]);
 
-  const monthTitle = new Date(viewYear, viewMonth, 1).toLocaleDateString(
+  const monthTitle = new Date(Date.UTC(viewYear, viewMonth, 1)).toLocaleDateString(
     dateFmt,
-    { month: "long", year: "numeric" }
+    { month: "long", year: "numeric", timeZone: "UTC" }
   );
 
+  function moveMonth(delta: number) {
+    const total = viewYear * 12 + viewMonth + delta;
+    setViewOverride({
+      year: Math.floor(total / 12),
+      month: ((total % 12) + 12) % 12,
+    });
+  }
+
   function goToToday() {
-    const now = new Date();
-    setViewYear(now.getFullYear());
-    setViewMonth(now.getMonth());
+    const d = new Date();
+    setViewOverride({ year: d.getFullYear(), month: d.getMonth() });
   }
 
   return (
@@ -133,14 +165,14 @@ export default function CalendarClient({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setViewMonth(viewMonth - 1)}
+            onClick={() => moveMonth(-1)}
             aria-label={t("calendar.prevMonth")}
             className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
           >
             &#8592;
           </button>
           <button
-            onClick={() => setViewMonth(viewMonth + 1)}
+            onClick={() => moveMonth(1)}
             aria-label={t("calendar.nextMonth")}
             className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
           >
@@ -175,15 +207,12 @@ export default function CalendarClient({
             ))}
           </div>
           {cellDates.map((cell) => {
-            const key = dayKey(cell);
-            const isToday = key === todayKey;
-            const inMonth = cell.getMonth() === viewMonth;
-            const dayEvents = visibleEvents[key] ?? [];
+            const isToday = cell.key === todayKey;
             return (
               <div
-                key={key}
+                key={cell.key}
                 className={`min-h-28 border-b border-r border-gray-100 p-1.5 ${
-                  inMonth ? "bg-white" : "bg-gray-50"
+                  cell.inMonth ? "bg-white" : "bg-gray-50"
                 }`}
               >
                 <div className="mb-1 flex justify-end">
@@ -191,16 +220,16 @@ export default function CalendarClient({
                     className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${
                       isToday
                         ? "bg-[var(--primary)] font-semibold text-[var(--primary-text)]"
-                        : inMonth
+                        : cell.inMonth
                         ? "text-gray-700"
                         : "text-gray-400"
                     }`}
                   >
-                    {cell.getDate()}
+                    {cell.day}
                   </span>
                 </div>
                 <div className="space-y-1">
-                  {dayEvents.map(({ event, status, dimmed }) => (
+                  {(visibleEvents[cell.key] ?? []).map(({ event, status, dimmed }) => (
                     <Link
                       key={event.id}
                       href={`/dashboard/events?eventId=${event.id}`}
@@ -219,10 +248,11 @@ export default function CalendarClient({
                         }}
                       />
                       <span className="shrink-0 text-gray-500 tabular-nums">
-                        {new Date(event.date).toLocaleTimeString(dateFmt, {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {new Date(event.date).toLocaleTimeString(dateFmt,
+                          now === null
+                            ? { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }
+                            : { hour: "2-digit", minute: "2-digit" }
+                        )}
                       </span>
                       <span className="min-w-0 truncate">
                         {event.title}

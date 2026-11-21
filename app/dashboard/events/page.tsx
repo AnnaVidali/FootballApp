@@ -15,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function EventsPage() {
     const { supabase, user, profile } = await getSessionContext();
+    const serverNow = new Date().toISOString();
 
     if (!user || !profile?.team_id) {
         return (
@@ -26,13 +27,14 @@ export default async function EventsPage() {
                 currentUserId={user?.id ?? ""}
                 isAdmin={false}
                 isCoach={false}
+                serverNow={serverNow}
             />
         );
     }
 
     // Upcoming first, then the 50 most recent past events. Bounding the
     // past side keeps the payload flat over several seasons.
-    const nowIso = new Date().toISOString();
+    const nowIso = serverNow;
     const [{ data: upcoming }, { data: past }] = await Promise.all([
         supabase
             .from("events")
@@ -116,6 +118,7 @@ export default async function EventsPage() {
             currentUserId={user.id}
             isAdmin={profile.is_admin}
             isCoach={profile.role === "coach"}
+            serverNow={serverNow}
         />
     );
 }

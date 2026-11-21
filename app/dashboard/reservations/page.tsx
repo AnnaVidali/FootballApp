@@ -20,6 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ReservationsPage() {
     const { supabase, user, profile } = await getSessionContext();
+    const serverNow = new Date().toISOString();
 
     if (!user || !profile?.team_id) {
         return (
@@ -32,6 +33,7 @@ export default async function ReservationsPage() {
                 initialReservations={[]}
                 initialPayments={[]}
                 initialAvailability={[]}
+                serverNow={serverNow}
             />
         );
     }
@@ -93,6 +95,7 @@ export default async function ReservationsPage() {
             initialReservations={reservations}
             initialPayments={payments}
             initialAvailability={availability}
+            serverNow={serverNow}
         />
     );
 }

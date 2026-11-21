@@ -9,10 +9,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function LineupPage() {
     const { supabase, user, profile } = await getSessionContext();
+    const serverNow = new Date().toISOString();
 
     if (!user || !profile?.team_id) {
         return (
-            <LineupPageClient initialEvents={[]} initialMembers={[]} isAdmin={false} />
+            <LineupPageClient initialEvents={[]} initialMembers={[]} isAdmin={false} serverNow={serverNow} />
         );
     }
 
@@ -44,6 +45,7 @@ export default async function LineupPage() {
             initialEvents={matches ?? []}
             initialMembers={members ?? []}
             isAdmin={profile.is_admin}
+            serverNow={serverNow}
         />
     );
 }

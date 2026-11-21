@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/lib/i18n-context";
 import { fromDateTimeLocalValue } from "@/lib/utils";
+import { useNow } from "@/lib/use-now";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import EventCard, {
@@ -27,6 +28,7 @@ export type EventsClientProps = {
     currentUserId: string;
     isAdmin: boolean;
     isCoach: boolean;
+    serverNow: string;
 };
 
 export default function EventsClient(props: EventsClientProps) {
@@ -50,6 +52,7 @@ function EventsContent({
     currentUserId,
     isAdmin,
     isCoach,
+    serverNow,
 }: EventsClientProps) {
     const [events, setEvents] = useState<Event[]>(initialEvents);
     const [availability, setAvailability] = useState<AvailabilityRow[]>(initialAvailability);
@@ -64,6 +67,9 @@ function EventsContent({
     const { t } = useLocaleContext();
     const router = useRouter();
     const searchParams = useSearchParams();
+    // A ticking clock keeps the upcoming/past split correct on a page left
+    // open across kickoff; until hydration, use the exact server instant.
+    const nowMs = useNow(60_000);
     const targetEventId = searchParams.get("eventId");
     // The card the link pointed at stays open until the user closes it.
     const openFor = expandedEvent ?? targetEventId;
@@ -191,9 +197,9 @@ function EventsContent({
         setPendingDeleteEventId(null);
     }
 
-    const now = new Date();
-    const upcoming = events.filter((e) => new Date(e.date) >= now);
-    const past = events.filter((e) => new Date(e.date) < now).slice(0, 50);
+    const now = nowMs ?? Date.parse(serverNow);
+    const upcoming = events.filter((e) => new Date(e.date).getTime() >= now);
+    const past = events.filter((e) => new Date(e.date).getTime() < now).slice(0, 50);
 
     function renderCard(event: Event, variant: "upcoming" | "past") {
         return (

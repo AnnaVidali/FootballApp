@@ -44,10 +44,12 @@ export default function LineupPageClient({
     initialEvents,
     initialMembers,
     isAdmin,
+    serverNow,
 }: {
     initialEvents: Event[];
     initialMembers: Member[];
     isAdmin: boolean;
+    serverNow: string;
 }) {
     const [events] = useState<Event[]>(initialEvents);
     const [allMembers] = useState<Member[]>(initialMembers);
@@ -118,6 +120,7 @@ export default function LineupPageClient({
                         existingLineup={lineup}
                         existingSetPieces={setPieces}
                         isAdmin={isAdmin}
+                        serverNow={serverNow}
                     />
                 )}
             </div>

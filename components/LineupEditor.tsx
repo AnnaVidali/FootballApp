@@ -8,6 +8,7 @@ import { PEN_COLORS, usePitchDrawing } from "@/lib/use-pitch-drawing";
 import AlertModal from "@/components/AlertModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import EventDate from "@/components/EventDate";
+import { useNow } from "@/lib/use-now";
 
 const supabase = createClient();
 
@@ -153,12 +154,14 @@ export default function LineupEditor({
     existingLineup,
     existingSetPieces,
     isAdmin,
+    serverNow,
 }: {
     event: { id: string; title: string; type: string; date: string; location: string | null; formation: string | null; captain_id: string | null };
     members: Member[];
     existingLineup: LineupEntry[];
     existingSetPieces: { piece_type: string; player_id: string }[];
     isAdmin: boolean;
+    serverNow: string;
 }) {
     const router = useRouter();
     const pitchRef = useRef<HTMLDivElement>(null);
@@ -169,7 +172,10 @@ export default function LineupEditor({
     const [alertOpen, setAlertOpen] = useState(false);
     const [alertMsg, setAlertMsg] = useState("");
 
-    const isLocked = new Date(event.date) <= new Date();
+    // The clock ticks so a page left open across kickoff locks itself. Until
+    // hydration, use the exact instant the server used for the query.
+    const nowMs = useNow(60_000);
+    const isLocked = new Date(event.date).getTime() <= (nowMs ?? Date.parse(serverNow));
     const canEdit = isAdmin && !isLocked;
 
     // The event's own formation and captain are the source of truth, but only

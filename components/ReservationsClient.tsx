@@ -45,6 +45,7 @@ export type ReservationsClientProps = {
     initialReservations: Reservation[];
     initialPayments: ReservationPayment[];
     initialAvailability: AvailabilityRow[];
+    serverNow: string;
 };
 
 export default function ReservationsClient({
@@ -56,6 +57,7 @@ export default function ReservationsClient({
     initialReservations,
     initialPayments,
     initialAvailability,
+    serverNow,
 }: ReservationsClientProps) {
     const [members] = useState<Member[]>(initialMembers);
     const [events] = useState<TrainingEvent[]>(initialEvents);
@@ -78,6 +80,7 @@ export default function ReservationsClient({
     // be resolved in the browser. `nowMs` is null for the server render and
     // the first client render, which keeps their markup identical.
     const nowMs = useNow(60_000);
+    const referenceMs = nowMs ?? Date.parse(serverNow);
 
     const dateFmt = intlLocale(locale);
     const money = (value: number) => formatAmount(value, dateFmt);
@@ -420,7 +423,7 @@ export default function ReservationsClient({
         const closed =
             nowMs !== null
                 ? nowMs > deadline.getTime()
-                : new Date().getTime() > new Date(event.date).getTime();
+                : referenceMs > new Date(event.date).getTime();
         const yesCount = yesProfileIds(event.id).length;
         const isCreatorOrAdmin =
             reservation !== undefined &&
@@ -569,12 +572,17 @@ export default function ReservationsClient({
                             <div className="mt-2">
                                 <p className="text-sm text-gray-600">
                                     {t("reservations.splitAfterDeadline", {
+                                        // The deadline is a local-midnight Date.
+                                        // Format it as UTC until the browser
+                                        // clock is known, so the server HTML
+                                        // and the first client render agree.
                                         date: deadline.toLocaleDateString(dateFmt, {
                                             weekday: "short",
                                             day: "numeric",
                                             month: "short",
                                             hour: "2-digit",
                                             minute: "2-digit",
+                                            ...(nowMs === null ? { timeZone: "UTC" } : {}),
                                         }),
                                     })}
                                 </p>
@@ -832,13 +840,13 @@ export default function ReservationsClient({
         );
     }
 
-    const now = new Date();
+    const now = referenceMs;
     const isClosed = (event: TrainingEvent) =>
         Boolean(reservationByEvent.get(event.id)?.closed_at);
-    const upcoming = events.filter((e) => new Date(e.date) >= now && !isClosed(e));
+    const upcoming = events.filter((e) => new Date(e.date).getTime() >= now && !isClosed(e));
     const past = events
         .filter(
-            (e) => new Date(e.date) < now && reservationByEvent.has(e.id) && !isClosed(e)
+            (e) => new Date(e.date).getTime() < now && reservationByEvent.has(e.id) && !isClosed(e)
         )
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const closedEvents = events

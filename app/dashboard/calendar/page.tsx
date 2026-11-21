@@ -18,6 +18,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function CalendarPage() {
     const { supabase, user, profile } = await getSessionContext();
+    // The same instant is used for the server's UTC render and the client's
+    // first render, so timezone-dependent markup cannot drift at hydration.
+    const serverNow = new Date().toISOString();
 
     let events: EventRow[] = [];
     const status: Record<string, RsvpStatus> = {};
@@ -54,5 +57,5 @@ export default async function CalendarPage() {
         }
     }
 
-    return <CalendarClient initialEvents={events} initialStatus={status} />;
+    return <CalendarClient initialEvents={events} initialStatus={status} serverNow={serverNow} />;
 }
